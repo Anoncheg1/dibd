@@ -1,0 +1,20 @@
+/**
+ * 
+ */
+package org.sonews.feed;
+
+import java.net.Socket;
+
+/**
+ * For ConnectionCollector
+ * 
+ * @author user
+ *
+ */
+public interface Connection {
+	Socket getSocket();
+	long getLastActivity();
+	//boolean isOutputBufferEmpty();
+	//void recycleBuffers();
+
+}

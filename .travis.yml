@@ -1,0 +1,21 @@
+language: java
+
+jdk:
+  - oraclejdk8
+
+script: mvn clean compile test package
+
+env:
+  global:
+   # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
+   #   via the "travis encrypt" command using the project repo's public key
+   - secure: "LhtuSQHL8EWp8ScfpRSliaaeoKT9Z7+5lX9x/xSl3jFpoU9rm/09phXPi9/Jb+M5gNX7CRm4xhtBTJYv3PrCzOpe4vfE/HoM4acfsRaj4x4ddp4yzG69WNpR++AxVdCDfLbOF2m3qYVtUM8yCY2PYjsDQL0v+Fc/kiPsA4Ed1+x5RUD8LxYRlIqC8kFfnl1b/YqLuZL3Sj47XATQgxx67BZ2fkfYTdJQDpBel3kj+N5dMjrQodVB7xzDeODE2SLtIlai91pHqldqoMeCD5/ixbruVVmpFh/M3T2huwKrGl7VZt5YY/p2Mw/OG+Q/+Ty5UCfzwEIJxroxcGCZXbSPY4X1YHzp3K/n3IgDfPEsZjdWHZrNESQ+T2N6UL0/NsMWiVD5iqPUDc2fWcwyGnLVbklveTMWz/enCqKzgLYzUmZ8XxLPCTL+wuexqGR+UzaQcRVgfU5oOz7h/S7YEkhef3wFUnpZf/IEl32AATM8hxp9dVwWGTOHPz7ND1uSd8ssgOY0bKjiOb5T+2TuxcFhvACCeC9elLAT7zJT8cOU2dsH1sDoG7krJ+NmO0Nmqrlf5PpMo7GE61axjVKpH1bqW30tH9my+we91i2LUv6CZBgXaVY/vx1lnBV45UNLM4LGAWyp3XgSpVa+3EGyRWxBuzQ1AyFTiDRMRD3DpihCQI8="
+
+addons:
+  coverity_scan:
+    project:
+      name: "Anoncheg1/dibd"
+      description: "Build submitted via Travis CI"
+    build_command_prepend: "mvn clean"
+    build_command:   "mvn -DskipTests=true compile"
+    branch_pattern: coverity_scan

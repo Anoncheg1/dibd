@@ -1,0 +1,331 @@
+/*
+ *   SONEWS News Server
+ *   see AUTHORS for the list of contributors
+ *
+ *   This program is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation, either version 3 of the License, or
+ *   (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+package org.sonews.storage;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
+
+import org.sonews.feed.Subscription;
+import org.sonews.util.Log;
+import org.sonews.util.io.Resource;
+
+/**
+ * Represents a logical Group within this newsserver.
+ *
+ * @author Christian Lins
+ * @since sonews/0.5.0
+ */
+public class Group {
+
+	/**
+	 * If this flag is set the Group is no real newsgroup but a mailing list
+	 * mirror. In that case every posting and receiving mails must go through
+	 * the mailing list gateway.
+	 */
+	public static final int MAILINGLIST = 0x1;
+
+	/**
+	 * If this flag is set the Group is marked as readonly and the posting is
+	 * prohibited. This can be useful for groups that are synced only in one
+	 * direction.
+	 */
+	public static final int READONLY = 0x2;
+
+	/**
+	 * If this flag is set the Group is marked as deleted and must not occur in
+	 * any output. The deletion is done lazily by a low priority daemon.
+	 */
+	public static final int DELETED = 0x80;
+
+	private static final List<Group> allGroups = new ArrayList<Group>();
+	private static final Map<Integer, String> allGroupId = new HashMap<>();
+	private static final Map<String, Group> allGroupNames = new HashMap<>();
+	private static final Map<Subscription, Set<Group>> groupsPerSubscription = new HashMap<Subscription, Set<Group>>();
+
+	// GROUP HERE
+	private int id = 0;
+	private int flags = -1;
+	private String name = null;
+	private Set<String> hosts = null;
+
+	/**
+	 * Initialization. Reading groups.conf
+	 */
+	static {
+		// synchronized(allGroups) {
+		// if(allGroups.isEmpty()) {
+		String groupsStr = Resource.getAsString("groups.conf", true);
+		if (groupsStr == null) {
+			Log.get().log(Level.SEVERE, "Could not read groups.conf");
+			// Fatal exit
+			System.exit(1);
+		}
+
+		String[] groupLines = groupsStr.split("\n");
+		for (String groupLine : groupLines) {
+			if (groupLine.startsWith("#")) {
+				continue;
+			}
+
+			groupLine = groupLine.trim();
+			String[] groupLineChunks = groupLine.split("\\s+");
+			if (groupLineChunks.length < 3) {
+				Log.get().log(Level.WARNING, "Malformed group.conf line: {0}", groupLine);
+			} else {
+				//TODO:uncommet
+				//Log.get().log(Level.INFO, "Found group {0}", groupLineChunks[0]);
+				int id = Integer.parseInt(groupLineChunks[1]);
+				int flags = Integer.parseInt(groupLineChunks[2]);
+				Set<String> hosts = null;
+				if (groupLineChunks.length == 4) {
+					hosts = new HashSet<String>();
+					hosts.addAll(Arrays.asList(groupLineChunks[3].split("\\|")));
+
+				}
+				Group group = new Group(groupLineChunks[0], id, flags, hosts);
+				allGroups.add(group);
+				allGroupId.put(id, groupLineChunks[0]);
+				allGroupNames.put(groupLineChunks[0], group);
+			}
+		}
+		// }
+		// return allGroups;
+		// }
+	}
+	/**1
+	 *  1.1 we make groupsPerSubscription list
+	 *  1.2 subscripted server must be at least in one of the group
+	 * 2
+	 *  hosts in group must have at least one subscripted server
+	 * (peers.conf)
+	 */
+	static {
+		//groupsPerSubscription = new HashMap<Subscription, Set<Group>>();
+		//1
+		for (Subscription s : Subscription.getAll()){
+			Set<Group> sgroups = new HashSet<Group>();
+			boolean inGroup = false;
+			for (Group g : allGroups){
+				if(!g.isDeleted()){
+					Set<String> h = g.getHosts();
+					if (h != null)
+						if(h.contains(s.getHost())){
+							sgroups.add(g);
+							inGroup = true;
+						}
+				}
+			}
+			if (inGroup)
+				groupsPerSubscription.put(s, sgroups);
+			else{//host must be at least in one of the group;
+				groupsPerSubscription.put(s, null);
+				Log.get().log(Level.WARNING, "Host of peers.conf must be in one of the group(groups.conf): {0}", s.getHost());
+			}
+		}
+		
+		//2
+		for( Group g : allGroups) {
+			boolean f = false;
+			if(g.hosts != null){
+				for (Subscription s : Subscription.getAll()) {
+					if (g.hosts.contains(s.getHost())) {
+						f = true;
+						break;
+					}
+				}
+				if (!f)
+					Log.get().log(Level.WARNING,
+							"Peers of group {0} in groups.conf must have at leaset one in peers.conf: {1}",
+							new Object[]{g.name, g.hosts});
+				f = false;
+			}
+		}
+	}
+
+	/**
+	 * Reads and parses the groups.conf file if not done yet and returns a list
+	 * of loaded Group objects.
+	 *
+	 * If groups.conf cannot be read an empty list is returned, never null.
+	 *
+	 * @return List of all groups this server handles.
+	 */
+	public static List<String> getAllNames() {
+		List<String> r = new ArrayList<String>();
+		r.addAll(allGroupNames.keySet());
+		return r;
+	}
+
+	public static List<Group> getAll() {
+		return allGroups;
+	}
+
+	/**
+	 * Get Group for group name.
+	 * 
+	 * @param name
+	 * @return Group or null
+	 */
+	public static Group get(String name) {
+		//synchronized (allGroups) {
+		//if (allGroups.isEmpty()) {
+		//getAll();
+		//}
+		return allGroupNames.get(name);
+		//}
+	}
+
+	/**
+	 * Get group name for internal ID.
+	 * 
+	 * @param id
+	 * @return Name or null
+	 */
+	public static String get(int id) {
+		//synchronized (allGroups) {
+		//if (allGroups.isEmpty()) {
+		//getAll();
+		//}
+		return allGroupId.get(id);
+		//}
+	}
+
+	/**
+	 * Get groups that have such host.
+	 * For Subscription class. Condition n. 3.
+	 * 
+	 * return null if no group found
+	 * 
+	 * @param host
+	 * @return Name or null
+	 */
+	public static Set<Group> groupsPerPeer(Subscription s) {
+		return groupsPerSubscription.get(s) ;
+
+	}
+
+	/**
+	 * Constructor.
+	 *
+	 * @param name
+	 * @param id
+	 * @param flags
+	 */
+	Group(final String name, final int id, final int flags, final Set<String> hosts) {
+		this.id = id;
+		this.flags = flags;
+		this.name = name;
+		this.hosts = hosts;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (obj instanceof Group) {
+			return ((Group) obj).id == this.id;
+		} else {
+			return false;
+		}
+	}
+
+	@Override
+	public int hashCode() {
+		return (name + id).hashCode();
+	}
+
+	/*public List<Pair<Long, ArticleHead>> getArticleHeads(final long first, final long last)
+			throws StorageBackendException {
+		return StorageManager.current().getArticleHeads(this, first, last);
+	}*/
+
+	public List<Integer> getArticleNumbers(int start) throws StorageBackendException {
+		return StorageManager.current().getArticleNumbers(id, start);
+	}
+
+	public long getLastArticleNumber() throws StorageBackendException {
+		return StorageManager.current().getArticleCountGroup(id);
+	}
+
+	public long getFirstArticleNumber() {
+		return 0;
+	}
+
+	public int getFlags() {
+		return this.flags;
+	}
+
+	public Set<String> getHosts() {
+		return this.hosts;
+	}
+
+	/**
+	 * @return Internal group id used for referencing in the backend
+	 */
+	public int getInternalID() {
+		assert id > 0;
+		return id;
+	}
+
+	public boolean isDeleted() {
+		return (this.flags & DELETED) != 0;
+	}
+
+	public boolean isMailingList() {
+		return (this.flags & MAILINGLIST) != 0;
+	}
+
+	public boolean isWriteable() {
+		return true;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	/**
+	 * Performs this.flags |= flag to set a specified flag and updates the data
+	 * in the JDBCDatabase.
+	 *
+	 * @param flag
+	 */
+	public void setFlag(final int flag) {
+		this.flags |= flag;
+	}
+
+	public void unsetFlag(final int flag) {
+		this.flags &= ~flag;
+	}
+
+	public void setName(final String name) {
+		this.name = name;
+	}
+
+	/**
+	 * @return Number of posted articles in this group.
+	 * @throws StorageBackendException
+	 */
+	public long getPostingsCount() throws StorageBackendException {
+		return StorageManager.current().getArticleCountGroup(id);
+	}
+
+}

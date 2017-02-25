@@ -1,0 +1,34 @@
+AUTHORS of
+
+dibd NNTP implementation for decentralized ImageBoard
+Copyright (C) 2017
+  Vitalij Chepelev 
+
+dibd is based upon
+
+sonews NNTP Usenet Server
+Copyright (C) 2009-2015
+  Christian Lins <christian@sonews.org>
+  František Kučera <informace@frantovo.cz>
+  Bernd Eilers <bernd.eilers@oracle.com>
+
+sonews is based partly upon
+
+Neat NNTP Daemon (n3tpd)
+Copyright (C) 2007, 2008  Christian Lins <christian.lins@web.de>
+
+tNNTPd
+Copyright (C) 2003  Dennis Schwerdel
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+See LICENSE file for a full copy of the GNU General Public License
+or see <http://www.gnu.org/licenses/>.

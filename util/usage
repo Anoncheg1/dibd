@@ -1,0 +1,17 @@
+java -jar sonews.jar [arguments]
+        where arguments:
+   -c|-config <config file>    If custom config file preferred
+   -dumpjdbcdriver             Prints out a list of available JDBC drivers
+   -pulldays                   How many days we add to days since last post
+								in group. We use this number in Pull new 
+								articles at startup. Be default we add 1 day.
+   -h|-help                    This output
+   -mlgw                       Enables the Mailinglist Gateway poller
+   -p <port>                   Forces sonews to listen on the specified port
+   -plugin <name|class|file>   Loads the given plugin.
+   -plugin-command <class>     Loads the given class on startup as NNTP command
+                                handler. Can be specified multiple times. The
+                                class must be found in the JVMs classpath.
+   -plugin-storage <class>     Loads the given StorageProvider class. The class
+                                must be found in the JVMs classpath.
+   -v|-version                 Prints out the version info an exits.

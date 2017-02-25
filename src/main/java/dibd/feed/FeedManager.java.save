@@ -1,0 +1,72 @@
+/*
+ *   SONEWS News Server
+ *   see AUTHORS for the list of contributors
+ *
+ *   This program is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation, either version 3 of the License, or
+ *   (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package org.sonews.feed;
+
+import org.sonews.storage.Article;
+import org.sonews.storage.StorageManager;
+import org.sonews.storage.SubscriptionsProvider.Subscription;
+
+/**
+ * Controlls push and pull feeder.
+ * 
+ * @author Christian Lins
+ * @since sonews/0.5.0
+ */
+public final class FeedManager {
+
+//    public static final int TYPE_PULL = 0;
+//    public static final int TYPE_PUSH = 1;
+//    public static final int TYPE_BOTH = 2;
+    
+    private static final int pushThreadsAmount = 10;
+    
+    private static boolean pushStarted = false;
+
+    //private static final Thread[] pushFeeders = new PushFeeder[pushThreadsAmount];
+
+    /**
+     * Reads the peer subscriptions from database and starts the appropriate
+     * PullFeeder or PushFeeder.
+     */
+    public static void startPushFeeding() {
+    	for(int i = 0; i < pushThreadsAmount; i++){
+    		//pushFeeders[i]= new PushFeeder();
+    		(new PushFeeder()).start();
+    	}
+    	pushStarted = true;
+    }
+    
+    public static void pullNewArticles() {
+    	for (Subscription sub : StorageManager.peers.getAll()) {
+    		if (sub.getFeedtype() != StorageManager.peers.TYPE_PUSH){
+    			//TODO:join.
+    			new Thread((new PullFeeder(sub))).start(); //thread per subscription
+    		}
+    	}
+    }
+
+    /*public static void queueForPush(Article article) {
+    		if (pushStarted)
+    			PushFeeder.queueForPush(article);
+    }*/
+    
+    //hidden
+    private FeedManager() {
+    }
+}

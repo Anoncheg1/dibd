@@ -1,0 +1,139 @@
+/*
+ *   SONEWS News Server
+ *   see AUTHORS for the list of contributors
+ *
+ *   This program is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation, either version 3 of the License, or
+ *   (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package org.sonews.feed;
+
+import java.io.IOException;
+import java.net.Socket;
+import java.nio.channels.SocketChannel;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.logging.Level;
+
+import org.sonews.config.Config;
+import org.sonews.daemon.DaemonThread;
+import org.sonews.util.Log;
+
+/**
+ * The thread checks
+ * periodically if there are stale/timed out connections and removes and purges
+ * them properly.
+ *
+ * @author 
+ * 
+ */
+public final class FeedConnectionCollector extends DaemonThread {
+
+    private static final FeedConnectionCollector instance = new FeedConnectionCollector();
+
+    /**
+     * @return Active Connections instance.
+     */
+    public static FeedConnectionCollector getInstance() {
+        return FeedConnectionCollector.instance;
+    }
+
+    private final List<Connection> connections = new ArrayList<>();
+   
+    private FeedConnectionCollector() {
+        setName("Connections");
+    }
+
+    /**
+     * Adds the given NNTPConnection to the Connections management.
+     *
+     * @param conn
+     * @see org.sonews.daemon.NNTPConnection
+     */
+    public void add(final Connection conn) {
+        synchronized (this.connections) {
+            this.connections.add(conn);
+            
+        }
+    }
+    
+    /**
+     * Run loops. Checks periodically for timed out connections and purged them
+     * from the lists.
+     */
+    @Override
+    public void run() {
+        while (isRunning()) {
+            //int timeoutMillis = 1000 * Config.inst().get(Config.TIMEOUT, 180);
+        	int timeoutMillis = 1000 * 30;//30sec
+
+            synchronized (this.connections) {
+                final ListIterator<Connection> iter = this.connections
+                        .listIterator();
+                Connection conn;
+
+                while (iter.hasNext()) {
+                    conn = iter.next();
+                    if ((System.currentTimeMillis() - conn.getLastActivity()) > timeoutMillis) {
+                        // A connection timeout has occurred so purge the
+                        // connection
+                        //iter.remove();
+
+                        // Close and remove the channel
+                        Socket socket = conn.getSocket();
+
+                        try {
+                            assert socket != null;
+
+                            // Close the channel; implicitely cancels all
+                            // streams
+                            socket.close();
+                            
+                            Log.get().log(
+                                    Level.INFO,
+                                    "Disconnected: {0} (timeout)",
+                                    socket.getRemoteSocketAddress());
+                        } catch (IOException ex) {
+                            Log.get().log(Level.WARNING, "Connections.run(): {0}", ex);
+                        }
+
+                        // Recycle the used buffers
+                        //conn.getBuffers().recycleBuffers();
+                    }
+                }
+            }
+
+            try {
+                Thread.sleep(10000); // Sleep ten seconds
+            } catch (InterruptedException ex) {
+                Log.get().log(Level.WARNING, "Connections Thread was interrupted: {0}", ex.getMessage());
+            }
+        }
+    }
+    
+    @Override
+    public void requestShutdown() {
+    	super.requestShutdown();
+    	/*for (NNTPConnection conn: connections)
+    		if (conn.getBuffers().isOutputBufferEmpty()){
+					try {
+						conn.println("400 The server has to terminate");
+					} catch (IOException e) {}
+    				conn.close();
+    		}*/
+    }
+
+}

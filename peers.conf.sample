@@ -1,0 +1,6 @@
+# Configuration file for Usenet peering
+# Format:
+# HOST [PUSH|PULL]
+news.sonews.org PULL
+news.sonews.org PUSH
+news.sonews.org

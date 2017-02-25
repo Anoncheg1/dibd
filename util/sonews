@@ -1,0 +1,53 @@
+#!/bin/bash
+
+CLASSPATH=/usr/share/java/sonews.jar:\
+/usr/share/java/mysql.jar:\
+/usr/share/java/glassfish-mail.jar:\
+/usr/share/java/postgresql.jar:\
+/usr/share/java/commons-net.jar
+
+LOGFILE=/var/log/sonews.log
+PIDFILE=/var/run/sonews.pid
+PORT=9119
+ARGS="-p $PORT -c /etc/sonews/sonews.conf"
+RUNAS=sonews
+MAINCLASS=org.sonews.Main
+JAVA="sudo -u $RUNAS -s /usr/bin/java"
+
+case "$1" in
+  start)
+    echo "Redirect port 119 to $PORT..."
+	iptables -t nat -A PREROUTING -p tcp --dport 119 -j REDIRECT --to-port $PORT
+    echo "Starting sonews Newsserver with user $RUNAS..."
+	cd /etc/sonews/
+    $JAVA -classpath $CLASSPATH $MAINCLASS $ARGS &> $LOGFILE &
+    PID=$!
+    echo $PID > $PIDFILE
+    ;;
+  stop)
+    echo "Stopping sonews Newsserver..."
+    PID=`cat $PIDFILE`
+    STOPRES=0
+    while [ $STOPRES -le 0 ]
+    do
+      kill -15 $PID &> /dev/null
+      STOPRES=$?
+      sleep 1
+    done
+    echo "done."
+    ;;
+  restart)
+    $0 stop && $0 start
+    ;;
+  setup)
+    $JAVA -classpath $CLASSPATH org.sonews.util.DatabaseSetup
+    ;;
+  purge)
+    $JAVA -classpath $CLASSPATH org.sonews.util.Purger
+    ;;
+  version)
+    $JAVA -classpath $CLASSPATH $MAINCLASS -version
+    ;;
+  *)
+    echo "Usage: sonews [start|stop|restart|setup|purge]"
+esac

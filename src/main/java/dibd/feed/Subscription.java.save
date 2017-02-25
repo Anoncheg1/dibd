@@ -1,0 +1,151 @@
+/*
+ *   SONEWS News Server
+ *   see AUTHORS for the list of contributors
+ *
+ *   This program is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation, either version 3 of the License, or
+ *   (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package org.sonews.feed;
+
+import java.util.HashSet;
+import java.util.Set;
+import java.util.logging.Level;
+
+import org.sonews.util.Log;
+import org.sonews.util.io.Resource;
+
+/**
+ * For every group that is synchronized with or from a remote newsserver a
+ * Subscription instance exists.
+ *
+ * @author Christian Lins
+ * @since sonews/0.5.0
+ */
+public class Subscription {
+
+    private static Set<Subscription> allSubs;
+    private static Set<String> allhosts;
+    
+    /**
+     * @return List of all groups this server handles.
+     */
+    //TODO: what if peers.conf or groups.conf modified during run time? we will not detect it
+    static  {
+    	String peersStr = Resource.getAsString("peers.conf", true);
+    	if(peersStr == null) {
+    		Log.get().log(Level.WARNING, "Could not read peers.conf");
+    		//return new HashSet<>(); // return empty list
+    	}
+
+    	String[] peersLines = peersStr.split("\n");
+    	//Thread.dumpStack();
+    	//System.out.println("#"+Thread.currentThread().getStackTrace()+"#");
+    	Set<Subscription> subs= new HashSet<>();
+    	allhosts= new HashSet<>();
+    	for(String subLine : peersLines) {
+    		if(subLine.startsWith("#")) {
+    			continue;
+    		}
+
+    		subLine = subLine.trim();
+    		String[] subLineChunks = subLine.split("\\s+");
+    		if(subLineChunks.length < 1) {
+    			//Log.get().log(Level.WARNING, "Malformed peers.conf line: {0}", subLine);
+    			continue;
+    		}
+    		//one line for one host
+    		if (allhosts.contains(subLineChunks[0])){
+    			Log.get().log(Level.WARNING, "peers.conf: peer is duplicated, first line will be used: {0}", subLineChunks[0]);
+    			continue;
+    		}
+
+    		allhosts.add(subLineChunks[0]);
+
+    		int feedtype = FeedManager.TYPE_BOTH;
+    		if (subLineChunks.length == 3){ 
+    			if (subLineChunks[2].contains("PUSH")) {
+    				feedtype = FeedManager.TYPE_PUSH;
+    			} else if (subLineChunks[2].contains("PULL")) {
+    				feedtype = FeedManager.TYPE_PULL;
+    			}
+    		}
+
+    		Log.get().log(Level.INFO, "Found peer subscription {0}", subLine);
+
+    		subs.add(new Subscription(subLineChunks[0], Integer.parseInt(subLineChunks[1]), feedtype));
+    	}
+
+    	Subscription.allSubs = subs;
+    }
+    
+    public static Set<Subscription> getAll() {
+    	return allSubs;
+    }
+    
+    public static boolean has(String host) {
+    	if (allhosts.contains(host))
+    		return true;
+    	else
+    		return false;
+	}
+    
+
+    private final String host;
+    private final int port;
+    private final int feedtype;
+    //private final Set<Group> allgroups;
+
+    private Subscription(String host, int port, int feedtype) {
+        this.host = host;
+        this.port = port;
+        this.feedtype = feedtype;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof Subscription) {
+            Subscription sub = (Subscription) obj;
+            return sub.host.equals(host) //&& sub.group.equals(group)
+                    && sub.port == port && sub.feedtype == feedtype;
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        return host.hashCode() + port + feedtype; //+ group.hashCode();
+    }
+
+    public int getFeedtype() {
+        return feedtype;
+    }
+
+    /*public String getGroup() {
+        return group;
+    }*/
+
+    public String getHost() {
+        return host;
+    }
+
+    public int getPort() {
+        return port;
+    }
+    
+    /*
+    public Set<Group> getGroups() {
+        return allgroups;
+    }*/
+}
