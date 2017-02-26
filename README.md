@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/Anoncheg1/dibd.svg?branch=master)](https://travis-ci.org/Anoncheg1/dibd)
+[![Coverty Scan](https://scan.coverity.com/projects/11880/badge.svg)](https://scan.coverity.com/projects/anoncheg1-dibd)
 
 dibd
 ======
