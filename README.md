@@ -8,7 +8,8 @@ backend types, currently supported are MySQL and PostgreSQL (CouchDB in developm
 
 Part of main project [diboard](https://github.com/Anoncheg1/diboard)
 
-![logo](https://github.com/Anoncheg1/diboard/blob/master/Diagram1.png "logo")
+![ER diagram](https://github.com/Anoncheg1/diboard/blob/master/Database.png "ER diagram")
+![threads vision diagram](https://github.com/Anoncheg1/diboard/blob/master/dibd.png "threads vision diagram")
 
 Requirements
 ------------
