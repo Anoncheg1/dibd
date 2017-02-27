@@ -102,42 +102,10 @@ public class ArticlePuller {
 		this.host = host;
 		this.TLSEnabled = TLSEnabled;
 		
-		/*
-		this.socket = socket;
-		this.out = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), this.charset));
-		this.in = new BufferedReader(new InputStreamReader(socket.getInputStream(), this.charset));
-		
-		String line = this.in.readLine();
-		if (line == null || !line.startsWith("200")){
-			Log.get().log(Level.WARNING, "From host: {0} hello response: {1}",
-					new Object[]{this.host, line});
-			throw new IOException();
-		}
-		*/
-		this.socket = FeedManager.getHelloFromServer(socket, TLSEnabled, host, FeedType.PULL, charset);
+		this.socket = FeedManager.getHelloFromServer(socket, TLSEnabled, host, charset);
 		
 		if (TLSEnabled){
-			/*
-			SSLSocket sslsocket = TLS.createSSLClientSocket(socket);
 			
-			this.out.print("STARTTLS"+NL);
-			this.out.flush();
-			line = this.in.readLine();
-			if (line == null || !line.startsWith("382")) { //"382 Continue with TLS negotiation"
-				Log.get().log(Level.WARNING, "From host: {0} STARTTLS response: {1}", new Object[]{this.host, line});
-				throw new IOException();
-			}
-			
-			SSLSession session = sslsocket.getSession(); //handshake
-			
-			try {
-	        	X509Certificate cert = (X509Certificate) session.getPeerCertificates()[0]; //I am not sure how to check that it is right cert
-	        } catch (SSLPeerUnverifiedException e) {
-	        	Log.get().log(Level.WARNING, "From host: {0} TLS did not present a valid certificate", this.host);
-	        	throw new IOException();
-	        }
-			//ready for encrypted communication
-			*/
 			SSLSocket sslsocket = (SSLSocket) this.socket;
 			//new encrypted streams
 			this.out = new PrintWriter(new OutputStreamWriter(sslsocket.getOutputStream(), this.charset));
@@ -248,13 +216,13 @@ public class ArticlePuller {
 		
 		String s = "IHAVE "+ messageId;
 		ihavec.processLine(conn, s, s.getBytes("UTF-8")); //send ihave
-		
+	
 		String line = conn.readLine();
 		if (line == null || !line.startsWith("335")) {
-			if (line.startsWith("435"))//TODO:remove this message, check messaga id by yourself.
-				Log.get().log(Level.FINE, "NEWNEWS {0} we already have this or don't want it", messageId);
+			if (line != null && line.startsWith("435"))
+				Log.get().log(Level.FINE, "IHAVE-loopback {0} we already have this or don't want it", messageId);
 			else
-				Log.get().log(Level.WARNING, "transferToItself from {0} {1} we ihave:{3}", new Object[]{this.host, messageId, line} );
+				Log.get().log(Level.WARNING, "transferToItself from {0} {1} we ihave:{2}", new Object[]{this.host, messageId, line} );
 			return false; //we don't want to receive
 		}
 
@@ -285,7 +253,7 @@ public class ArticlePuller {
 				Log.get().log(Level.WARNING, "Article from {0} {1} null line resived during reading", new Object[]{this.host, messageId} );
 				break;
 			}
-			//System.out.print(line);
+			//System.out.println(line);
 			byte[] raw = line.getBytes(charset);
 			if (raw.length >= ChannelLineBuffers.BUFFER_SIZE){ //ReceivingService.readingBody() will not add \r\n for big line
 				ihavec.processLine(conn, line, raw); //send ihave

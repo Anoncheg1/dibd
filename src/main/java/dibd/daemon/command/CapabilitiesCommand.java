@@ -43,7 +43,7 @@ import dibd.daemon.NNTPInterface;
  */
 public class CapabilitiesCommand implements Command {
 
-    static final String[] CAPABILITIES = new String[] { "VERSION 2", // MUST be
+    static public final String[] CAPABILITIES = new String[] { "VERSION 2", // MUST be
                                                                      // the
                                                                      // first
                                                                      // one;

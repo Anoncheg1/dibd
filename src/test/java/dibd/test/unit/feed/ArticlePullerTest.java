@@ -1,4 +1,4 @@
-package org.sonews.test.unit.feed;
+package dibd.test.unit.feed;
 
 import static org.mockito.Mockito.when;
 import static org.junit.Assert.assertEquals;
@@ -26,26 +26,61 @@ import java.util.List;
 import java.util.Queue;
 import java.util.Set;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.sonews.daemon.NNTPChannel;
-import org.sonews.daemon.command.IhaveCommand;
-import org.sonews.feed.ArticlePuller;
-import org.sonews.storage.GroupsProvider;
-import org.sonews.storage.StorageBackendException;
-import org.sonews.storage.StorageManager;
-import org.sonews.storage.StorageNNTP;
-import org.sonews.storage.GroupsProvider.Group;
+
+import dibd.config.Config;
+import dibd.daemon.NNTPInterface;
+import dibd.daemon.command.CapabilitiesCommand;
+import dibd.daemon.command.IhaveCommand;
+import dibd.feed.ArticlePuller;
+import dibd.storage.GroupsProvider;
+import dibd.storage.GroupsProvider.Group;
+import dibd.util.Log;
+import dibd.storage.StorageBackendException;
+import dibd.storage.StorageManager;
+import dibd.storage.StorageNNTP;
 
 
 
-//@Ignore //WORKING! but fail sometimes because of 2 threads when only 1 must be used.
+ //in dev //WORKING! but fail sometimes because of 2 threads when only 1 must be used.
 public class ArticlePullerTest {
 	
 	private StorageNNTP storage; //mock
 	private Constructor<?> groupC;
 	
 	
+	private String mId = "<foobar@hschan.ano>";
+	private String[] send2 = {
+			"Mime-Version: 1.0",
+			"Date: Thu, 02 May 2013 12:16:44 +0000",
+			"Message-ID: <foobar@hschan.ano>",
+			"Newsgroups: local.test",
+			"Subject: subj",
+			//"references: <foobar@hschan.ano>",
+			"Path: hschan.ano",
+			"Content-Type: multipart/mixed;",
+			"    boundary=\"=-=-=__O8KsN2iGKO4xUESptbCjDG14G__=-=-=\"",
+			"",
+			"--=-=-=__O8KsN2iGKO4xUESptbCjDG14G__=-=-=",
+			"Content-type: text/plain; charset=utf-8",
+			"Content-Transfer-Encoding: base64",
+			"",
+			"bWVzc2FnZQ==",
+			"",
+			"--=-=-=__O8KsN2iGKO4xUESptbCjDG14G__=-=-=",
+			"Content-Type: image/gif",
+			"Content-Disposition: attachment; filename=\"Blank.gif\"",
+			"Content-Transfer-Encoding: base64",
+			"",
+			"R0lGODlhAQABAIAAAP///wAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw==",
+			"",
+			"--=-=-=__O8KsN2iGKO4xUESptbCjDG14G__=-=-=--",
+			"."
+	};
+	
+	/*
 	private class MyThread extends Thread{ //ArticlePuller thread
 		private Socket rSocket;
 		private Hashtable<Group, Long> groupsTime;
@@ -80,51 +115,24 @@ public class ArticlePullerTest {
 			}
     	}
     }
-	
+	*/
 	
 	
 	public ArticlePullerTest() throws NoSuchMethodException, SecurityException {
 		//Storage
 		storage = mock(StorageNNTP.class);
-		StorageManager.enableProvider(new org.sonews.test.unit.storage.TestingStorageProvider(storage));
+		StorageManager.enableProvider(new dibd.test.unit.storage.TestingStorageProvider(storage));
 		
 		//group mocking part 1
 		Class<?> cg = Group.class;
 		groupC = cg.getDeclaredConstructor(new Class[]{GroupsProvider.class, String.class, Integer.TYPE, Integer.TYPE, Set.class});
 		groupC.setAccessible(true);
+		
+		Log.get().setLevel(java.util.logging.Level.WARNING);
 	}
 
 	@Test
-    public void loopbackTest() throws StorageBackendException, IOException, InterruptedException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchFieldException, SecurityException{
-		String mId = "<foobar@hschan.ano>";
-		String[] send2 = {
-				"Mime-Version: 1.0",
-				"Date: Thu, 02 May 2013 12:16:44 +0000",
-				"Message-ID: <foobar@hschan.ano>",
-				"Newsgroups: local.test",
-				"Subject: subj",
-				//"references: <foobar@hschan.ano>",
-				"Path: hschan.ano",
-				"Content-Type: multipart/mixed;",
-				"    boundary=\"=-=-=__O8KsN2iGKO4xUESptbCjDG14G__=-=-=\"",
-				"",
-				"--=-=-=__O8KsN2iGKO4xUESptbCjDG14G__=-=-=",
-				"Content-type: text/plain; charset=utf-8",
-				"Content-Transfer-Encoding: base64",
-				"",
-				"bWVzc2FnZQ==",
-				"",
-				"--=-=-=__O8KsN2iGKO4xUESptbCjDG14G__=-=-=",
-				"Content-Type: image/gif",
-				"Content-Disposition: attachment; filename=\"Blank.gif\"",
-				"Content-Transfer-Encoding: base64",
-				"",
-				"R0lGODlhAQABAIAAAP///wAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw==",
-				"",
-				"--=-=-=__O8KsN2iGKO4xUESptbCjDG14G__=-=-=--",
-				"."
-		};
-		
+    public void ConstructorCheckTransferTest() throws StorageBackendException, IOException, InterruptedException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchFieldException, SecurityException{
 		//group mocking part 2
 		Set<String> host = new HashSet<String>(Arrays.asList("hschan.ano","host.com"));
 		final Group group1 = (Group) groupC.newInstance(StorageManager.groups,"local.test",23,0,host);
@@ -147,39 +155,72 @@ public class ArticlePullerTest {
         when(rSocket.getOutputStream()).thenReturn(new PipedOutputStream(inForOut));
         when(rSocket.getInputStream()).thenReturn(new PipedInputStream(outForIn));
         
-        
-        //final IhaveCommand ihcom = mock(IhaveCommand.class); //Second parameter for ArticlePuller
-        
+        final IhaveCommand ihcom = mock(IhaveCommand.class); //Second parameter for ArticlePuller
         
         
-        MyThread myT = new MyThread(rSocket, groupsTime);
-        myT.start();
         
+        //MyThread myT = new MyThread(rSocket, groupsTime);
+        //myT.start();
+      //Thread.sleep(100); //waiting for ArticlePuller.ap constructor
+        
+        // ######## ArticlePuller Constructor ########  
         rOut.println("200 hello");
         rOut.flush();
         
+        ArticlePuller ap = new ArticlePuller(rSocket, false, "testhost");
+        
+        // ######## ap.check() ######## 
         Field connField = ArticlePuller.class.getDeclaredField("conn");
         connField.setAccessible(true);
-        Thread.sleep(100); //waiting for ArticlePuller.ap constructor 
-        NNTPChannel conn = (NNTPChannel) connField.get(myT.ap); // now we have hook field for IhaveCommand
+        NNTPInterface conn = (NNTPInterface) connField.get(ap); // now we have hook field for IhaveCommand
         
-        String newnews ="NEWNEWS local.test,random "+(140000-60*60*24); //for speed
+        //CAPABILITIES
+        rOut.println("101 Capabilities list:");
+        for (String cap : CapabilitiesCommand.CAPABILITIES) {  //with NEWNEWS
+        	rOut.println(cap);
+        }
+        rOut.println(".");
         
-        //System.out.println(rIn.readLine());
-        String ne = "NEWNEWS local.test "+(140000-60*60*24);
-        assertEquals(ne, rIn.readLine());
-		rOut.println("230 List of new articles follows (multi-line)");
+        //NEWNEWS
+        rOut.println("230 List of new articles follows (multi-line)");
 		rOut.println(mId);
 		rOut.println(".");
-		conn.println("335 send article to be transferred. End with <CR-LF>.<CR-LF>"); //self
+		rOut.flush();
+		List<String> mIDs = ap.check(groupsTime, Config.inst().get(Config.PULLDAYS, 1));
+		assertEquals(mIDs.get(0),mId);
+		
+		assertEquals(rIn.readLine(), "CAPABILITIES");
+		
+		String ne = "NEWNEWS local.test "+(140000-60*60*24);
+		assertEquals(rIn.readLine(), ne);
+		
+		// ######## ap.transferToItself() ########
+		//Article
+		rOut.println("220 " + 0 + " " + mId + " article retrieved - head and body follow");
+        for(int i = 0; i < send2.length; i++){
+        	rOut.println(send2[i]);
+		}
         rOut.flush();
         
+        //ihave emulation
+        conn.println("335 send article");
+        conn.println("235 article posted ok");
         
+		boolean res = ap.transferToItself(ihcom, mId);//IhaveCommand can't be reused.
+		assertEquals(rIn.readLine(), "ARTICLE " + mId);
+		assertTrue(res);
+		//######## ap.close() ########
+		rOut.println("qua");
+		rOut.flush();
+		
+		ap.close();
+		
+		assertEquals(rIn.readLine(), "QUIT");
+		
+		
+		
         
-        
-        
-        
-        
+        /*
         assertEquals("ARTICLE " + mId, rIn.readLine());
         verify(myT.ihc, atLeastOnce()).processLine(Mockito.eq(conn), Mockito.eq("IHAVE <foobar@hschan.ano>"), Mockito.any());
         rOut.println("220 " + 0 + " " + mId + " article retrieved - head and body follow"); rOut.flush();
@@ -198,7 +239,7 @@ public class ArticlePullerTest {
         
         myT.join(1000);
         assertTrue(!myT.isAlive());
-        
+        */
 		//Log.get
         /*
     	Mockito.doAnswer(new Answer<Object>() { //self IHAVE body

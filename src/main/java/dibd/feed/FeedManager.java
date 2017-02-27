@@ -198,25 +198,24 @@ public class FeedManager {
 	}
 	
 	/**
-	 * Returned socket may be sslsocket if TLSEnabled
+	 * Returned socket may be sslsocket if TLSEnabled.
 	 * 
 	 * @param socket
 	 * @param TLSEnabled
 	 * @param host
-	 * @param feedtype
 	 * @param charset
 	 * @return
 	 * @throws IOException
 	 */
-	public static Socket getHelloFromServer(Socket socket, boolean TLSEnabled, String host, FeedType feedtype, Charset charset) throws IOException{
+	public static Socket getHelloFromServer(Socket socket, boolean TLSEnabled, String host, Charset charset) throws IOException{
 		
 		PrintWriter out = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), charset));
 		BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream(), charset));
 		
 		String line = in.readLine();
-		if (line == null || !line.startsWith("200") || !line.startsWith("201" )){
-			Log.get().log(Level.WARNING, "{0} From host {1} bad hello response: {2}",
-					new Object[]{feedtype.name(), host, line});
+		if (line == null || (!line.startsWith("200") && !line.startsWith("201") )){
+			Log.get().log(Level.WARNING, "Bad Hello from host {0} : {1}",
+					new Object[]{host, line});
 			throw new IOException();
 		}
 		
@@ -227,8 +226,8 @@ public class FeedManager {
 			out.flush();
 			line = in.readLine();
 			if (line == null || !line.startsWith("382")) { //"382 Continue with TLS negotiation"
-				Log.get().log(Level.WARNING, "{0} from host {1} STARTTLS response: {2}",
-						new Object[]{feedtype.name(), host, line});
+				Log.get().log(Level.WARNING, "From host {0} STARTTLS response: {1}",
+						new Object[]{host, line});
 				throw new IOException();
 			}
 			
@@ -237,8 +236,8 @@ public class FeedManager {
 			try {
 	        	X509Certificate cert = (X509Certificate) session.getPeerCertificates()[0]; //I am not sure how to check that it is right cert
 	        } catch (SSLPeerUnverifiedException e) {
-	        	Log.get().log(Level.WARNING, "{0} From host: {1} TLS did not present a valid certificate",
-	        			new Object[]{feedtype.name(), host});
+	        	Log.get().log(Level.WARNING, "For host {0} TLS did not present a valid certificate",
+	        			host);
 	        	throw new IOException();
 	        }
 			//ready for encrypted communication

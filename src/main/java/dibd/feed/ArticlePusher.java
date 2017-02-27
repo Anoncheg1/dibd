@@ -68,7 +68,7 @@ public class ArticlePusher {
 	public ArticlePusher(Socket socket, boolean TLSEnabled, String host) throws IOException{
 		this.host = host;
 		
-		this.socket = FeedManager.getHelloFromServer(socket, TLSEnabled, host, FeedType.PUSH, charset);
+		this.socket = FeedManager.getHelloFromServer(socket, TLSEnabled, host, charset);
 		if (TLSEnabled){
 			SSLSocket sslsocket = (SSLSocket) this.socket;
 			this.out = sslsocket.getOutputStream();//->Output to remote NNTP server

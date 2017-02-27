@@ -86,7 +86,7 @@ public class IHAVEandTAKETHISTest {
 //		Log.get().setLevel(java.util.logging.Level.SEVERE);
 		//message-id: ???@sender - sender must be in group peers to receive the message
 		
-		Log.get().setLevel(java.util.logging.Level.SEVERE);
+		Log.get().setLevel(java.util.logging.Level.WARNING);
 		//DEBUG Hook conn.println(String)
 	/*	
 		 Mockito.doAnswer(new Answer() {
