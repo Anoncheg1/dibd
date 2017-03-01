@@ -24,7 +24,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
-import dibd.daemon.NNTPConnection;
 import dibd.daemon.NNTPInterface;
 import dibd.storage.StorageBackendException;
 import dibd.storage.StorageManager;

@@ -11,9 +11,7 @@ import java.util.logging.Level;
 import javax.mail.MessagingException;
 
 import dibd.config.Config;
-import dibd.daemon.NNTPConnection;
 import dibd.daemon.NNTPInterface;
-import dibd.daemon.command.TakeThisCommand.PostState;
 import dibd.storage.Headers;
 import dibd.storage.StorageBackendException;
 import dibd.storage.StorageManager;

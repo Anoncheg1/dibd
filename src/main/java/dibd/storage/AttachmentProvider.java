@@ -13,8 +13,8 @@ import org.im4java.core.IM4JavaException;
 import org.im4java.core.IMOperation;
 import org.im4java.process.ProcessStarter;
 
-import dibd.config.Config;
 import dibd.storage.GroupsProvider.Group;
+import dibd.util.Log;
 
 //TODO:something with svg+xml format
 //user@localhost:~$ convert -thumbnail 200 Roda\ Emosi\ Plutchik.svg a.png
@@ -23,11 +23,11 @@ public class AttachmentProvider {
 	/**
 	 * "/img/"
 	 */
-	private final String aimg = "/img/";
+	private static final String aimg = "/img/";
 	/**
 	 * "/thm/"
 	 */
-	private final String thumbnails = "/thm/";
+	private static final String thumbnails = "/thm/";
 	
 	/**
 	 * Get path to attachment src file.
@@ -39,7 +39,7 @@ public class AttachmentProvider {
 	private String getAPath(String groupName, String fileName){
 		return new StringBuilder(this.attachmentPath)
 				.append(groupName)
-				.append(this.aimg)
+				.append(aimg)
 				.append(fileName)
 				.toString(); //1
 	}
@@ -54,7 +54,7 @@ public class AttachmentProvider {
 	private String getTnPath(String groupName, String fileName){
 		return new StringBuilder(this.attachmentPath)
 				.append(groupName)
-				.append(this.thumbnails)
+				.append(thumbnails)
 				.append(checkSupported(fileName))
 				.toString(); //2
 	}
@@ -85,15 +85,18 @@ public class AttachmentProvider {
  			String patha = this.attachmentPath + g.getName();
  			File bdir = new File(patha);
  			if (!bdir.exists()){
- 				bdir.mkdir();
+ 				if(!bdir.mkdir())
+ 					throw new Error("Can't create attachments direcotry for group which is not exist");
  	        }
  			File img = new File(patha+"/img/");
 				if (!img.exists()){
-					img.mkdir();
+					if(!img.mkdir())
+						throw new Error("Can't create attachments direcotry for /img/ which is not exist");
 				}
 				File thm = new File(patha+"/thm/");
 				if (!thm.exists()){
-					thm.mkdir();
+					if(!thm.mkdir())
+						throw new Error("Can't create attachments direcotry for /thm/ which is not exist");
 				}
  		}
 		
@@ -158,7 +161,9 @@ public class AttachmentProvider {
 	public void delFile (String groupName, String fileName){
 		File fileImg = new File(getAPath(groupName, fileName)); //img
 		File fileThm = new File(getAPath(groupName, fileName)); //thm
-		fileImg.delete();
-		fileThm.delete();
+		if(!fileImg.delete())
+			Log.get().warning("Can not detete image");
+		if(!fileThm.delete())
+			Log.get().warning("Can not detete image");
 	}
 }

@@ -78,6 +78,7 @@ public class Config extends AbstractConfig {
     //public static final String ATTACHMENTSPATH = "dibd.path.attachments";//used in web and can't be accessed
     public static final String NNTPCACHEPATH = "dibd.path.nntpcache";
     public static final String NNTPALLOW_UNAUTORIZED = "dibd.nntp.allow_unautorized_post";
+    public static final String IMAGEMAGICPATH = "dibd.path.imagemagic";
     
 
     /**

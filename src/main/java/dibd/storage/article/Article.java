@@ -22,15 +22,10 @@ import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.Base64;
-import java.util.Date;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Random;
-import java.util.TimeZone;
 import java.util.logging.Level;
 
 import javax.mail.internet.MimeUtility;
@@ -57,7 +52,7 @@ import dibd.util.Log;
 public class Article { //extends ArticleHead
 
 	 // visible to subclasses and self only
-	protected class Art{	 //utf-16
+	protected static class Art{	 //utf-16
 		public Integer id = null; //randomly generated in JDBC impl (unsigned)
 		public Integer thread_id = null;
 		//private String msgID_random = null;
@@ -213,16 +208,17 @@ public class Article { //extends ArticleHead
 		assert(StorageManager.groups.getName(groupId).equals(groupName));
 		assert(groupName != null);
 		
-		if (a_name != null && a_name.isEmpty())
-			a_name = null;
-		else
-			a.a_name = escapeString(a_name);
+		if (a_name != null)
+			if (a_name.isEmpty())
+				a_name = null;
+			else
+				a.a_name = escapeString(a_name);
 		
-		if (subject != null && subject.isEmpty())
-			subject = null;
-		else
-			a.subject = escapeString(subject);
-		
+		if (subject != null)
+			if (subject.isEmpty())
+				subject = null;
+			else
+				a.subject = escapeString(subject);
 		
 		
 		if (message != null && message.isEmpty())
@@ -461,7 +457,7 @@ public class Article { //extends ArticleHead
 		//Mime-Version
 		buf.append(Headers.MIME_VERSION).append(nl);
 		//From
-		if(a.a_name != null && a.a_name != "")
+		if(a.a_name != null && !a.a_name.isEmpty())
 			buf.append(Headers.FROM).append(c).append(MimeUtility.encodeWord(a.a_name)).append(nl);//256
 		//Date
 		buf.append(Headers.DATE).append(c).append(this.getDate()).append(nl);//256
@@ -475,10 +471,10 @@ public class Article { //extends ArticleHead
 			buf.append(Headers.SUBJECT).append(c).append(MimeUtility.fold(8, MimeUtility.encodeWord(a.subject))).append(nl);//256
 		//References
 		if(a.thread_id != null){
-			Article refArt = null; //can't be null
-			try {
-				refArt = StorageManager.current().getArticle(null, a.thread_id); //Guaranteed by database
-			} catch (StorageBackendException e) {	e.printStackTrace();	System.exit(1);} //Critical and Fatal
+			Article refArt = null;
+			try{
+				refArt = StorageManager.current().getArticle(null, a.thread_id);
+			} catch (StorageBackendException e) {	e.printStackTrace(); System.exit(1);} //Never happen
 			buf.append(Headers.REFERENCES).append(c).append(refArt.getMessageId()).append(nl);
 		}
 		//Path + localhost

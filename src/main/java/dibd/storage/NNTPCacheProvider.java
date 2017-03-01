@@ -87,7 +87,8 @@ public class NNTPCacheProvider {
 	 */
 	public void delArticle(String groupName, String messageId) {
 		File fl = new File(buildPath(groupName, messageId));
-		fl.delete();
+		if(!fl.delete())
+			Log.get().log(Level.WARNING, "Fail to delete article: {0}", messageId);
 	}
 	
 	
@@ -98,6 +99,7 @@ public class NNTPCacheProvider {
 	 */
 	public void delFile(File fl) {
 		fl.delete();
+		Log.get().warning("Fail to delete article for RollBack");
 	}
 
 	/**

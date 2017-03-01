@@ -146,13 +146,13 @@ public class ArticlePusherTest {
 		
 		//group mocking part 1
 		Class<?> cg = Group.class;
-		groupC = cg.getDeclaredConstructor(new Class[]{GroupsProvider.class, String.class, Integer.TYPE, Integer.TYPE, Set.class});
+		groupC = cg.getDeclaredConstructor(new Class[]{String.class, Integer.TYPE, Integer.TYPE, Set.class});
 		groupC.setAccessible(true);
 		
 		Set<String> host = new HashSet<String>(Arrays.asList("hschan.ano","host.com"));
 		//name id flags hosts
 		when(StorageManager.groups.get("local.test")).thenReturn(
-				(Group) groupC.newInstance(StorageManager.groups,"local.test",23,0,host));
+				(Group) groupC.newInstance("local.test",23,0,host));
 		
 		Log.get().setLevel(java.util.logging.Level.SEVERE);
 	}
@@ -291,7 +291,7 @@ public class ArticlePusherTest {
 				+"12345678910123456789101234567891012345678910123456789101234567891012345678910123456789101234567891012345678910123456789101234567891012345678910123456789101234567891012345678910123456789101234567891012345678910"
 				+"123456789101234567891012345678910123456789101234567891012345678910123456789101234567891012345678910123456789101234567891012345678910123456789101234567891012345678910123456789101234567891012345678910123456789107d"
 				+"12345678910123456789101234567891012345678910123456789101234567891012345678910123456789101234567891012345678910123456789101234567891012345678910123456789101234567891012345678910123456789101234567891012345678910";
-		Object nothing[] = new Object[]{};
+		//Object nothing[] = new Object[]{};
 		Method splitToBuffers = ArticlePusher.class.getDeclaredMethod("splitToBuffers", new Class<?>[]{byte[].class});
 		splitToBuffers.setAccessible(true);
 		ChannelLineBuffers clBuffers = new ChannelLineBuffers();

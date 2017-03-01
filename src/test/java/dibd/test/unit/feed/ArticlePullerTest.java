@@ -125,7 +125,7 @@ public class ArticlePullerTest {
 		
 		//group mocking part 1
 		Class<?> cg = Group.class;
-		groupC = cg.getDeclaredConstructor(new Class[]{GroupsProvider.class, String.class, Integer.TYPE, Integer.TYPE, Set.class});
+		groupC = cg.getDeclaredConstructor(new Class[]{String.class, Integer.TYPE, Integer.TYPE, Set.class});
 		groupC.setAccessible(true);
 		
 		Log.get().setLevel(java.util.logging.Level.WARNING);
@@ -135,7 +135,7 @@ public class ArticlePullerTest {
     public void ConstructorCheckTransferTest() throws StorageBackendException, IOException, InterruptedException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchFieldException, SecurityException{
 		//group mocking part 2
 		Set<String> host = new HashSet<String>(Arrays.asList("hschan.ano","host.com"));
-		final Group group1 = (Group) groupC.newInstance(StorageManager.groups,"local.test",23,0,host);
+		final Group group1 = (Group) groupC.newInstance("local.test",23,0,host);
 		//final Group group2 = (Group) groupC.newInstance(StorageManager.groups,"random",24,0,host);
 		//when(storage.getLastPostOfGroup(group1)).thenReturn((long) 140000);//it is inside of newnews
 		//when(storage.getLastPostOfGroup(group2)).thenReturn((long) 0);//it is inside of newnews

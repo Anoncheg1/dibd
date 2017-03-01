@@ -9,7 +9,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.math.BigInteger;
 import java.net.Socket;
 import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
@@ -148,7 +147,8 @@ public class TLS{
 		//List<InputStream> inputStreams = new ArrayList<>();
 		File[] pubkeys = null;
 		if (!pCrtDir.exists()){//not existed
-			pCrtDir.mkdir();
+			if(!pCrtDir.mkdir())
+				Log.get().log(Level.WARNING, "Fail to create peersTLSCertificates directory");
 		}else{//folder exist
 
 			//3) Create Peers KeyStore by import of cert files

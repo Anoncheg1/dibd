@@ -19,32 +19,14 @@
 package dibd.feed;
 
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.MalformedURLException;
 import java.net.Proxy;
-import java.net.Socket;
-import java.net.SocketAddress;
-import java.net.SocketException;
-import java.net.URL;
-import java.net.URLConnection;
 import java.net.UnknownHostException;
-import java.net.Proxy.Type;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
-
 import dibd.config.Config;
 import dibd.daemon.DaemonThread;
 import dibd.daemon.command.IhaveCommand;
@@ -53,7 +35,6 @@ import dibd.storage.StorageManager;
 import dibd.storage.GroupsProvider.Group;
 import dibd.storage.SubscriptionsProvider.FeedType;
 import dibd.storage.SubscriptionsProvider.Subscription;
-import dibd.storage.article.Article;
 import dibd.util.Log;
 
 /**

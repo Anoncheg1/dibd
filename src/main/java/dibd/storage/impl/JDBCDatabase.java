@@ -18,7 +18,6 @@
 
 package dibd.storage.impl;
 
-import java.io.File;
 import java.io.IOException;
 import java.sql.Connection;
 
@@ -38,7 +37,6 @@ import java.util.logging.Level;
 import org.im4java.core.IM4JavaException;
 
 import dibd.config.Config;
-import dibd.storage.AttachmentProvider;
 import dibd.storage.StorageBackendException;
 import dibd.storage.StorageManager;
 import dibd.storage.StorageNNTP;
@@ -777,7 +775,6 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 		ResultSet rs = null;
 		Article art = null;
 		try {
-			String[] mId = new String[2];
 			pstmtGetArticle.setString(1, messageId); //I don't knew how to setNull String
 			
 			if (id != null)

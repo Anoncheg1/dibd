@@ -22,20 +22,15 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 import java.util.TimeZone;
 
-import dibd.daemon.NNTPConnection;
 import dibd.daemon.NNTPInterface;
 import dibd.storage.StorageBackendException;
 import dibd.storage.StorageManager;
-import dibd.storage.StorageNNTP;
 import dibd.storage.GroupsProvider.Group;
-import dibd.storage.article.Article;
 
 /**
  * Class handling the NEWNEWS command. Used for "pulling".

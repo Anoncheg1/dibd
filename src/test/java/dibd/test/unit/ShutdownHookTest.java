@@ -23,7 +23,6 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import static org.mockito.Mockito.*;
@@ -34,15 +33,9 @@ import static org.junit.Assert.*;
 
 import java.io.IOException;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-
-import dibd.daemon.ChannelLineBuffers;
 import dibd.daemon.DaemonThread;
-import dibd.daemon.NNTPInterface;
 import dibd.daemon.NNTPConnection;
-import dibd.storage.StorageManager;
 import dibd.util.Log;
 
 

@@ -48,7 +48,7 @@ public class GroupsProvider {
 	 */
 	public static final int DELETED = 0x80;
 	
-	public class Group {
+	public static class Group {
 		
 		// GROUP HERE
 		private int id = 0;
@@ -198,7 +198,7 @@ public class GroupsProvider {
 			if (groupsStr == null) {
 				Log.get().log(Level.SEVERE, "Could not read groups.conf");
 				// Fatal exit
-				System.exit(1);
+				throw new Error("Could not read groups.conf");
 			}
 
 			String[] groupLines = groupsStr.split("\n");

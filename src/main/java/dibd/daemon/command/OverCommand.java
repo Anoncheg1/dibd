@@ -21,7 +21,6 @@ package dibd.daemon.command;
 import java.io.IOException;
 import java.util.List;
 
-import dibd.daemon.NNTPConnection;
 import dibd.daemon.NNTPInterface;
 import dibd.storage.StorageBackendException;
 import dibd.storage.StorageManager;
@@ -247,7 +246,7 @@ public class OverCommand implements Command {
         overview.append(escapeString(art.getMessageId()))
         .append('\t');
         //6) thread-Id
-        if(art.getThread_id()!=art.getId())
+        if(art.getThread_id()!=art.getId()) //if replay
         	overview.append(StorageManager.current().getArticle(null, art.getThread_id()).getMessageId());
         //overview.append('\t');
 

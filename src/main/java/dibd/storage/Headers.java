@@ -18,6 +18,7 @@
 
 package dibd.storage;
 
+import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -59,7 +60,7 @@ public final class Headers {
     public static final String ENCODING = "Content-Transfer-Encoding"; //attachment header
     public static final String MIME_VERSION = "MIME-Version: 1.0";
     
-	static private SimpleDateFormat dateFormat;
+	static private DateFormat dateFormat;
 	static{ 
 		dateFormat = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss Z" );
 		dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));

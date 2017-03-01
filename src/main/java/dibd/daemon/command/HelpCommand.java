@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.util.Set;
 
 import dibd.daemon.CommandSelector;
-import dibd.daemon.NNTPConnection;
 import dibd.daemon.NNTPInterface;
 import dibd.util.Log;
 import dibd.util.io.Resource;

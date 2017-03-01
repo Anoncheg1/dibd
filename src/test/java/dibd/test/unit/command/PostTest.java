@@ -62,10 +62,11 @@ public class PostTest {
 		StorageManager.enableGroupsProvider(gp);
 		
 		Class<?> cg = Group.class;
-		groupC = cg.getDeclaredConstructor(new Class[]{GroupsProvider.class, String.class, Integer.TYPE, Integer.TYPE, Set.class});
+		groupC = cg.getDeclaredConstructor(new Class[]{String.class, Integer.TYPE, Integer.TYPE, Set.class});
 		groupC.setAccessible(true);
-		//for( Class<?> c : groupC.getParameterTypes() )
-			//System.out.println("asd"+c);
+		System.out.println(""+groupC);
+		//for( Constructor<?> c : cg.getConstructors() )
+			//System.out.println("asd"+c);*/
 		//Log.get().setLevel(java.util.logging.Level.WARNING);
 		//message-id: ???@sender - sender must be in group peers to receive the message
 		
@@ -84,7 +85,7 @@ public class PostTest {
 		Set<String> host = new HashSet<String>(Arrays.asList("hschan.ano","host.com"));
 		//name id flags hosts
 		when(StorageManager.groups.get("local.test")).thenReturn(
-				(Group) groupC.newInstance(StorageManager.groups,"local.test",23,0,host));
+				(Group) groupC.newInstance("local.test",23,0,host));
 		when(StorageManager.groups.getName(23)).thenReturn("local.test");
 				
 		

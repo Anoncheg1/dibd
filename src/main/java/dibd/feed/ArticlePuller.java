@@ -24,46 +24,24 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.net.UnknownHostException;
 import java.nio.charset.Charset;
-import java.security.cert.Certificate;
-import java.security.cert.X509Certificate;
-import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Queue;
-import java.util.Set;
 import java.util.logging.Level;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLPeerUnverifiedException;
-import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 
-import dibd.config.Config;
 import dibd.daemon.ChannelLineBuffers;
 import dibd.daemon.NNTPConnection;
 import dibd.daemon.NNTPInterface;
 import dibd.daemon.TLS;
-import dibd.daemon.command.Command;
 import dibd.daemon.command.IhaveCommand;
-import dibd.storage.Headers;
 import dibd.storage.StorageBackendException;
-import dibd.storage.StorageManager;
 import dibd.storage.GroupsProvider.Group;
-import dibd.storage.SubscriptionsProvider.FeedType;
 import dibd.storage.article.Article;
 import dibd.util.Log;
 
@@ -82,7 +60,7 @@ public class ArticlePuller {
 	private final Socket socket;
 	private PrintWriter out;
 	private BufferedReader in;
-	private final String NL = NNTPConnection.NEWLINE;
+	private static final String NL = NNTPConnection.NEWLINE;
 	private final Charset charset = Charset.forName("UTF-8");
 	private final String host; //for log messages
 	private final boolean TLSEnabled; //for private class Response

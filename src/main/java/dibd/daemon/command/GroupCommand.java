@@ -19,7 +19,6 @@ package dibd.daemon.command;
 
 import java.io.IOException;
 
-import dibd.daemon.NNTPConnection;
 import dibd.daemon.NNTPInterface;
 import dibd.storage.StorageBackendException;
 import dibd.storage.StorageManager;

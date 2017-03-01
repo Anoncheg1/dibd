@@ -17,7 +17,6 @@
  */
 package dibd.daemon.command;
 
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.text.ParseException;
@@ -26,13 +25,10 @@ import java.util.logging.Level;
 import javax.mail.MessagingException;
 
 import dibd.config.Config;
-import dibd.daemon.NNTPConnection;
 import dibd.daemon.NNTPInterface;
-import dibd.daemon.command.IhaveCommand.PostState;
 import dibd.storage.Headers;
 import dibd.storage.StorageBackendException;
 import dibd.storage.StorageManager;
-import dibd.storage.GroupsProvider.Group;
 import dibd.storage.article.Article;
 import dibd.util.Log;
 

@@ -9,7 +9,7 @@ env:
   global:
    # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
    #   via the "travis encrypt" command using the project repo's public key
-   - secure: "Aoo9lKRkkrASBc1s/FKin3XivGOuWyo0Vu098KkjhCf6xWwoa1wWq1nt6H0TaiUTOak9/MPMGYuBVbMDMiVUVgYMJ0gvn4OT1cAAezxQ9kFZjOc9w6hFxrk4W5Mu8jsFPvFqtqUzV2w95At467mVBbh68bCxIlOyJ/jyZseEOTlhGCWMkt9RYOU3Dby4sHjxQuktnarrgBjWu8ut0/EJ88r+vyJZmE2NtQEE7BKhJiQAF5HWe8xxWJSf64r01+bFtyZA9VkChIW7ZLEWX6WVLih942TufA7fukUx/9XthdL+RjegDzYT8pd4uSrGuWgmRzSVlHmNDBGqwvUQSXvFe5NZmVEKFHAV8e/nT+trUrcoxRA7VxgQKqwy6s7uwVnPKyoh+WyU7+ZHbDD9qEYPXrhT+Tw2YOvVRU8ieGjFpwyLG183Cfgs7QTF6A+6d/pjp9Bgh/D5rtgrw3+/44S5DkdWEZAV2KDNzIa9QG522ff5JjfWSJ9KjrUG+ceOG3LWghPVoRiFwiK47RhvFzjYgeJoEPEvZISTs3tSecTXL7x7tXRBuXwx3ymcOQkTiK1scCsGs6ZM3rSEkzaqtZc8Q6uzUF2U4xsAJmlkEhIMjeZFtFiwo7x2EsT4JBkmT4T/PYz5607GXkEWeZiXpZsZQZmnAcsd97QvPZpb8TGWuFw="
+   - secure: "Y4ELw65xNmknRCTNcJSy8SnoymA8GT56jNzIER9sO882wTaihsvzMaigsJIhACPpN4hdRsXVFv1nFazY1eHiq2OoX3hhZPbIDfM8Ys4LaKba6T2oS1AEyZbSIL+yZEqpiAKRb6PtoqT117Ay1J3+d4xlH2sTAHkVjJFpnIwjn7T9VaXqHja3ce6YGzXMi9HH2i9Uqzn3J0ZJInTbRvqzcg+E5dgqCTdc8UXG6kg29zkqbNOrx8w0vbHN8r32fzdk729TqAPiIkaLHC8qXk7XD5FISKpPJ9BT4wz+NJah2EYlTtC7JvTOaM3IwAXuEliXbkbc6td+Zj8qQkRGP2yloLQK6qss7i+DRqd1IfCVW0Zl6VEYi8yUQldpmHobAR0EtuU4cr8N1fzw6sGKxdDx1tvBl9/MKTikQ04M3ir/h/TqkitmjvbkljOssTFr2ePYKj+vf3PThNUygbAOHNaewMtygJK62ngIgDohqDfMdZKLaVM4RWedRykJ7pYDO9TwZ00Hzeyr5bGK27PM/wrWBBTY7hL19m9y4Z2F+lSkCDkXqOQS+aDab1FQSIv6qXVzVwgi8x7oJJFyMlMx5G4kxJro8EybztkcqZCOksmJ1CopLwRUohzBsZrq2mk74myVlxlPq34TQoG8cSRXWv5hP/+/edAU4l2fkjNtQR9PUaw="
 
 before_install:
       - echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
@@ -19,6 +19,7 @@ addons:
     project:
       name: "Anoncheg1/dibd"
       description: "Build submitted via Travis CI"
+    notification_email: none
     build_command_prepend: "mvn clean"
-    build_command:   "mvn -DskipTests=true compile"
+    build_command:   "mvn compile"
     branch_pattern: coverity_scan

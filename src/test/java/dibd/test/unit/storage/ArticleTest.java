@@ -117,6 +117,9 @@ public class ArticleTest {
         buf.append("content-transfer-encoding: 8bit").append("\r\n");
         buf.append("content-type: multipart/mixed; boundary=\"\"")
         .append("\r\n"); //boundary cutted
+        /*System.out.println(part[0].replace(boundary, ""));
+        System.out.println("##");
+        System.out.println(buf.toString());*/
         assertTrue(buf.toString().equalsIgnoreCase(part[0].replace(boundary, ""))); //headers part
         
         buf = new StringBuilder();

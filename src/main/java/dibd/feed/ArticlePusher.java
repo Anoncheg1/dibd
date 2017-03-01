@@ -18,36 +18,21 @@
 
 package dibd.feed;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
-import java.net.InetAddress;
 import java.net.Socket;
-import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.charset.Charset;
-import java.util.logging.Level;
-import java.util.stream.Stream;
-
 import javax.net.ssl.SSLSocket;
 
-import dibd.config.Config;
 import dibd.daemon.ChannelLineBuffers;
 import dibd.daemon.LineEncoder;
 import dibd.daemon.NNTPConnection;
-import dibd.daemon.NNTPInterface;
-import dibd.storage.StorageManager;
-import dibd.storage.SubscriptionsProvider.FeedType;
 import dibd.storage.article.Article;
-import dibd.util.Log;
 
 /**
  * Posts an Article to a NNTP server using the IHAVE command with 1 sec waiting between header and body.

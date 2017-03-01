@@ -18,14 +18,11 @@ import java.util.TimeZone;
 
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 import dibd.daemon.NNTPInterface;
 import dibd.daemon.command.NewNewsCommand;
 import dibd.storage.GroupsProvider;
 import dibd.storage.StorageBackendException;
 import dibd.storage.StorageManager;
-import dibd.storage.SubscriptionsProvider;
 
 public class NewNewsTest {
 	

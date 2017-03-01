@@ -131,14 +131,14 @@ public final class App {
         
         String hostname = Config.inst().get(Config.HOSTNAME, null);
         if (hostname == null || hostname.isEmpty()){
-        	Log.get().log(Level.SEVERE, "No hostname");
+        	System.err.println("No hostname");
         	System.exit(1); //Host name is important for message-id to determinate whether this Article is local or from peer 
         }
 
         // Load the storage backend
         String database = Config.inst().get(Config.STORAGE_DATABASE, null);
         if (database == null) {
-            Log.get().log(Level.SEVERE, "No storage backend configured (dibd.storage.database)");
+        	System.err.println("No storage backend configured (dibd.storage.database)");
             System.exit(1);
         }
 
@@ -150,12 +150,19 @@ public final class App {
         StorageManager.enableProvider(sprov);
         StorageManager.enableSubscriptionsProvider(new SubscriptionsProvider());//peers.conf
         StorageManager.enableGroupsProvider(new GroupsProvider());//groups.conf
-        String IMpath; //ImageMagic Path initialization!!!
-        File path = new File("/usr/bin/");
-        if(path.exists())
-			IMpath = "/usr/bin/";
-		else
-			IMpath="C:\\Programs\\ImageMagick;C:\\Programs\\exiftool";
+        //ImageMagic initialization
+        String IMpath = Config.inst().get(Config.IMAGEMAGICPATH, "/usr/bin/"); 
+        File path = new File(IMpath);
+        if(!path.exists()){
+        	path = new File("/usr/bin/");
+        	if(!path.exists()){
+        		IMpath="C:\\Programs\\ImageMagick;C:\\Programs\\exiftool";
+        		if(!path.exists()){
+        			System.err.println("Fail to locate ImageMagic");
+        			System.exit(1);
+        		}
+        	}
+        }	
         try {
         	StorageManager.enableAttachmentProvider(
         			new AttachmentProvider("attachments/", IMpath));

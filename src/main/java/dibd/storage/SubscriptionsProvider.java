@@ -42,7 +42,7 @@ public class SubscriptionsProvider {
     private Set<Subscription> allSubs;
     private Set<String> allhosts;
     
-    public class Subscription {
+    public static class Subscription {
     	
     	private final String host; //not null
         private final int port;	//not null

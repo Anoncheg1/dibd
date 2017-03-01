@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.logging.Level;
 
 import dibd.config.Config;
-import dibd.daemon.NNTPConnection;
 import dibd.daemon.NNTPInterface;
 import dibd.storage.Headers;
 import dibd.storage.StorageBackendException;

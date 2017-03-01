@@ -21,8 +21,6 @@ import javax.mail.internet.MimeUtility;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 import dibd.config.Config;
 import dibd.daemon.NNTPInterface;
 import dibd.daemon.TLS;
@@ -78,7 +76,7 @@ public class IHAVEandTAKETHISTest {
 		StorageManager.enableGroupsProvider(gp);
 		
 		Class<?> cg = Group.class;
-		groupC = cg.getDeclaredConstructor(new Class[]{GroupsProvider.class, String.class, Integer.TYPE, Integer.TYPE, Set.class});
+		groupC = cg.getDeclaredConstructor(new Class[]{String.class, Integer.TYPE, Integer.TYPE, Set.class});
 		groupC.setAccessible(true);
 		
 		//for( Class<?> c : groupC.getParameterTypes() )
@@ -114,7 +112,7 @@ public class IHAVEandTAKETHISTest {
 		Set<String> host = new HashSet<String>(Arrays.asList("hschan.ano","host.com"));
 		//name id flags hosts
 		when(StorageManager.groups.get("local.test")).thenReturn(
-				(Group) groupC.newInstance(StorageManager.groups,"local.test",23,0,host));
+				(Group) groupC.newInstance("local.test",23,0,host));
 		
 		String send1 = "ihave <23456@host.com>";
 		String[] send2 = {
@@ -158,7 +156,7 @@ public class IHAVEandTAKETHISTest {
 		Set<String> host = new HashSet<String>(Arrays.asList("hschan.ano","host.com"));
 		//name id flags hosts
 		when(StorageManager.groups.get("local.test")).thenReturn(
-				(Group) groupC.newInstance(StorageManager.groups,"local.test",23,0,host));
+				(Group) groupC.newInstance("local.test",23,0,host));
 				
 		String send1 = "ihave <23456@host.com>";
 		String[] send2 = {
@@ -212,7 +210,7 @@ public class IHAVEandTAKETHISTest {
 		Set<String> host = new HashSet<String>(Arrays.asList("hschan.ano","host.com"));
 		//name id flags hosts
 		when(StorageManager.groups.get("local.test")).thenReturn(
-				(Group) groupC.newInstance(StorageManager.groups,"local.test",23,0,host));
+				(Group) groupC.newInstance("local.test",23,0,host));
 				
 		String send1 = "ihave <23456@host.com>";
 		String[] send2 = {"MIME-Version: 1.0",
@@ -669,7 +667,7 @@ public class IHAVEandTAKETHISTest {
 		Set<String> host = new HashSet<String>(Arrays.asList("hschan.ano","host.com"));
 		//name id flags hosts
 		when(StorageManager.groups.get("local.test")).thenReturn(
-				(Group) groupC.newInstance(StorageManager.groups,"local.test",23,0,host));
+				(Group) groupC.newInstance("local.test",23,0,host));
 		
 		String send1 = "takethis <23456@host.com>";
 		String[] send2 = {

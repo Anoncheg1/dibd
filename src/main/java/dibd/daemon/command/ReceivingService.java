@@ -7,30 +7,19 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URLConnection;
 import java.nio.charset.Charset;
 import java.text.ParseException;
 import java.util.Base64;
-import java.util.Enumeration;
-import java.util.Scanner;
-import java.util.logging.Formatter;
 import java.util.logging.Level;
-import java.util.logging.LogRecord;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.mail.Header;
 import javax.mail.MessagingException;
 import javax.mail.internet.ContentType;
-import javax.mail.internet.HeaderTokenizer;
 import javax.mail.internet.InternetHeaders;
 import javax.mail.internet.MimeUtility;
 
@@ -419,7 +408,7 @@ class ReceivingService{
 			headers_and_file[1] = parts[2].substring(ind+4); //trailing \r\n left
 			
 			InternetHeaders fHeaders = new InternetHeaders(
-					new ByteArrayInputStream(headers_and_file[0].trim().getBytes()));
+					new ByteArrayInputStream(headers_and_file[0].trim().getBytes())); //must contain only US-ASCII characters.
 			ContentType fCT = new ContentType(fHeaders.getHeader(Headers.CONTENT_TYPE)[0]); //file attachment Content-Type header
 			if(fHeaders.getHeader(Headers.ENCODING)[0].equalsIgnoreCase("base64")){ //base64
 				//System.out.println(messageId[0]+" file size:"+ " fCT START"+fCT.getPrimaryType()+"END"+fCT.getPrimaryType().equalsIgnoreCase("image"));
@@ -474,7 +463,6 @@ class ReceivingService{
 		// Create Replay or Thread
 		Article art;
 		Article article;
-		int f = file == null ? 0 : file.length;
 		
 		String[] mId = null; //message-id two parts 0-id 1-sender
 		byte[] rawArticle = null; //never null actually
