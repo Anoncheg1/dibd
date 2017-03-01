@@ -196,9 +196,9 @@ public class Article { //extends ArticleHead
 	 * Creates a new Article object. www input, NNTP POST.
 	 * No message_id
 	 * @param thread_id - null if thread
-	 * @param a_name
-	 * @param subject
-	 * @param message
+	 * @param a_name	may be null
+	 * @param subject	may be null
+	 * @param message	may be null
 	 * @param groupId
 	 * @param groupName
 	 * @param short_ref_messageId
@@ -213,19 +213,19 @@ public class Article { //extends ArticleHead
 		assert(StorageManager.groups.getName(groupId).equals(groupName));
 		assert(groupName != null);
 		
-		if (a_name.isEmpty())
+		if (a_name != null && a_name.isEmpty())
 			a_name = null;
 		else
 			a.a_name = escapeString(a_name);
 		
-		if (subject.isEmpty())
+		if (subject != null && subject.isEmpty())
 			subject = null;
 		else
 			a.subject = escapeString(subject);
 		
 		
 		
-		if (message.isEmpty())
+		if (message != null && message.isEmpty())
 			message = null;
 		/*else
 			for(Entry<String, String> ref : short_ref_messageId.entrySet())
@@ -438,13 +438,13 @@ public class Article { //extends ArticleHead
 			if (ascii)
 				lengthLimit = 992;
 		}
+		//if we have attachment or too long line we create messsageB64  
 		if (a.fileName != null || maxLength > lengthLimit){ //thunderbird like (about 990-995 for ASCII), (about 490-500 for UTF-8)
 			byte[] message = a.message.getBytes(charset);
 			messsageB64 = new String(Base64.getMimeEncoder(maxLine, NNTPConnection.NEWLINE.getBytes()).encode(message)); //utf-16
 		}
-		
-		byte[] message = a.message.getBytes(charset);//utf-8
-		messsageB64 = new String(Base64.getMimeEncoder(maxLine, NNTPConnection.NEWLINE.getBytes()).encode(message)); //utf-16
+		//else a.message will be used.
+
 		if(a.fileName != null && boundary == null){ //boundary generator
 			final char[] MULTIPART_CHARS =
 					"-_1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -477,8 +477,8 @@ public class Article { //extends ArticleHead
 		if(a.thread_id != null){
 			Article refArt = null; //can't be null
 			try {
-				refArt = StorageManager.current().getArticle(null, a.thread_id); //should be guaranteed by database
-			} catch (StorageBackendException e) {	e.printStackTrace();	}
+				refArt = StorageManager.current().getArticle(null, a.thread_id); //Guaranteed by database
+			} catch (StorageBackendException e) {	e.printStackTrace();	System.exit(1);} //Critical and Fatal
 			buf.append(Headers.REFERENCES).append(c).append(refArt.getMessageId()).append(nl);
 		}
 		//Path + localhost

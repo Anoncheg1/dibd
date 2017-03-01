@@ -268,7 +268,7 @@ public class NNTPConnection implements NNTPInterface{
         	Log.get().log(Level.WARNING, ex1.getLocalizedMessage(), ex1);
         	try {
 				println("403 Internal server error");
-				close(); //no need to close if connection broken
+				close();
 			} catch (IOException e) {} //already disconnected no need to do anything.
 
         	// Should we end the connection here?
@@ -323,22 +323,25 @@ public class NNTPConnection implements NNTPInterface{
     	byte[] tmp = new byte[ChannelLineBuffers.BUFFER_SIZE];
     	int len = 0;
     	int count;
-    	while ((count = fs.read(tmp)) != -1) {
-    		ByteBuffer buf = ChannelLineBuffers.newLineBuffer();
-    		assert buf.position() == 0;
-            assert buf.capacity() >= ChannelLineBuffers.BUFFER_SIZE;
-            buf.put(tmp,0,count).flip();
-            
-            try {
-				lineBuffers.addOutputBuffer(buf);
-			} catch (ClosedChannelException e) {
-				Log.get().log(Level.WARNING, "NNTPConnection.printArticle(): {0}", e);
-			}
-            //System.out.println(new String(tmp, charset));
-            enableWriteEvents("Article "+mId+" processed: "+len);
-            len += count;
+    	try{
+    		while ((count = fs.read(tmp)) != -1) {
+    			ByteBuffer buf = ChannelLineBuffers.newLineBuffer();
+    			assert buf.position() == 0;
+    			assert buf.capacity() >= ChannelLineBuffers.BUFFER_SIZE;
+    			buf.put(tmp,0,count).flip();
+
+    			lineBuffers.addOutputBuffer(buf);
+
+    			//System.out.println(new String(tmp, charset));
+    			enableWriteEvents("Article "+mId+" processed: "+len);
+    			len += count;
+    		}
+    	} catch (ClosedChannelException e) {
+    		Log.get().log(Level.WARNING, "NNTPConnection.printArticle(): {0}", e);
+    		return;
+    	}finally{
+    		fs.close();
     	}
-    	fs.close();
     	
     	
     }

@@ -294,30 +294,25 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 	 * @param bfile
 	 * @throws SQLException
 	 * @throws StorageBackendException 
+	 * @throws IOException 
 	 */
-	private void attachmentSaving(final int id, final String groupName, final String media_type, byte[] bfile) throws SQLException, StorageBackendException{
+	private void attachmentSaving(final int id, final String groupName, final String media_type, byte[] bfile) throws SQLException, StorageBackendException, IOException{
 		if (media_type.length() > 256)
 			throw new StorageBackendException("Tool long media-type");
 		String fileName = String.valueOf(id) + "." + media_type.split("/")[1].split("[+]")[0];
 		
+		//save file
+		StorageManager.attachments.saveFile(groupName, fileName, bfile);
+		//save database record
+		this.pstmtAttachmentSaving.setInt(1, id);
+		this.pstmtAttachmentSaving.setString(2, fileName);
+		this.pstmtAttachmentSaving.setString(3, media_type);
+		this.pstmtAttachmentSaving.execute();
+		//create thumbbnail
 		try {
-			//save file
-			StorageManager.attachments.saveFile(groupName, fileName, bfile);
-			//save database record
-			this.pstmtAttachmentSaving.setInt(1, id);
-			this.pstmtAttachmentSaving.setString(2, fileName);
-			this.pstmtAttachmentSaving.setString(3, media_type);
-			this.pstmtAttachmentSaving.execute();
-			//create thumbbnail
-			try {
-				StorageManager.attachments.createThumbnail(groupName, fileName);
-			} catch (InterruptedException | IM4JavaException e) {
-				e.printStackTrace();
-				// Log.get().log(Level.SEVERE, "?????? of
-				// createTread() failed: {0}", ex2);
-			}
-		} catch (IOException e) {
-			Log.get().log(Level.SEVERE, "Can't save attachment createThread() failed: {0}", e);
+			StorageManager.attachments.createThumbnail(groupName, fileName);
+		} catch (InterruptedException | IM4JavaException e) {
+			Log.get().log(Level.SEVERE, "Can not create thumbnail: {0}", e);
 		}
 	} 
 	
@@ -504,6 +499,9 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			this.conn.setAutoCommit(true);
 
 			return new Article(article, id, messageId, media_type);
+		} catch (IOException e) {
+			Log.get().log(Level.SEVERE, "Can't save attachment: {0}", e);
+			throw new StorageBackendException("Can not save attachment");
 		} catch (SQLException ex) {
 			try {
 				this.conn.rollback(); // Rollback changes
@@ -522,7 +520,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 		}finally{
 			this.restarts = 0; // Reset error count
 		}
-		return null;
+		return null; //Never happen. restartConnection() will throw exception or recursion.
 	}
 	
 	public Article createReplayWeb(Article article, byte[] bfile, final String media_type)
@@ -576,7 +574,10 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			this.conn.commit();
 			this.conn.setAutoCommit(true);
 			
-			return new Article(article, id, messageId, media_type);	
+			return new Article(article, id, messageId, media_type);
+		} catch (IOException e) {
+			Log.get().log(Level.SEVERE, "Can't save attachment: {0}", e);
+			throw new StorageBackendException("Can not save attachment");
 		} catch (SQLException ex) {
 			try {
 				this.conn.rollback(); // Rollback changes
@@ -595,7 +596,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 		}finally{
 			this.restarts = 0; // Reset error count
 		}
-		return null;
+		return null;//Never happen. restartConnection() will throw exception or recursion.
 	}
 
 	public Map<Article,List<Article>> getThreads(int boardId, int boardPage, String boardName) throws StorageBackendException {

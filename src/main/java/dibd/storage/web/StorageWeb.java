@@ -49,6 +49,7 @@ public interface StorageWeb {
 	 * @param format       - "image/png"
 	 * @throws internal Id
 	 * @throws StorageBackendException
+	 * @return null if exist or article with id.
 	 */	
 	Article createReplayWeb(Article article, byte[] bfile, String format)
 			throws StorageBackendException;
@@ -64,6 +65,7 @@ public interface StorageWeb {
 	 * @param format       - "image/png"
 	 * @throws internal Id
 	 * @throws StorageBackendException
+	 * @return null if exist or article with id.
 	 */
 	Article createThreadWeb(Article article, byte[] bfile, String format)
 			throws StorageBackendException;

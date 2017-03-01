@@ -30,7 +30,7 @@ public class NNTPCacheProvider {
 				.append(messageId)
 				.toString();
 	}
-	
+
 	public NNTPCacheProvider(final String savePath) throws Exception{
 		if (savePath.charAt(savePath.length()-1) != '/')
 			this.cachePath = savePath + '/';
@@ -65,15 +65,18 @@ public class NNTPCacheProvider {
 	 * @param data
 	 * @throws IOException
 	 */
-	public void saveFile (String groupName, String messageId, byte[] data) throws IOException{
+	public File saveFile (String groupName, String messageId, byte[] data) throws IOException{
 		File ofile = new File(buildPath(groupName, messageId));
 		if (ofile.createNewFile()) {
 
 			FileOutputStream fos = new FileOutputStream(ofile);
-			fos.write(data);
-			fos.close();
-
+			try {
+				fos.write(data);
+			}finally{
+				fos.close();
+			}
 		}
+		return ofile;
 	}
 
 	/**
@@ -86,6 +89,16 @@ public class NNTPCacheProvider {
 		File fl = new File(buildPath(groupName, messageId));
 		fl.delete();
 	}
+	
+	
+	/**
+	 * Roll back
+	 * 
+	 * @param fl
+	 */
+	public void delFile(File fl) {
+		fl.delete();
+	}
 
 	/**
 	 * Return FileInputStream or null if file can't be read or not exist.
@@ -93,7 +106,7 @@ public class NNTPCacheProvider {
 	 * Do not forget to close FileInputStream,
 	 * 
 	 * @param article
-	 * @return
+	 * @return null if not exist
 	 */
 	public FileInputStream getFileStream(Article article) {
 		File f = new File(buildPath(article.getGroupName(), article.getMessageId()));

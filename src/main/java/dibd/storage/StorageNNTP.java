@@ -65,6 +65,7 @@ public interface StorageNNTP {
 	 * @param format       - "image/png"
 	 * @throws internal Id
 	 * @throws StorageBackendException
+	 * @return article never null
 	 */	
 	Article createReplay(Article article, byte[] bfile, String format)
 			throws StorageBackendException;
@@ -73,12 +74,15 @@ public interface StorageNNTP {
 	 * Create thread.
 	 * Without repeat check.
 	 * 
+	 * Null never returned.
+	 * 
 	 * @param groupName
 	 * @param article
 	 * @param bfile
 	 * @param format       - "image/png"
 	 * @throws internal Id
 	 * @throws StorageBackendException
+	 * @return article never null
 	 */
 	Article createThread(Article article, byte[] bfile, String format)
 			throws StorageBackendException;

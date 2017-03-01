@@ -103,7 +103,7 @@ public class SubscriptionsProvider {
 		String peersStr = Resource.getAsString("peers.conf", true);
 		if(peersStr == null) {
 			Log.get().log(Level.WARNING, "Could not read peers.conf");
-			//return new HashSet<>(); // return empty list
+			return;
 		}
 
 		String[] peersLines = peersStr.split("\n");

@@ -143,13 +143,15 @@ public class ArticlePuller {
 		public boolean isTLSenabled() {
 			return TLSEnabled;
 		}
-		public String getHost() {
+		public String getHost() { //Do I need it?
+			/*
 			String host = null;
 			if (TLSEnabled){
 				X509Certificate cert = null;
 				try {
+					//was checked at FeedManager.getHelloFromServer()
 					cert = (X509Certificate) ((SSLSocket)socket).getSession().getPeerCertificates()[0];
-				} catch (SSLPeerUnverifiedException e) {
+				} catch (SSLPeerUnverifiedException e) {// should never happen
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
@@ -160,8 +162,9 @@ public class ArticlePuller {
 				host = socket.getRemoteSocketAddress().toString();
 
 			return host;
-		}
-
+			 */
+			return null;
+		}	
 	}
 	private Response conn = new Response(); //hook for loopback
 

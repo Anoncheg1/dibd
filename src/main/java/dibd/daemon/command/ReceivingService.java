@@ -366,8 +366,7 @@ class ReceivingService{
 	 * @throws MessagingException 
 	 * @throws ParseException 
 	 * @throws IOException 
-	 * @throws ParseException 
-	 * 
+	 * @throws ParseException
 	 * 
 	 */
 	String process(Charset charset) throws StorageBackendException, MessagingException, ParseException, IOException {
@@ -478,6 +477,7 @@ class ReceivingService{
 		int f = file == null ? 0 : file.length;
 		
 		String[] mId = null; //message-id two parts 0-id 1-sender
+		byte[] rawArticle = null; //never null actually
 		if (!command.equals("POST")){
 			mId = messageId.replaceAll("(<|>)", "").split("@");
 			String ourhost = Config.inst().get(Config.HOSTNAME, null);
@@ -497,46 +497,8 @@ class ReceivingService{
 					}
 			}
 			
-		}
-
-
-		if(thread_id != null){ //replay
-			//Check for too small message
-			/*if (message.length() == 0 && ( s == 0 || f == 0  )) {
-				conn.println("500 too short message. See minimal requrements for message content.");
-				return false;
-			}*/ //for now we accept null message
-			//System.out.println("a: "+thread_id+" "+mId[0]+" "+mId[1]+" "+from+" "+subjectT+" "+message+" "
-			//	+date[0]+" "+path[0]+" "+groupHeader[0]+" "+group.getInternalID());
-			if (command.equals("POST"))
-				art = new Article(thread_id, from, subject, message, group.getInternalID(), group.getName());
-			else
-				art = new Article(thread_id, messageId, mId[1], from, subject, message,
-						date, path, group.getName(), group.getInternalID());
-			article = StorageManager.current().createReplay(art, file, mimeType);
-
-		}else{ //thread
-			//Check for too small message
-			/*if ((message.length() == 0 && ( s == 0 || f == 0)) 
-					|| (s == 0 && f == 0)) {
-				conn.println("500 too short message. See minimal requrements for message content.");
-				return false;
-			}*/ //for now we accept null message
-			//System.out.println(message);
-			if (command.equals("POST"))
-				art = new Article(null, from, subject, message, group.getInternalID(), group.getName());
-			else
-				art = new Article(null, messageId, mId[1], from, subject, message,
-						date, path, group.getName(), group.getInternalID());
-			article = StorageManager.current().createThread(art, file, mimeType);
-		}
-
-		//conn.println("441 newsgroup not found or configuration error");
-		if (command == "POST")
-			PushDaemon.queueForPush(article); //send to peers
-		else{
-			//save to NNTP Cache
-			byte[] rawArticle = new byte[bufHead.size() + bufBody.size()];
+			//preparing raw data
+			rawArticle = new byte[bufHead.size() + bufBody.size()];
 			//System.out.println("1#"+new String(bufHead.toByteArray())+"#");
 			//System.out.println("2#"+new String(bufBody.toByteArray())+"#");
 			//System.out.println("bufHead.size "+bufHead.size());
@@ -544,7 +506,50 @@ class ReceivingService{
 			//System.out.println("rawArticle "+rawArticle.length);
 			System.arraycopy(bufHead.toByteArray(), 0, rawArticle, 0, bufHead.size()); //remove trailing \r\n
 			System.arraycopy(bufBody.toByteArray(), 0, rawArticle, bufHead.size(), bufBody.size()); //we have \r\n at the end in cache
-			StorageManager.nntpcache.saveFile(group.getName(), messageId, rawArticle);
+			
+		}
+
+
+		////////////////////  SAVING  ////////////////////
+		//1. cache save
+		//2. attachment save to cache
+		//3. attachment save to database
+		//4. save thumbnail - Not critical.
+		//5. article to database
+		if (command.equals("POST")){
+			if(thread_id != null){ //replay
+				art = new Article(thread_id, from, subject, message, group.getInternalID(), group.getName());
+				article = StorageManager.current().createReplay(art, file, mimeType);
+			}else{ //thread
+				art = new Article(null, from, subject, message, group.getInternalID(), group.getName());
+				article = StorageManager.current().createThread(art, file, mimeType);
+			}
+			PushDaemon.queueForPush(article); //send to peers
+		}else{
+			
+			if(thread_id != null){ //replay
+				art = new Article(thread_id, messageId, mId[1], from, subject, message,
+						date, path, group.getName(), group.getInternalID());
+				File fl = StorageManager.nntpcache.saveFile(group.getName(), messageId, rawArticle);
+				try{
+					article = StorageManager.current().createReplay(art, file, mimeType);
+				}catch(StorageBackendException e){ //rollback cache
+					StorageManager.nntpcache.delFile(fl);
+					throw new StorageBackendException(e);
+				}
+			}else{ //thread
+				art = new Article(null, messageId, mId[1], from, subject, message,
+						date, path, group.getName(), group.getInternalID());
+				File fl = StorageManager.nntpcache.saveFile(group.getName(), messageId, rawArticle);
+				try{
+					article = StorageManager.current().createThread(art, file, mimeType);
+				}catch(StorageBackendException e){ //rollback cache
+					StorageManager.nntpcache.delFile(fl);
+					throw new StorageBackendException(e);
+				}
+				
+			}
+			
 			
 			//3) Third check. Sender must be in group.
 			if(group.getHosts().contains(mId[1])){
@@ -557,8 +562,9 @@ class ReceivingService{
 						new Object[]{this.command, host, mId[1], group.getName()});
 				//FeedManager.lazyQueueForPush(art);
 			}
-		} 
+			
+		}
+		 
 		return null; //success
 	}
-
 }

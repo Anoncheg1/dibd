@@ -56,14 +56,17 @@ class ChannelReader extends DaemonThread {
      * Sets the selector which is used by this reader to determine the channel
      * to read from.
      *
+     * For NNTPDaemin. For speed optimization. 
+     *
      * @param selector
      */
-    public void setSelector(final Selector selector) {
+    void setSelector(final Selector selector) {
         this.selector = selector;
     }
     
     /**
-     *my for TLS
+     * NNTPConnection shutdown
+     * @return must return never null
      */
     public Selector getSelector() {
         return this.selector;
@@ -179,7 +182,7 @@ class ChannelReader extends DaemonThread {
                     Log.get().log(Level.WARNING,
                             "ChannelReader.processSelectionKey(): {0}", ex);
                 }
-                System.out.println("ChannelReader read:"+read);
+                //System.out.println("ChannelReader read:"+read);
 
                 if (read == -1) // End of stream
                 {

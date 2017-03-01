@@ -139,12 +139,14 @@ public final class ConnectionCollector extends DaemonThread {
     @Override
     public void requestShutdown() {
     	super.requestShutdown();
-    	for (NNTPConnection conn: connections){
-    		if (!conn.getSocketChannel().socket().isClosed())
-    			try {
-    				conn.println("400 The server has to terminate");
-    				conn.close();
-    			} catch (IOException e) {}
+    	synchronized (this.connections) {
+    		for (NNTPConnection conn: connections){
+    			if (!conn.getSocketChannel().socket().isClosed())
+    				try {
+    					conn.println("400 The server has to terminate");
+    					conn.close();
+    				} catch (IOException e) {}
+    		}
     	}
     }
 

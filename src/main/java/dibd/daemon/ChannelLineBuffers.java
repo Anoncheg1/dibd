@@ -56,7 +56,7 @@ public class ChannelLineBuffers {
      */
     public static final int BUFFER_SIZE = 990; //size of one line in line buffers
     public static final int INPUT_BUFFER_SIZE = 1024*100; //large one input buffer 100KB per connection (must be not less BUFFER_SIZE)
-    private static final int maxCachedBuffers = 1024*7; //Cached buffers maximum 1024*1024*2 B = 7 MB
+    private static final int maxCachedBuffers = 1024*3; //Cached buffers maximum 1024*1024*7 B = 3 MB
     private static final List<ByteBuffer> freeSmallBuffers = new ArrayList<>(
             maxCachedBuffers);
 
@@ -360,46 +360,5 @@ public class ChannelLineBuffers {
         }
     }
 
-
-    /**
-     * TLS
-     */
-    /*private ByteBuffer inNetBB = null; //	-> inAppBB
-    private ByteBuffer inAppBB = null; //	-> inputBuffer
-	
-	public void setInNetBB(ByteBuffer inNetBB) {
-		this.inNetBB = inNetBB;
-	}
-	
-	public ByteBuffer getInNetBB() {
-		return inNetBB;
-	}
-	
-	public void setInAppBB(ByteBuffer inAppBB) {
-		this.inAppBB = inAppBB;
-	}
-	
-	public ByteBuffer getInAppBB() {
-		return inAppBB;
-	}*/
     
-	/**
-	 * InAppBB to inputBuffer
-	 */
-    /*
-	public void clearInAppBB() {
-		synchronized (inputBuffer) {
-			if (!inputBuffersClosed) {
-				try{
-					inputBuffer.put(inAppBB);
-					inAppBB.clear(); // if no exception bytes transferred
-				}catch(BufferOverflowException ex){
-					//System.out.println("line buffers clearInAppBB BufferOverflowException "+ new String(inAppBB.array(), Charset.forName("UTF-8")));
-					System.out.println("line buffers clearInAppBB BufferOverflowException ");
-					//System.out.println("inputbuffer "+ new String(inputBuffer.array(), Charset.forName("UTF-8")));
-					inAppBB.compact();
-				}
-    		}
-		}
-	}*/
 }

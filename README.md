@@ -53,6 +53,12 @@ Setup
 * Customize the settings within the dibd.conf file
 * Start dibd as described above
 
+Used libraries with licenses(dibd):
+----------
+- javax.mail GPL2
+- org.im4java LGPL
+- Java JDBC 4.2 (JRE 8+) driver for PostgreSQL database. PostgreSQL License
+
 Contribution
 -------------
 

@@ -124,8 +124,7 @@ public class TLS{
 		}
 
 		//2) Export self public key to PEM file
-		if (new File(selfChainStore).exists()){
-			new File (selfPubCrt).delete();
+		if (new File(selfChainStore).exists() && !new File (selfPubCrt).exists()){
 			//export sertificate to PEM file
 			String exportselfcrt[] = { "keytool", "-exportcert", "-alias",
 					name, "-keystore", selfChainStore,
@@ -180,8 +179,12 @@ public class TLS{
 		//Init SSLContext
 		if (new File(selfChainStore).exists() && pubkeys != null){
 
+			
 			KeyStore ksKeys = KeyStore.getInstance(KeyStore.getDefaultType());
-			ksKeys.load(new FileInputStream(selfChainStore), certpassword.toCharArray());
+			FileInputStream fs = new FileInputStream(selfChainStore);
+			try{
+				ksKeys.load(fs, certpassword.toCharArray());
+			}finally{ fs.close(); }
 			KeyStore ksTrust = KeyStore.getInstance(KeyStore.getDefaultType());
 			//ksTrust.load(new FileInputStream(peersPubKeyStore), certpassword.toCharArray());
 			ksTrust.load(null);
@@ -250,8 +253,8 @@ public class TLS{
 	 */
 	public String[] getPeerNames() {
 		assert(this.peerNames != null && this.peerNames.length != 0);
-		for(String s : peerNames)
-			System.out.println("TLS.getPeerNames():"+s);
+		//for(String s : peerNames)
+			//System.out.println("TLS.getPeerNames():"+s);
 		return peerNames;
 	}
 
@@ -375,13 +378,13 @@ public class TLS{
 
 		//final Object gate = new Object();
 		while(initialHSComplete != true){
-			System.out.println("in while1");
+			//System.out.println("in while1");
 			if (selector == null){
 				selector = Selector.open();
 				sk = socketChannel.register(selector, SelectionKey.OP_READ);		
 			}else
 				selector.select();
-			System.out.println("in while2");
+			//System.out.println("in while2");
 			try{
 				doHandshake(sk);
 			}catch(SSLHandshakeException ex){
@@ -410,14 +413,14 @@ public class TLS{
 			return false;
 		}
 
-		System.out.println("Peer host is " + session.getPeerHost());
+		/*System.out.println("Peer host is " + session.getPeerHost());
 		System.out.println("Peer port is " + session.getPeerPort());
 		System.out.println("Cipher is " + session.getCipherSuite());
 		System.out.println("Protocol is " + session.getProtocol());
 		System.out.println("ID is " + new BigInteger(session.getId()));
 		System.out.println("Session created in " + session.getCreationTime());
 		System.out.println("Session accessed in " + session.getLastAccessedTime());
-		System.out.println("cert.getSigAlgName()"+cert.getSigAlgName());
+		System.out.println("cert.getSigAlgName()"+cert.getSigAlgName());*/
 		//System.out.println("cert"+cert.);
 		//Remote Entity verification for every send receive data -man-in-middle
 		//Are we secure?
@@ -585,7 +588,7 @@ needIO:
 					inNetBB.flip();//ready for output
 					result = engine.unwrap(inNetBB, inAppBB);
 					inNetBB.compact();
-					System.out.println("result"+result);
+					//System.out.println("result"+result);
 					
 					initialHSStatus = result.getHandshakeStatus();
 
@@ -635,7 +638,7 @@ needIO:
 								"during initial handshaking");
 					}
 				}  // "needIO" block.
-			System.out.println("after needIO "+initialHSStatus+" sk:"+(sk.interestOps()==SelectionKey.OP_READ));
+			//System.out.println("after needIO "+initialHSStatus+" sk:"+(sk.interestOps()==SelectionKey.OP_READ));
 			/*
 			 * Just transitioned from read to write.
 			 */
@@ -755,10 +758,10 @@ needIO:
             throw new IllegalStateException();
         }
 		
-		System.out.println("WE READ TLS");
+		//System.out.println("WE READ TLS");
 
 		 int n = socketChannel.read(inNetBB);
-		System.out.println("ChannelReader.unwrap readed:"+n);
+		//System.out.println("ChannelReader.unwrap readed:"+n);
 		//if (socketChannel.read(inNetBB) == -1) {
 		if (n == -1) {
 			// The channel has reached end-of-stream
@@ -795,7 +798,7 @@ needIO:
 					break;
 
 				case BUFFER_OVERFLOW:
-					System.out.println("readTLS BUFFER_OVERFLOW bytes consumed:"+result.bytesConsumed());
+					//System.out.println("readTLS BUFFER_OVERFLOW bytes consumed:"+result.bytesConsumed());
 					// Reset application data buffer.
 					int newAppSize = engine.getSession().getApplicationBufferSize();
 					if (newAppSize > inAppBB.capacity())
@@ -817,7 +820,7 @@ needIO:
 					// Handle other status: CLOSED, OK
 					//...
 				case CLOSED:
-					System.out.println("ChannelReader.unwrapTLS state CLOSED");
+					//System.out.println("ChannelReader.unwrapTLS state CLOSED");
 					//TODO:do something
 					break;
 				default:
@@ -887,13 +890,13 @@ needIO:
 		do{ // There is data to be send "src"
 
 			//first flush
-			System.out.println("wtiteTLS flush1 "+outNetBB.remaining());
+			//System.out.println("wtiteTLS flush1 "+outNetBB.remaining());
 			if (outNetBB.hasRemaining() && !tryFlush(outNetBB)) {
-				System.out.println("first flush2");
+				//System.out.println("first flush2");
 				//return retValue;
 				break;//and return
 			}
-			System.out.println("WRITE wrap "+src.remaining());
+			//System.out.println("WRITE wrap "+src.remaining());
 
 			/*
 			 * The data buffer is empty, we can reuse the entire buffer.
@@ -925,7 +928,7 @@ needIO:
 			 * it's been selected.  Odds of a write buffer being full
 			 * is less than a read buffer being empty.
 			 */
-			System.out.println("second first flush1 "+outNetBB.remaining());
+			//System.out.println("second first flush1 "+outNetBB.remaining());
 			if (outNetBB.hasRemaining()) {
 				tryFlush(outNetBB);
 			}

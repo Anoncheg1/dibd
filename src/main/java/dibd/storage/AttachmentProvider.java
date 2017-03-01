@@ -140,8 +140,11 @@ public class AttachmentProvider {
 		if (ofile.createNewFile()) {
 
 			FileOutputStream fos = new FileOutputStream(ofile);
-			fos.write(data);
-			fos.close();
+			try{
+				fos.write(data);
+			}finally{
+				fos.close();
+			}
 
 		}
 	}
