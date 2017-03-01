@@ -154,10 +154,10 @@ public final class App {
         String IMpath = Config.inst().get(Config.IMAGEMAGICPATH, "/usr/bin/"); 
         File path = new File(IMpath);
         if(!path.exists()){
-        	path = new File("/usr/bin/");
-        	if(!path.exists()){
+        	IMpath = "/usr/bin/";
+        	if(!new File(IMpath).exists()){
         		IMpath="C:\\Programs\\ImageMagick;C:\\Programs\\exiftool";
-        		if(!path.exists()){
+        		if(!new File(IMpath).exists()){
         			System.err.println("Fail to locate ImageMagic");
         			System.exit(1);
         		}

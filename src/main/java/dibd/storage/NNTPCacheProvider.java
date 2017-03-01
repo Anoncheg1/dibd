@@ -98,8 +98,8 @@ public class NNTPCacheProvider {
 	 * @param fl
 	 */
 	public void delFile(File fl) {
-		fl.delete();
-		Log.get().warning("Fail to delete article for RollBack");
+		if(!fl.delete())
+			Log.get().warning("Fail to delete article for RollBack");
 	}
 
 	/**
