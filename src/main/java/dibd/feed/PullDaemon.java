@@ -48,27 +48,34 @@ public class PullDaemon extends DaemonThread {
 	// TODO Make configurable
 	public static final int QUEUE_SIZE = 256;
 	
-	private static class Pair{
+	private static class MissingThread{
 		Group g;
 		long t;
-		Pair(Group g, long t){
+		String string_for_log;
+		/**
+		 * @param g
+		 * @param t
+		 * @param host_with_path for log output
+		 */
+		MissingThread(Group g, long t, String string_for_log){
 			this.g = g;
 			this.t = t;
+			this.string_for_log = string_for_log;
 		}
 	}
 	
 	//IHAVE, TAKETHIS when no reference
-	private final static LinkedBlockingQueue<Pair> groupQueue = new LinkedBlockingQueue<>(QUEUE_SIZE);
+	private final static LinkedBlockingQueue<MissingThread> groupQueue = new LinkedBlockingQueue<>(QUEUE_SIZE);
 	
 	private static volatile boolean running = false;
 
-	public static void queueForPush(Group group, long post_time) {
+	public static void queueForPush(Group group, long post_time, String string_for_log) {
 		assert(group != null);
 		if (running){
 			try {
 				//If queue is full, this call blocks until the queue has free space;
 				// This is probably a bottleneck for article posting
-				groupQueue.put(new Pair(group, post_time));
+				groupQueue.put(new MissingThread(group, post_time, string_for_log));
 			} catch (InterruptedException ex) {
 				Log.get().log(Level.WARNING, null, ex);
 			}
@@ -85,8 +92,9 @@ public class PullDaemon extends DaemonThread {
      * @param retries
      * @param sleep
      * @throws StorageBackendException
+     * @return -1 if error or articles pulled
      */
-    static void pull(Map<Group, Long> groupsTime, Proxy proxy, String host, int port, int retries, int sleep) throws StorageBackendException {
+    static int pull(Map<Group, Long> groupsTime, Proxy proxy, String host, int port, int retries, int sleep) throws StorageBackendException {
     	for(int retry =1; retry<retries;retry++){
     		ArticlePuller ap = null;
     		try {
@@ -101,7 +109,7 @@ public class PullDaemon extends DaemonThread {
     			if (mIDs.isEmpty()){
     				Log.get().log(Level.FINE,"{0}: no new articles found at host:{1}:{2}",
     						new Object[]{Thread.currentThread().getName(), host, port});
-    				return;
+    				return 0;
     			}else{
     				int reseived = 0;
     				for (String mId : mIDs){
@@ -110,7 +118,7 @@ public class PullDaemon extends DaemonThread {
     				}
     				Log.get().log(Level.FINE,"{0}: {1} articles of {2} successful reseived from host {3}:{4}",
     						new Object[]{Thread.currentThread().getName(), reseived, mIDs.size(), host, port});
-    					return;
+    					return reseived;
     			}
 
     		}catch (IOException ex) {
@@ -118,7 +126,7 @@ public class PullDaemon extends DaemonThread {
     					new Object[]{Thread.currentThread().getName(), retry, host, port, ex.toString()});
     		}catch (NullPointerException e) {
     			Log.get().log(Level.WARNING,"No error if it is shutdown {0}", e);
-    			return;
+    			return -1;
     		}finally{
     			//Log.get().log(Level.WARNING, "Finally host: {0}:{1} can not pull from.", new Object[]{host, port});
     			if (ap != null)
@@ -131,6 +139,7 @@ public class PullDaemon extends DaemonThread {
     			break;
     		}
     	}
+    	return -1;
     }
 
     
@@ -139,7 +148,9 @@ public class PullDaemon extends DaemonThread {
     	PullDaemon.running = isRunning(); 
     	while (isRunning()) {
     		try{	
-    			Pair p = PullDaemon.groupQueue.take();
+    			MissingThread p = PullDaemon.groupQueue.take();
+    			Thread.sleep(30000);//30sec wait for missing thread be spread to peer network we connected
+    			
     			List<Subscription> subs = new ArrayList<>(); 
     			for (Subscription sub : StorageManager.peers.getAll())
     				if(p.g.getHosts().contains(sub.getHost()) //case sensitive group and peer 
@@ -159,14 +170,15 @@ public class PullDaemon extends DaemonThread {
     				gr.put(p.g, p.t);
     				
     				try {
-						pull(gr, proxy, sub.getHost(), sub.getPort(), 5, 60*1000);
+						if(pull(gr, proxy, sub.getHost(), sub.getPort(), 5, 60*1000) == 0)
+							Log.get().log(Level.WARNING, "No thread was found for missing thread: {0}", p.string_for_log);
 					} catch (StorageBackendException e) {
 						Log.get().log(Level.WARNING, e.getLocalizedMessage(), e);
 					}
     			}
     		
     		} catch (InterruptedException e1) {
-    			Log.get().log(Level.WARNING, "PullFeeder interrupted: {0}", e1);
+    			Log.get().log(Level.FINEST, "PullFeeder interrupted: {0}", e1);
     			return;
 			}
     	}

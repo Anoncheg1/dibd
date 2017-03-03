@@ -109,7 +109,7 @@ class ReceivingService{
 	 * Return values: 
 	 * 0 - Continue.
 	 * The end of headers reached:
-	 * 1 - error. 500 sended.
+	 * 1 - error in recognition.
 	 * 2 - Success. ReadingBody now.
 	 * 3 - No body.
 	 * 4 - No such group.
@@ -146,7 +146,7 @@ class ReceivingService{
 				String[] mId = headers.getHeader(Headers.MESSAGE_ID);
 				
 				//System.out.println(headers.getHeader(Headers.MESSAGE_ID));
-				if (command != "POST"){
+				if ( ! command.equals("POST")){
 					if (dateH == null || pathH == null || mId == null)
 						return 1;//error to recognize headers
 					
@@ -320,7 +320,8 @@ class ReceivingService{
 					this.thread_id = art.getThread_id();
 				else{
 					try {
-						PullDaemon.queueForPush(group, Headers.ParseRawDate(date));//request missed thread:
+						//request missed thread:
+						PullDaemon.queueForPush(group, Headers.ParseRawDate(date), messageId+" "+this.host+" "+path);
 					} catch (ParseException e) {
 						Log.get().log(Level.INFO, "{0}: {1} can not parse date {2}",
 								new Object[]{this.command, messageId, date});
@@ -420,7 +421,7 @@ class ReceivingService{
 					InputStream is = new BufferedInputStream(new ByteArrayInputStream(file));
 					mimeType = URLConnection.guessContentTypeFromStream(is);
 					
-					if(!fCT.getBaseType().equals(mimeType)){//Detected Content-Type != Content-Type in header
+					if( ! fCT.getBaseType().equals(mimeType)){//Detected Content-Type != Content-Type in header
 						file = null;
 						mimeType = null;
 						Log.get().log(Level.INFO, "{0}: {1} Unknewn file type {2} or {3} from {4}",
@@ -494,7 +495,6 @@ class ReceivingService{
 			//System.out.println("rawArticle "+rawArticle.length);
 			System.arraycopy(bufHead.toByteArray(), 0, rawArticle, 0, bufHead.size()); //remove trailing \r\n
 			System.arraycopy(bufBody.toByteArray(), 0, rawArticle, bufHead.size(), bufBody.size()); //we have \r\n at the end in cache
-			
 		}
 
 

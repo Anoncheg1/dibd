@@ -424,6 +424,8 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			return createThread(article, bfile, media_type);
 	}
 	
+	
+	
 	public Article createThread(Article article, byte[] bfile, String media_type)
 			throws StorageBackendException {
 		ResultSet rs = null;
@@ -439,16 +441,17 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			rs.next(); //return always true;  
 			int threads_per_page = Config.inst().get(Config.THREADS_PER_PAGE, 5);
 			int pages = Config.inst().get(Config.PAGE_COUNT, 6);
-			//TODO:make configurable
-			int archive_threads = 5;
+			
+			//do we need it?
+			int archive_threads = 0;
 
 			int threadsNow = rs.getInt(1); //0 or >0
-
+			
 			int max_threads =  threads_per_page * pages + archive_threads;
-			if (threadsNow > max_threads+0) {//0 delete 1 threads at once.
-				for (int i = threadsNow; i > max_threads; i--)
-					deleteOneOldestThread(groupId, groupName);
-			}
+			//If THREADS_PER_PAGE or PAGE_COUNT change => we must idle once and remove several threads once.
+			for (int i = threadsNow; i > max_threads; i--)
+				deleteOneOldestThread(groupId, groupName);
+			
 		} catch (SQLException e1) {
 			throw new StorageBackendException("Count postings return nothing!");
 		}finally{
