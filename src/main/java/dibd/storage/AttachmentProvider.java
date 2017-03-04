@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.logging.Level;
 
 import org.im4java.core.ConvertCmd;
 import org.im4java.core.IM4JavaException;
@@ -105,33 +106,40 @@ public class AttachmentProvider {
 	/**
 	 * If format is not supported for thumbnail then new format will be returned
 	 * (used in ArticleWeb)
+	 * fix for svg files.   if we have svg we convert to png
+	 * 
 	 * @param fileName
 	 * @return
 	 */
 	public String checkSupported(String fileName){
 		String f[] = fileName.split("[.]");
-		if (f[1].toLowerCase().contains("svg"))
+		if (f.length == 2 && f[1].toLowerCase().contains("svg"))
 			fileName = f[0]+".png";
 		return fileName;
 	}
 	
 	
 
-	public void createThumbnail(String groupName, String fileName)
-			throws IOException, InterruptedException, IM4JavaException {
-		String pathSource = getAPath(groupName, fileName);   //1
-		String pathTarget = getTnPath(groupName, fileName);    //2
-		
-		ConvertCmd cmd = new ConvertCmd();
-		File sourceFile = new File(pathSource);
-		File thumbNailFile = new File(pathTarget);
-		if (sourceFile.exists() && !thumbNailFile.exists() ) {
-			IMOperation op = new IMOperation();
-			op.addImage(sourceFile.getCanonicalPath());
-			op.thumbnail(null,200);
-			op.addImage(thumbNailFile.getCanonicalPath());
-			//System.out.println(op.getCmdArgs());
-			cmd.run(op);
+	public void createThumbnail(String groupName, String fileName, String media_type){
+		if (media_type.substring(0, 6).equals("image/")){//we will add other formats later
+			try{
+				String pathSource = getAPath(groupName, fileName);   //1
+				String pathTarget = getTnPath(groupName, checkSupported(fileName));    //2
+
+				ConvertCmd cmd = new ConvertCmd();
+				File sourceFile = new File(pathSource);
+				File thumbNailFile = new File(pathTarget);
+				if (sourceFile.exists() && !thumbNailFile.exists() ) {
+					IMOperation op = new IMOperation();
+					op.addImage(sourceFile.getCanonicalPath());
+					op.thumbnail(null,200);
+					op.addImage(thumbNailFile.getCanonicalPath());
+					//System.out.println(op.getCmdArgs());
+					cmd.run(op);
+				}
+			} catch (IOException | InterruptedException | IM4JavaException e) {
+				Log.get().log(Level.WARNING, "Can not create thumbnail: {0}", e);
+			}
 		}
 	}
 	

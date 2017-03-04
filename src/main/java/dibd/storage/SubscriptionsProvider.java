@@ -118,10 +118,14 @@ public class SubscriptionsProvider {
 
 			subLine = subLine.trim();
 			String[] subLineChunks = subLine.split("\\s+");
-			if(subLineChunks.length < 1) {
-				//Log.get().log(Level.WARNING, "Malformed peers.conf line: {0}", subLine);
+			if(subLineChunks.length < 2) //host and port
+				continue;
+			
+			if(subLineChunks[1].isEmpty()){ //no port
+				Log.get().log(Level.WARNING, "Malformed peers.conf line: {0}", subLine);
 				continue;
 			}
+			
 			//one line for one host
 			if (allhosts.contains(subLineChunks[0])){
 				Log.get().log(Level.WARNING, "peers.conf: peer is duplicated, first line will be used: {0}", subLineChunks[0]);

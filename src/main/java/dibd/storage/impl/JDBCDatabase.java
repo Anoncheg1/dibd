@@ -288,17 +288,20 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 	 * 
 	 * @param id
 	 * @param groupName
-	 * @param media_type
+	 * @param media_type may be null in web for shure
 	 * @param bfile
 	 * @throws SQLException
 	 * @throws StorageBackendException 
 	 * @throws IOException 
 	 */
 	private void attachmentSaving(final int id, final String groupName, final String media_type, byte[] bfile) throws SQLException, StorageBackendException, IOException{
-		if (media_type.length() > 256)
-			throw new StorageBackendException("Tool long media-type");
-		String fileName = String.valueOf(id) + "." + media_type.split("/")[1].split("[+]")[0];
-		
+		if (media_type != null && media_type.length() > 256)
+			throw new StorageBackendException("Too long media-type");
+		String fileName;
+		if (media_type != null)
+			fileName = String.valueOf(id) + "." + media_type.split("/")[1].split("[+]")[0];
+		else
+			fileName = String.valueOf(id);
 		//save file
 		StorageManager.attachments.saveFile(groupName, fileName, bfile);
 		//save database record
@@ -306,12 +309,10 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 		this.pstmtAttachmentSaving.setString(2, fileName);
 		this.pstmtAttachmentSaving.setString(3, media_type);
 		this.pstmtAttachmentSaving.execute();
-		//create thumbbnail
-		try {
-			StorageManager.attachments.createThumbnail(groupName, fileName);
-		} catch (InterruptedException | IM4JavaException e) {
-			Log.get().log(Level.SEVERE, "Can not create thumbnail: {0}", e);
-		}
+		//create thumbbnail (not critical)
+		if (media_type != null)
+			StorageManager.attachments.createThumbnail(groupName, fileName, media_type);
+
 	} 
 	
 	/**
@@ -415,7 +416,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 		return id;
 	}
 	
-	
+	//bfile or media_type may be null
 	public Article createThreadWeb(Article article, byte[] bfile, String media_type)
 			throws StorageBackendException {
 		if (repeatCheck(article.getHash(), article.getPost_time()))
@@ -493,7 +494,8 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			
 
 			// attachment saving
-			if (bfile != null && media_type != null)
+			//if (bfile != null && media_type != null)
+			if (bfile != null)
 				attachmentSaving(id, groupName, media_type, bfile);
 			
 			this.conn.commit();

@@ -387,7 +387,7 @@ public class TLS{
 			//System.out.println("in while2");
 			try{
 				doHandshake(sk);
-			}catch(SSLHandshakeException ex){
+			}catch(SSLException ex){
 				Log.get().log(Level.WARNING, "TLS.connect, fail in handshake: {0}", ex);
 				conn.close();
 				return false;

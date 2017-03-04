@@ -365,9 +365,9 @@ public class Article { //extends ArticleHead
 		return a.groupId;
 	}
 
-	public String getFileName() {
-		return a.fileName;
-	}
+	//public String getFileName() {
+		//return a.fileName;
+	//}
 
 	public String getGroupName() {
 		return a.groupName;
