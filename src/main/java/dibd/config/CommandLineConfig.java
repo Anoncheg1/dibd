@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.HashMap;
 
 /**
- * 
+ * TODO: why we need two classes FileConfig and this shit?
  * @author Christian Lins
  */
 class CommandLineConfig extends AbstractConfig {

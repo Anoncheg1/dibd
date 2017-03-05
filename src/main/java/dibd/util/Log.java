@@ -18,6 +18,9 @@
 
 package dibd.util;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.logging.FileHandler;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
@@ -40,10 +43,36 @@ public class Log extends Logger {
     private Log() {
         super("dibd", null);
 
-        StreamHandler sHandler = new StreamHandler(System.out,
-                new SimpleFormatter());
-        addHandler(sHandler);
+        SimpleFormatter formatter = new SimpleFormatter();
         
+        ///// create log to file if possible ////
+        String logfile = Config.inst().get(Config.LOGFILE, null);
+        if (logfile != null){
+        	/*File lf = new File(logfile);
+        	try {
+				lf.createNewFile();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}*/
+        	try {
+        		FileHandler fh = new FileHandler(logfile);
+				fh.setFormatter(formatter);
+	        	addHandler(fh);
+	        	return;
+			} catch (SecurityException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+        }
+        
+        StreamHandler streamHandler = new StreamHandler(System.out, formatter);
+
+        addHandler(streamHandler);
+
         Level level = Level.parse(Config.inst().get(Config.LOGLEVEL, "INFO"));
         setLevel(level);
         for (Handler handler : getHandlers()) {
@@ -54,6 +83,18 @@ public class Log extends Logger {
     }
 
     public static Logger get() {
+    	/* not working with junit. need synchronization. too complex.
+    	 * if (instance == null) {
+            // We do not synchronize the creation of the logger instances as
+            // the addLogger() method simply ignores multiple calls with an
+            // equally named ("dibd") Logger instance and returns false
+            Log log = new Log();
+            if (LogManager.getLogManager().addLogger(instance)) {
+                // We keep a strong reference to our logger, because LogManager
+                // only keeps a weak reference that may be garbage collected
+                instance = log;
+            }
+        }*/
         return instance;
     }
 }

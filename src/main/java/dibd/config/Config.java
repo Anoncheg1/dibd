@@ -111,7 +111,7 @@ public class Config extends AbstractConfig {
     public static final String XDAEMON_HOST = "sonews.xdaemon.host";
 
     /** The config key for the filename of the logfile */
-    public static final String LOGFILE = "dibd.log";
+    public static final String LOGFILE = "dibd.logfile";
     /*public static final String[] AVAILABLE_KEYS = { ARTICLE_MAXSIZE, EVENTLOG,
     		PEERING, FEED_NEWSPERRUN, FEED_PULLINTERVAL, HOSTNAME, MLPOLL_DELETEUNKNOWN,
             MLPOLL_HOST, MLPOLL_PASSWORD, MLPOLL_USER, MLSEND_ADDRESS,
@@ -134,9 +134,10 @@ public class Config extends AbstractConfig {
             val = FileConfig.getInstance().get(key, def);
         }
 
-        if (val == null) {
+        /* too many warnings. interfere in log creation from LOGFILE
+         * if (val == null) {
             Log.get().log(Level.WARNING, "Returning default value for {0}", key);
-        }
+        }*/
         return val;
     }
 
