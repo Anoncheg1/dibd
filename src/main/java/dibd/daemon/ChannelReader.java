@@ -193,10 +193,10 @@ class ChannelReader extends DaemonThread {
                     ConnectionWorker.addChannel(socketChannel);
                 }
             }
-        } else {
+        } //else { //happen because of TLS handshake error
             // Should not happen
-            Log.get().log(Level.SEVERE, "Should not happen: {0}", selKey.toString());
-        }
+            //Log.get().log(Level.SEVERE, "Should not happen: {0}", selKey.toString());
+        //}
     }
 
     

@@ -388,8 +388,8 @@ public class TLS{
 			try{
 				doHandshake(sk);
 			}catch(SSLException ex){
-				Log.get().log(Level.WARNING, "TLS.connect, fail in handshake: {0}", ex);
-				conn.close();
+				Log.get().log(Level.WARNING, "TLS.connect, fail in handshake: {0}", ex.getLocalizedMessage());
+				
 				return false;
 			}
 			//System.out.println("while state: "+initialHSComplete);
@@ -595,6 +595,7 @@ needIO:
 
 					inNetBB.flip();//ready for output
 					result = engine.unwrap(inNetBB, inAppBB);
+					//System.out.println(new String(inAppBB.array()));
 					inNetBB.compact();
 					//System.out.println("result"+result);
 					

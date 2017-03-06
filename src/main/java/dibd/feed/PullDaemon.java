@@ -27,6 +27,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
+
+import javax.net.ssl.SSLPeerUnverifiedException;
+
 import dibd.config.Config;
 import dibd.daemon.DaemonThread;
 import dibd.daemon.command.IhaveCommand;
@@ -99,7 +102,13 @@ public class PullDaemon extends DaemonThread {
     		ArticlePuller ap = null;
     		try {
     			boolean TLSenabled = Config.inst().get(Config.TLSENABLED, false);
-    			ap = new ArticlePuller(FeedManager.createSocket(proxy, host, port), TLSenabled, host); //connection to subscription
+    			try {
+					ap = new ArticlePuller(FeedManager.createSocket(proxy, host, port), TLSenabled, host);
+				} catch (SSLPeerUnverifiedException e) {
+					Log.get().log(Level.WARNING, "For host {0} TLS did not present a valid certificate",
+		        			host);
+					break;
+				}
     			Log.get().log(
     					Level.INFO, "{0}: pulling from {1} groups:{2}", //his groups {1}",
     					new Object[]{Thread.currentThread().getName(), host, groupsTime.size()});

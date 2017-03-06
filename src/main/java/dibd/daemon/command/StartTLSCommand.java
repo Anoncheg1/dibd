@@ -91,7 +91,8 @@ public class StartTLSCommand implements Command {
 					if(tls.connect())
 						conn.setTLS(tls);
 					else //fail tls negotiation
-						conn.println("580 Can not initiate TLS negotiation");
+						return;
+						//conn.close();
 					
 				}else{
 					System.out.println("shutdown TLS1");

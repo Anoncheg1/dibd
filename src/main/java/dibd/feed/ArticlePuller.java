@@ -33,6 +33,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.logging.Level;
+
+import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSocket;
 
 import dibd.daemon.ChannelLineBuffers;
@@ -76,7 +78,7 @@ public class ArticlePuller {
 	 * @param host
 	 * @throws IOException
 	 */
-	public ArticlePuller(Socket socket, boolean TLSEnabled, String host) throws IOException{
+	public ArticlePuller(Socket socket, boolean TLSEnabled, String host) throws SSLPeerUnverifiedException, IOException{
 		this.host = host;
 		this.TLSEnabled = TLSEnabled;
 		

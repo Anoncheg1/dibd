@@ -184,7 +184,7 @@ public class FeedManager {
 	 * @return
 	 * @throws IOException
 	 */
-	public static Socket getHelloFromServer(Socket socket, boolean TLSEnabled, String host, Charset charset) throws IOException{
+	public static Socket getHelloFromServer(Socket socket, boolean TLSEnabled, String host, Charset charset) throws SSLPeerUnverifiedException, IOException{
 		
 		PrintWriter out = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), charset));
 		BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream(), charset));
@@ -209,14 +209,9 @@ public class FeedManager {
 			}
 			
 			SSLSession session = sslsocket.getSession(); //handshake
-			
-			try {
-	        	X509Certificate cert = (X509Certificate) session.getPeerCertificates()[0]; //I am not sure how to check that it is right cert
-	        } catch (SSLPeerUnverifiedException e) {
-	        	Log.get().log(Level.WARNING, "For host {0} TLS did not present a valid certificate",
-	        			host);
-	        	throw new IOException();
-	        }
+			//throw exception:
+			X509Certificate cert = (X509Certificate) session.getPeerCertificates()[0]; //I am not sure how to check that it is right cert
+	        
 			//ready for encrypted communication
 			
 			//new encrypted streams

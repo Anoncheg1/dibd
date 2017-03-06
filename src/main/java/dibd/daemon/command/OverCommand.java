@@ -214,7 +214,6 @@ public class OverCommand implements Command {
                         		//System.out.println("AAAAAAAAAAAAAAAAAAAAAid:"+id);
                         		Article a = StorageManager.current().getArticle(null, id);
                         		String overview = buildOverview(a,id);
-                        		System.out.println("Aid:"+ a.getId()+ " "+a.getThread_id());
                         		conn.println(overview);
                         		
                         //	}
