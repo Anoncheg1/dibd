@@ -21,10 +21,16 @@ package dibd.daemon.command;
 import java.io.IOException;
 
 import dibd.daemon.NNTPInterface;
+import dibd.storage.GroupsProvider.Group;
 import dibd.storage.StorageBackendException;
+import dibd.storage.StorageManager;
 
 /**
  * Class handling the NEWGROUPS command.
+ * 
+ * NEWGROUPS date time [GMT]
+ *    Responses
+ *    231    List of new newsgroups follows (multi-line)
  * 
  * @author Christian Lins
  * @author Dennis Schwerdel
@@ -34,7 +40,7 @@ public class NewGroupsCommand implements Command {
 
     @Override
     public String[] getSupportedCommandStrings() {
-        return new String[] { "NEWGROUPS" };
+        return new String[] { "NEWGROUPS", "NEWSGROUPS" }; // NEWSGROUPS is a nntpchan bug
     }
 
     @Override
@@ -57,8 +63,17 @@ public class NewGroupsCommand implements Command {
             throws IOException, StorageBackendException {
         final String[] command = line.split(" ");
 
-        if (command.length == 3) {
-            conn.println("231 list of new newsgroups follows");
+        if (command.length >= 3) {
+        	if(command[0].equalsIgnoreCase("newsgroups"))
+        		conn.println("231 newgroups not newSgroups damn you!");
+        	else
+        		conn.println("231 list of new newsgroups follows");
+            for( Group g : StorageManager.groups.getAll()){
+            	String writeable = g.isWriteable() ? " y" : " n";
+            	conn.println(g.getName()+" "
+            			+ g.getLastArticleNumber() + " "
+                        + g.getFirstArticleNumber() + writeable);
+            }
 
             // Currently we do not store a group's creation date;
             // so we return an empty list which is a valid response

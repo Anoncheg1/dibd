@@ -42,24 +42,15 @@ public class Log extends Logger {
 
     private Log() {
         super("dibd", null);
-
         SimpleFormatter formatter = new SimpleFormatter();
         
         ///// create log to file if possible ////
         String logfile = Config.inst().get(Config.LOGFILE, null);
         if (logfile != null){
-        	/*File lf = new File(logfile);
-        	try {
-				lf.createNewFile();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}*/
         	try {
         		FileHandler fh = new FileHandler(logfile);
 				fh.setFormatter(formatter);
 	        	addHandler(fh);
-	        	return;
 			} catch (SecurityException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -67,12 +58,15 @@ public class Log extends Logger {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+        	//default
+        	StreamHandler streamHandler = new StreamHandler(System.out, formatter);
+        	addHandler(streamHandler);
+        }else{
+        	//default
+        	StreamHandler streamHandler = new StreamHandler(System.out, formatter);
+        	addHandler(streamHandler);
         }
         
-        StreamHandler streamHandler = new StreamHandler(System.out, formatter);
-
-        addHandler(streamHandler);
-
         Level level = Level.parse(Config.inst().get(Config.LOGLEVEL, "INFO"));
         setLevel(level);
         for (Handler handler : getHandlers()) {

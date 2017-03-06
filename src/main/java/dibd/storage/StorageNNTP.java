@@ -62,12 +62,12 @@ public interface StorageNNTP {
 	 * 
 	 * @param article
 	 * @param bfile
-	 * @param format       - "image/png"
-	 * @throws internal Id
+	 * @param file_ct   - content-type
+	 * @param file_name
 	 * @throws StorageBackendException
 	 * @return article never null
 	 */	
-	Article createReplay(Article article, byte[] bfile, String format)
+	Article createReplay(Article article, byte[] bfile, String file_ct, String file_name)
 			throws StorageBackendException;
 	
 	/**
@@ -79,12 +79,12 @@ public interface StorageNNTP {
 	 * @param groupName
 	 * @param article
 	 * @param bfile
-	 * @param format       - "image/png"
-	 * @throws internal Id
+	 * @param file_ct
+	 * @param file_name
 	 * @throws StorageBackendException
 	 * @return article never null
 	 */
-	Article createThread(Article article, byte[] bfile, String format)
+	Article createThread(Article article, byte[] bfile, String file_ct, String file_name)
 			throws StorageBackendException;
 	
 	/**

@@ -19,6 +19,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.mail.MessagingException;
+import javax.mail.internet.ContentDisposition;
 import javax.mail.internet.ContentType;
 import javax.mail.internet.InternetHeaders;
 import javax.mail.internet.MimeUtility;
@@ -140,6 +141,7 @@ class ReceivingService{
 				from_raw = headers.getHeader(Headers.FROM); //may be null
 				subjectArr = headers.getHeader(Headers.SUBJECT); //may be null
 				ref = headers.getHeader(Headers.REFERENCES); //may be null
+				
 				String[] groupHeader = headers.getHeader(Headers.NEWSGROUPS);
 				String[] dateH = headers.getHeader(Headers.DATE);
 				String[] pathH = headers.getHeader(Headers.PATH);
@@ -155,6 +157,14 @@ class ReceivingService{
 					messageId = mId[0];
 					lastSender = path.split("!")[0];
 				}
+							
+				//checks
+				if(ref != null && !ref[0].isEmpty())
+					if (! Headers.matchMsgId(ref[0])){
+						Log.get().log(Level.INFO, "{0} wrong reference {1} format in {2} from {3}", new Object[] {command, ref[0], messageId, host});
+						return 1; //error in header references
+					}
+				
 				if (groupHeader == null)
 					return 4;//No such group.
 				else{
@@ -162,6 +172,9 @@ class ReceivingService{
 					if (group == null || group.isDeleted())//check that we have such group
 						return 4;//No such group.
 				}
+				
+				
+				
 			} catch (MessagingException ex) {
 				Log.get().log(Level.INFO, ex.getLocalizedMessage(), ex);
 				return 1;//error in headers
@@ -237,6 +250,7 @@ class ReceivingService{
 		// Circle check; note that Path can already contain the hostname
 		// here
 		String ourhost = Config.inst().get(Config.HOSTNAME, null);
+		assert(ourhost != null);
 		assert(path != null);
 		if (path.indexOf(ourhost + "!", 1) > 0) { //except first occurrence, 
 			Log.get().log(Level.INFO, "{0}: {1} Circle detected for host {2}",
@@ -305,17 +319,24 @@ class ReceivingService{
 	}//see at the bottom of process() method.*/
 
 	/**
-	 * Check if thread exist if article is replay.
-	 * If not exist we query for pull.
+	 * Necessarily to call for IHAVE and TAKETHIS.
 	 * 
-	 * @return true if everything is ok
+	 * For replay:
+	 * set this.thread_id
+	 * Check if thread exist.
+	 * If not we query for pull.
+	 * 
+	 * @return false if no such reference, true if we can proceed
 	 * @throws StorageBackendException 
 	 * @throws ParseException 
 	 */
 	boolean checkRef() throws StorageBackendException{
-		if (ref != null){ 
-			if(!ref[0].isEmpty() && !ref[0].equals(messageId) && Headers.matchMsgId(messageId)){
-				Article art = StorageManager.current().getArticle(ref[0], null);
+		if (ref != null && !ref[0].isEmpty()){
+
+			Article art = StorageManager.current().getArticle(ref[0], null);
+
+			if(!ref[0].equals(messageId)){ //check that it is replay
+
 				if (art != null)
 					this.thread_id = art.getThread_id();
 				else{
@@ -328,12 +349,12 @@ class ReceivingService{
 					}
 					return false; //"no such REFERENCE";
 				}
-					
+
 			}
 		}
-		
+
 		return true;
-		
+
 	}
 
 	/**
@@ -364,8 +385,9 @@ class ReceivingService{
 
 		String message = null; //UTF-16
 		byte[] file = null;
-		String mimeType = null;
+		String gfileCT = null; //guess Content-type for file
 		ContentType ct = null;
+		ContentDisposition fCD = null;//file Content-Disposition with file name
 		if (contentType != null)
 			ct = new ContentType(contentType[0]);
 
@@ -382,7 +404,7 @@ class ReceivingService{
 				return "MIME multipart parts is less then 3";
 
 			//parts[0]-empty [1]-headers+message [2]-headers+file [3]-empty "--"
-			// HEADERS AND MESSAGE
+			///  MULTIPART MESSAGE  ///
 			String[] headers_and_message = new String[2];
 			int i = parts[1].indexOf("\r\n\r\n"); //empty line
 
@@ -401,7 +423,7 @@ class ReceivingService{
 			}else
 				message = headers_and_message[1];
 
-			// HEADERS AND FILE
+			///  MULTIPART FILE  ///
 			String[] headers_and_file = new String [2];
 			int ind = parts[2].indexOf("\r\n\r\n"); //empty line
 
@@ -410,7 +432,14 @@ class ReceivingService{
 			
 			InternetHeaders fHeaders = new InternetHeaders(
 					new ByteArrayInputStream(headers_and_file[0].trim().getBytes())); //must contain only US-ASCII characters.
+			String[] tmpct = fHeaders.getHeader(Headers.CONTENT_TYPE);
+			String[] tmpcd =  fHeaders.getHeader(Headers.CONTENT_DISP);
+			
+			if (tmpct == null) return "Multipart file Content-Type is not defined";
+			
 			ContentType fCT = new ContentType(fHeaders.getHeader(Headers.CONTENT_TYPE)[0]); //file attachment Content-Type header
+			if (tmpcd != null)
+				fCD = new ContentDisposition(fHeaders.getHeader(Headers.CONTENT_DISP)[0]); //file attachment Content-Disposition header
 			if(fHeaders.getHeader(Headers.ENCODING)[0].equalsIgnoreCase("base64")){ //base64
 				//System.out.println(messageId[0]+" file size:"+ " fCT START"+fCT.getPrimaryType()+"END"+fCT.getPrimaryType().equalsIgnoreCase("image"));
 				if(fCT.getPrimaryType().equalsIgnoreCase("image")){ //image support only
@@ -419,18 +448,18 @@ class ReceivingService{
 					
 
 					InputStream is = new BufferedInputStream(new ByteArrayInputStream(file));
-					mimeType = URLConnection.guessContentTypeFromStream(is);
+					gfileCT = URLConnection.guessContentTypeFromStream(is);
 					
-					if( ! fCT.getBaseType().equals(mimeType)){//Detected Content-Type != Content-Type in header
+					if( ! fCT.getBaseType().equals(gfileCT)){//Detected Content-Type != Content-Type in header
 						file = null;
-						mimeType = null;
+						gfileCT = null;
 						Log.get().log(Level.INFO, "{0}: {1} Unknewn file type {2} or {3} from {4}",
-								 new Object[] {command, messageId, fCT.getBaseType(), mimeType, lastSender});
+								 new Object[] {command, messageId, fCT.getBaseType(), gfileCT, lastSender});
 					}
 					
 				}else
 					Log.get().log(Level.INFO, "{0}: {1} Not image file type {2} or {3} from {4}",
-							 new Object[] {command, messageId, fCT.getBaseType(), mimeType, lastSender});
+							 new Object[] {command, messageId, fCT.getBaseType(), gfileCT, lastSender});
 				
 			}else
 				return "Wrong Content-Transfer-Encoding header of body";
@@ -458,6 +487,10 @@ class ReceivingService{
 		//preparation
 		String from = (from_raw != null && !from_raw[0].isEmpty()) ? decodeWord(from_raw[0]) : null; //decoded word
 		String subject = (subjectArr != null && !subjectArr[0].isEmpty()) ? decodeWord(MimeUtility.unfold(subjectArr[0])) : null;
+		
+		String file_name = null;
+		if (fCD != null)
+			file_name = fCD.getParameter("filename");
 		//int s = subject == null ? 0 : subject.length();
 		//from = from_raw[0].replaceAll("<.*>", "");
 
@@ -507,20 +540,22 @@ class ReceivingService{
 		if (command.equals("POST")){
 			if(thread_id != null){ //replay
 				art = new Article(thread_id, from, subject, message, group.getInternalID(), group.getName());
-				article = StorageManager.current().createReplay(art, file, mimeType);
+				article = StorageManager.current().createReplay(art, file, gfileCT, file_name);
 			}else{ //thread
 				art = new Article(null, from, subject, message, group.getInternalID(), group.getName());
-				article = StorageManager.current().createThread(art, file, mimeType);
+				article = StorageManager.current().createThread(art, file, gfileCT, file_name);
 			}
 			PushDaemon.queueForPush(article); //send to peers
 		}else{
+			
+			////   IHAVE, TAKETHIS    //////
 			
 			if(thread_id != null){ //replay
 				art = new Article(thread_id, messageId, mId[1], from, subject, message,
 						date, path, group.getName(), group.getInternalID());
 				File fl = StorageManager.nntpcache.saveFile(group.getName(), messageId, rawArticle);
 				try{
-					article = StorageManager.current().createReplay(art, file, mimeType);
+					article = StorageManager.current().createReplay(art, file, gfileCT, file_name);
 				}catch(StorageBackendException e){ //rollback cache
 					StorageManager.nntpcache.delFile(fl);
 					throw new StorageBackendException(e);
@@ -530,7 +565,7 @@ class ReceivingService{
 						date, path, group.getName(), group.getInternalID());
 				File fl = StorageManager.nntpcache.saveFile(group.getName(), messageId, rawArticle);
 				try{
-					article = StorageManager.current().createThread(art, file, mimeType);
+					article = StorageManager.current().createThread(art, file, gfileCT, file_name);
 				}catch(StorageBackendException e){ //rollback cache
 					StorageManager.nntpcache.delFile(fl);
 					throw new StorageBackendException(e);

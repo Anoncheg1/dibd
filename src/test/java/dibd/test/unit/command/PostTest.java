@@ -64,7 +64,7 @@ public class PostTest {
 		Class<?> cg = Group.class;
 		groupC = cg.getDeclaredConstructor(new Class[]{String.class, Integer.TYPE, Integer.TYPE, Set.class});
 		groupC.setAccessible(true);
-		System.out.println(""+groupC);
+		//System.out.println(""+groupC);
 		//for( Constructor<?> c : cg.getConstructors() )
 			//System.out.println("asd"+c);*/
 		//Log.get().setLevel(java.util.logging.Level.WARNING);

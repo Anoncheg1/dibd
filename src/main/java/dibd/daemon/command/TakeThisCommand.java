@@ -129,7 +129,7 @@ public class TakeThisCommand implements Command {
 				break;
 			case 2: { //ok
 				if (!rs.circleCheck()){
-					conn.println("439 "+ CMessageId+"Circle detected");
+					conn.println("439 "+ CMessageId+" Circle detected");
 					isHeadersOK = false;
 				}else
 				if(!rs.getMessageId().equals(CMessageId)){ //message-id check to be sure
@@ -148,6 +148,10 @@ public class TakeThisCommand implements Command {
 				//if(!rs.checkSender3()){//3) third check for new senders in group
 				//isHeadersOK = false;
 				//}
+				if(!rs.checkRef()){
+					conn.println("439 "+CMessageId+" no such thread for replay. Thread will be pulled");
+					isHeadersOK = false;
+				}
 				break;
 			}
 			case 3:

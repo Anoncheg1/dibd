@@ -124,8 +124,8 @@ public class ArticlePusherTest {
 		//Storage
 		StorageManager.enableProvider(new dibd.test.unit.storage.TestingStorageProvider(storage));
 		Article art = Mockito.mock(Article.class);
-		when(storage.createThread((Article)Mockito.any(), (byte[])Mockito.any(), (String)Mockito.any())).thenReturn(art);
-		when(storage.createReplay((Article)Mockito.any(), (byte[])Mockito.any(), (String)Mockito.any())).thenReturn(art);
+		when(storage.createThread((Article)Mockito.any(), (byte[])Mockito.any(), (String)Mockito.any(), (String)Mockito.any())).thenReturn(art);
+		when(storage.createReplay((Article)Mockito.any(), (byte[])Mockito.any(), (String)Mockito.any(), (String)Mockito.any())).thenReturn(art);
 		
 		when(conn.getCurrentCharset()).thenReturn(Charset.forName("UTF-8"));
 		

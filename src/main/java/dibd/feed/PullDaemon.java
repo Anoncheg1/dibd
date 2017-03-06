@@ -178,7 +178,7 @@ public class PullDaemon extends DaemonThread {
     			}
     		
     		} catch (InterruptedException e1) {
-    			Log.get().log(Level.FINEST, "PullFeeder interrupted: {0}", e1);
+    			Log.get().log(Level.FINEST, "PullFeeder interrupted: {0}", e1.getLocalizedMessage());
     			return;
 			}
     	}

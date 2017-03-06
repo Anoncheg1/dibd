@@ -9,6 +9,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.math.BigInteger;
 import java.net.Socket;
 import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
@@ -375,10 +376,9 @@ public class TLS{
 		//	Selector selector = Selector.open();
 		//SelectionKey sk = socketChannel.register(selector, SelectionKey.OP_READ);
 		//socketChannel.register(selector, SelectionKey.OP_READ, null);
-
 		//final Object gate = new Object();
 		while(initialHSComplete != true){
-			//System.out.println("in while1");
+		//	System.out.println("in while1");
 			if (selector == null){
 				selector = Selector.open();
 				sk = socketChannel.register(selector, SelectionKey.OP_READ);		
@@ -412,15 +412,16 @@ public class TLS{
 			Log.get().log(Level.WARNING, "TLS.connect, did not present a valid certificate: {0}", e);
 			return false;
 		}
-
-		/*System.out.println("Peer host is " + session.getPeerHost());
+		/*
+		System.out.println("Peer host is " + session.getPeerHost());
 		System.out.println("Peer port is " + session.getPeerPort());
 		System.out.println("Cipher is " + session.getCipherSuite());
 		System.out.println("Protocol is " + session.getProtocol());
 		System.out.println("ID is " + new BigInteger(session.getId()));
 		System.out.println("Session created in " + session.getCreationTime());
 		System.out.println("Session accessed in " + session.getLastAccessedTime());
-		System.out.println("cert.getSigAlgName()"+cert.getSigAlgName());*/
+		System.out.println("cert.getSigAlgName()"+cert.getSigAlgName());
+		*/
 		//System.out.println("cert"+cert.);
 		//Remote Entity verification for every send receive data -man-in-middle
 		//Are we secure?
@@ -438,6 +439,7 @@ public class TLS{
 		} catch (CertificateParsingException e) {
 			Log.get().log(Level.WARNING, "TLS.connect, error in parsing Subject AlternativeNames: {0}", e);
 		}
+		
 		if (altNames != null){
 			LinkedList<String> subjectAltList = new LinkedList<String>();
 			for (List<?> aC : altNames) {
@@ -449,11 +451,13 @@ public class TLS{
 					subjectAltList.add(s);
 				}
 			}
+			
 			if(!subjectAltList.isEmpty()) {
 				String[] subjectAlts = new String[subjectAltList.size()];
 				subjectAltList.toArray(subjectAlts);
 				
 				this.peerNames = subjectAlts;
+				Log.get().log(Level.FINE, "TLS sucessfully handshaked peerNames extracted from subjectAltName:"+peerNames[0]);
 				return true;
 			}
 		}
@@ -471,13 +475,17 @@ public class TLS{
 			conn.updateLastActivity();
 			
 			this.peerNames = new String[]{m.group(1)}; //TODO: why many? one name here?
+			
+			Log.get().log(Level.FINE, "TLS sucessfully handshaked peerNames extracted from Common Name:"+peerNames[0]);
 			return true;
-		}
-		else{
+			
+		}else{
 			Log.get().log(Level.WARNING, "TLS.connect, no Common Name field in the Subject field");
 			return false;
 		}
 
+		
+		
 		//System.out.println("Peer port is " + session.getPeerPort());
 		//System.out.println("Cipher is " + session.getCipherSuite());
 		//System.out.println("Protocol is " + session.getProtocol());
@@ -832,7 +840,7 @@ needIO:
 					result.getStatus() != Status.BUFFER_UNDERFLOW);
 		}
 		
-		System.out.println("End of readTLS");
+		/*System.out.println("End of readTLS");
 		System.out.println("outNetBB pos:"+outNetBB.position()+" "+" lim:"+outNetBB.limit()+" cap"+outNetBB.capacity());
 		System.out.println("inNetBB pos:"+inNetBB.position()+" "+" lim:"+inNetBB.limit()+" cap"+inNetBB.capacity());
 		System.out.println("inAppBB pos:"+inAppBB.position()+" "+" lim:"+inAppBB.limit()+" cap"+inAppBB.capacity());
@@ -840,7 +848,7 @@ needIO:
 		System.out.println("inputBuffer pos:"+inputBuffer.position()+" "+" lim:"+inputBuffer.limit()+" cap"+inputBuffer.capacity());
 		
 		
-		System.out.println("readTLS processed:"+ processed);
+		System.out.println("readTLS processed:"+ processed);*/
 		return processed;
 
 	}

@@ -24,6 +24,7 @@ import java.nio.channels.CancelledKeyException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.Charset;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.logging.Level;
@@ -172,7 +173,7 @@ class ChannelReader extends DaemonThread {
                 		read = tls.readTLS(); 
                 	else // normal mode
                 		read = socketChannel.read(buf);
-                		//System.out.println("hehe read "+read+":"+ new String(buf.array(), Charset.forName("UTF-8")));
+                		
                 } catch (IOException ex) {
                     // The connection was probably closed by the remote host
                     // in a non-clean fashion

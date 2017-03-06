@@ -243,7 +243,7 @@ public class NNTPConnection implements NNTPInterface{
             raw = Arrays.copyOf(raw, raw.length - 1);
         }
 
-        Log.get().log(Level.FINE, "<< {0}", line);
+        Log.get().log(Level.FINER, "<< {0}", line);
 
         if (command == null) {
             command = parseCommandLine(line);
@@ -360,7 +360,7 @@ public class NNTPConnection implements NNTPInterface{
         // Update last activity timestamp
         this.lastActivity = System.currentTimeMillis();
         if (debugLine != null) {
-            Log.get().log(Level.FINE, ">> {0}", debugLine);
+            Log.get().log(Level.FINER, ">> {0}", debugLine);
         }
     }
 

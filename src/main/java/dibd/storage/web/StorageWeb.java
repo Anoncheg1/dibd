@@ -46,12 +46,13 @@ public interface StorageWeb {
 	 * 
 	 * @param article
 	 * @param bfile
-	 * @param format       - "image/png"
+	 * @param file_ct   -content-type
+	 * @param file_name
 	 * @throws internal Id
 	 * @throws StorageBackendException
 	 * @return null if exist or article with id.
 	 */	
-	Article createReplayWeb(Article article, byte[] bfile, String format)
+	Article createReplayWeb(Article article, byte[] bfile, String file_ct, String file_name)
 			throws StorageBackendException;
 	
 	/**
@@ -62,12 +63,13 @@ public interface StorageWeb {
 	 * @param groupName
 	 * @param article
 	 * @param bfile
-	 * @param format       - "image/png"
+	 * @param file_ct
+	 * @param file_name
 	 * @throws internal Id
 	 * @throws StorageBackendException
 	 * @return null if exist or article with id.
 	 */
-	Article createThreadWeb(Article article, byte[] bfile, String format)
+	Article createThreadWeb(Article article, byte[] bfile, String file_ct, String file_name)
 			throws StorageBackendException;
 	
 	/**

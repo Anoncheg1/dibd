@@ -233,11 +233,13 @@ public class OverCommand implements Command {
         .append('\t');
         //2) Subject
         String subject = art.getSubject();
-        overview.append(escapeString(subject))
+        if (subject != null)
+        	overview.append(escapeString(subject))
         .append('\t');
         //3) from
         String name = art.getA_name();
-        overview.append(escapeString(name))
+        if (name != null)
+        	overview.append(escapeString(name))
         .append('\t');
         //4)date
         overview.append(escapeString(art.getDate()))

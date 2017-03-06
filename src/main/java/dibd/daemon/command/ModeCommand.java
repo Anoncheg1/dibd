@@ -57,7 +57,7 @@ public class ModeCommand implements Command {
     @Override
     public void processLine(NNTPInterface conn, final String line, byte[] raw)
             throws IOException, StorageBackendException {
-    	System.out.println("MODE here"+line);
+    	
         if (line.equalsIgnoreCase("MODE READER"))
         	conn.println("200 hello you can post");
         else if(line.equalsIgnoreCase("MODE STREAM"))

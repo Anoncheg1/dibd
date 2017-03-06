@@ -21,6 +21,9 @@ import javax.mail.internet.MimeUtility;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
+
 import dibd.config.Config;
 import dibd.daemon.NNTPInterface;
 import dibd.daemon.TLS;
@@ -60,8 +63,8 @@ public class IHAVEandTAKETHISTest {
 		when(tls.getPeerNames()).thenReturn(new String[]{"host"});
 		
 		Article art = Mockito.mock(Article.class);
-		when(storage.createThread((Article)Mockito.any(), (byte[])Mockito.any(), (String)Mockito.any())).thenReturn(art);
-		when(storage.createReplay((Article)Mockito.any(), (byte[])Mockito.any(), (String)Mockito.any())).thenReturn(art);
+		when(storage.createThread((Article)Mockito.any(), (byte[])Mockito.any(), (String)Mockito.any(), (String)Mockito.any())).thenReturn(art);
+		when(storage.createReplay((Article)Mockito.any(), (byte[])Mockito.any(), (String)Mockito.any(), (String)Mockito.any())).thenReturn(art);
 		
 		StorageManager.enableNNTPCacheProvider(Mockito.mock(NNTPCacheProvider.class));
         
@@ -86,7 +89,7 @@ public class IHAVEandTAKETHISTest {
 		
 		Log.get().setLevel(java.util.logging.Level.WARNING);
 		//DEBUG Hook conn.println(String)
-	/*	
+		/*
 		 Mockito.doAnswer(new Answer() {
 	      public Object answer(InvocationOnMock invocation) {
 	          Object[] args = invocation.getArguments();
@@ -95,7 +98,7 @@ public class IHAVEandTAKETHISTest {
 	      }})
 	  .when(conn).println(Mockito.anyString());
 	  Log.get().setLevel(java.util.logging.Level.ALL);
-*/		
+	*/
 	}
 
 	
@@ -106,7 +109,7 @@ public class IHAVEandTAKETHISTest {
 	public void IhaveReplayTest() throws StorageBackendException, IOException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, ParseException{
 		Config.inst().set(Config.HOSTNAME, "not-in-path.com"); //added to path
 		Article art0 = Mockito.mock(Article.class);//empty
-		when(storage.getArticle("<ref-message-id@foo.bar>", null)).thenReturn(art0);
+		when(storage.getArticle("<refmessageid@foo.bar>", null)).thenReturn(art0);
 		when(art0.getThread_id()).thenReturn( 105 );
 		
 		Set<String> host = new HashSet<String>(Arrays.asList("hschan.ano","host.com"));
@@ -122,7 +125,7 @@ public class IHAVEandTAKETHISTest {
 				"Message-ID: <23456@host.com>",
 				"Newsgroups: local.test",
 				"Subject: "+MimeUtility.encodeWord("ыффывфыв фыв фыв фыв фыв фыв фыв фыв фыв фыв фыв фы"),
-				"references: <ref-message-id@foo.bar>",
+				"references: <refmessageid@foo.bar>",
 				"Path: hschan.ano!dontcare", //circle check
 				"Content-type: text/plain; charset=utf-8",
 				"X-Sage: optional",
@@ -144,7 +147,7 @@ public class IHAVEandTAKETHISTest {
 		//date[0], path[0], groupHeader[0], group.getInternalID());
 		Article art = new Article(105, "<23456@host.com>", "host.com", "петрик <foo@bar.ano>", "ыффывфыв фыв фыв фыв фыв фыв фыв фыв фыв фыв фыв фы", "message",
 				"Thu, 02 May 2013 12:16:44 +0000", "hschan.ano!dontcare", "local.test", 23);
-		verify(this.storage, atLeastOnce()).createReplay(art, null, null); //ReceivingService here
+		verify(this.storage, atLeastOnce()).createReplay(art, null, null, null); //ReceivingService here
 		verify(conn, atLeastOnce()).println(startsWith("235")); //article is accepted		
 
 	}
@@ -199,7 +202,7 @@ public class IHAVEandTAKETHISTest {
 		Article art = new Article(null, "<23456@host.com>", "host.com", null, "subj", "message",
 				"Thu, 02 May 2013 12:16:44 +0000", "hschan.ano", "local.test", 23);
 		verify(this.storage, atLeastOnce()).createThread(
-				art, Base64.getDecoder().decode("R0lGODlhAQABAIAAAP///wAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw=="),"image/gif"); //ReceivingService here
+				art, Base64.getDecoder().decode("R0lGODlhAQABAIAAAP///wAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw=="),"image/gif", "Blank.gif"); //ReceivingService here
 		verify(conn, atLeastOnce()).println(startsWith("235")); //article is accepted
 	}
 	
@@ -657,11 +660,11 @@ public class IHAVEandTAKETHISTest {
 	
 	
 	@Test
-	@Ignore
 	public void TakeThisReplayTest() throws StorageBackendException, IOException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, ParseException{
+		Config.inst().set(Config.HOSTNAME, "not-in-path.com"); //added to path
 		Article art0 = Mockito.mock(Article.class);//empty
 		//when(storage.getArticle("<23456@host.com>", null)).thenReturn(art0);//ref
-		when(storage.getArticle("<ref-message-id@foo.bar>", null)).thenReturn(art0);//ref
+		when(storage.getArticle("<refmessageid@foo.bar>", null)).thenReturn(art0);//ref
 		when(art0.getThread_id()).thenReturn( 105 );
 		
 		Set<String> host = new HashSet<String>(Arrays.asList("hschan.ano","host.com"));
@@ -677,14 +680,13 @@ public class IHAVEandTAKETHISTest {
 				"Message-ID: <23456@host.com>",
 				"Newsgroups: local.test",
 				"Subject: "+MimeUtility.encodeWord("ыффывфыв фыв фыв фыв фыв фыв фыв фыв фыв фыв фыв фы ыффывфыв фыв фыв фыв фыв фыв фыв фыв фыв фыв фыв фы"),
-				"references: <ref-message-id@foo.bar>",
+				"references: <refmessageid@foo.bar>",
 				"Path: hschan.ano!dontcare",
 				"Content-type: text/plain; charset=utf-8",
 				"X-Sage: optional",
 				"",//empty line separator
 				"message"
 		};
-		//String send3 = "bWVzc2FnZQ==";
 		
 		TakeThisCommand c = new TakeThisCommand();
 		c.processLine(conn, send1, send1.getBytes("UTF-8")); //send ihave
@@ -699,7 +701,7 @@ public class IHAVEandTAKETHISTest {
 		//date[0], path[0], groupHeader[0], group.getInternalID());
 		Article art = new Article(105, "<23456@host.com>", "host.com", "петрик <foo@bar.ano>", "ыффывфыв фыв фыв фыв фыв фыв фыв фыв фыв фыв фыв фы ыффывфыв фыв фыв фыв фыв фыв фыв фыв фыв фыв фыв фы", "message",
 				"Thu, 02 May 2013 12:16:44 +0000", "hschan.ano!dontcare", "local.test", 23);
-		verify(this.storage, atLeastOnce()).createReplay(art, null, null); //ReceivingService here
+		verify(this.storage, atLeastOnce()).createReplay(art, null, null, null); //ReceivingService here
 		verify(conn, atLeastOnce()).println(startsWith("239")); //article is accepted		
 
 	}

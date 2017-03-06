@@ -288,30 +288,36 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 	 * 
 	 * @param id
 	 * @param groupName
-	 * @param media_type may be null in web for shure
 	 * @param bfile
+	 * @param content_type we can not trust it
+	 * @param file_name may be absent for nntp. we will use .xxx if exist.
 	 * @throws SQLException
 	 * @throws StorageBackendException 
 	 * @throws IOException 
 	 */
-	private void attachmentSaving(final int id, final String groupName, final String media_type, byte[] bfile) throws SQLException, StorageBackendException, IOException{
-		if (media_type != null && media_type.length() > 256)
+	private void attachmentSaving(final int id, final String groupName, byte[] bfile, final String content_type,  final String file_name) throws SQLException, StorageBackendException, IOException{
+		if (content_type != null && content_type.length() > 256)
 			throw new StorageBackendException("Too long media-type");
-		String fileName;
-		if (media_type != null)
-			fileName = String.valueOf(id) + "." + media_type.split("/")[1].split("[+]")[0];
-		else
-			fileName = String.valueOf(id);
+		String fileNameForSave;
+		//file_name
+		if(file_name != null){
+			String[] nameparts = file_name.split("[.]");
+			if (nameparts.length >= 2)
+				fileNameForSave = String.valueOf(id) + "." + nameparts[nameparts.length-1];
+			else
+				fileNameForSave = String.valueOf(id);
+		}else
+			fileNameForSave = String.valueOf(id);
 		//save file
-		StorageManager.attachments.saveFile(groupName, fileName, bfile);
+		StorageManager.attachments.saveFile(groupName, fileNameForSave, bfile);
 		//save database record
 		this.pstmtAttachmentSaving.setInt(1, id);
-		this.pstmtAttachmentSaving.setString(2, fileName);
-		this.pstmtAttachmentSaving.setString(3, media_type);
+		this.pstmtAttachmentSaving.setString(2, fileNameForSave);
+		this.pstmtAttachmentSaving.setString(3, content_type);
 		this.pstmtAttachmentSaving.execute();
 		//create thumbbnail (not critical)
-		if (media_type != null)
-			StorageManager.attachments.createThumbnail(groupName, fileName, media_type);
+		if (content_type != null)
+			StorageManager.attachments.createThumbnail(groupName, fileNameForSave, content_type);
 
 	} 
 	
@@ -417,18 +423,20 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 	}
 	
 	//bfile or media_type may be null
-	public Article createThreadWeb(Article article, byte[] bfile, String media_type)
-			throws StorageBackendException {
+	public Article createThreadWeb(Article article,
+			byte[] bfile, final String file_ct, final String file_name)
+					throws StorageBackendException {
 		if (repeatCheck(article.getHash(), article.getPost_time()))
 			return null;
 		else
-			return createThread(article, bfile, media_type);
+			return createThread(article, bfile, file_ct, file_name);
 	}
 	
 	
 	
-	public Article createThread(Article article, byte[] bfile, String media_type)
-			throws StorageBackendException {
+	public Article createThread(final Article article,
+			final byte[] bfile, final String file_ct, final String file_name)
+					throws StorageBackendException {
 		ResultSet rs = null;
 		int id = 0;
 		int groupId = article.getGroupId();
@@ -493,15 +501,15 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			// transaction end
 			
 
-			// attachment saving
+			// attachment saving (part of transaction)
 			//if (bfile != null && media_type != null)
 			if (bfile != null)
-				attachmentSaving(id, groupName, media_type, bfile);
+				attachmentSaving(id, groupName, bfile, file_ct, file_name);
 			
 			this.conn.commit();
 			this.conn.setAutoCommit(true);
 
-			return new Article(article, id, messageId, media_type);
+			return new Article(article, id, messageId, file_ct);
 		} catch (IOException e) {
 			Log.get().log(Level.SEVERE, "Can't save attachment: {0}", e);
 			throw new StorageBackendException("Can not save attachment");
@@ -519,24 +527,26 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			}
 
 			restartConnection(ex);
-			createThread(article, bfile, media_type);
+			createThread(article, bfile, file_ct, file_name);
 		}finally{
 			this.restarts = 0; // Reset error count
 		}
 		return null; //Never happen. restartConnection() will throw exception or recursion.
 	}
 	
-	public Article createReplayWeb(Article article, byte[] bfile, final String media_type)
-			throws StorageBackendException {
+	public Article createReplayWeb(Article article,
+			byte[] bfile, final String file_ct, final String file_name)
+					throws StorageBackendException {
 		if (repeatCheck(article.getHash(), article.getPost_time()))
 			return null;
 		else
-			return createReplay(article, bfile, media_type);
+			return createReplay(article, bfile, file_ct, file_name);
 		
 	}
 	
-	public Article createReplay(Article article, byte[] bfile, final String media_type)
-			throws StorageBackendException {
+	public Article createReplay(Article article, byte[] bfile,
+			final String file_ct, final String file_name)
+					throws StorageBackendException {
 		//TODO: Get replays  in thread and throw Exception if them too many 
 		int id = 0;
 		String groupName = article.getGroupName();
@@ -570,14 +580,14 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			pstmtCreateReplay2.execute();
 			// transaction end
 			
-			// attachment saving
-			if (bfile != null && media_type != null)
-				attachmentSaving(id, groupName, media_type, bfile);
+			// attachment saving (part of transaction)
+			if (bfile != null && file_ct != null)
+				attachmentSaving(id, groupName, bfile, file_ct, file_name);
 
 			this.conn.commit();
 			this.conn.setAutoCommit(true);
 			
-			return new Article(article, id, messageId, media_type);
+			return new Article(article, id, messageId, file_ct);
 		} catch (IOException e) {
 			Log.get().log(Level.SEVERE, "Can't save attachment: {0}", e);
 			throw new StorageBackendException("Can not save attachment");
@@ -595,7 +605,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			}
 
 			restartConnection(ex);
-			createReplay(article, bfile, media_type);
+			createReplay(article, bfile, file_ct, file_name);
 		}finally{
 			this.restarts = 0; // Reset error count
 		}
