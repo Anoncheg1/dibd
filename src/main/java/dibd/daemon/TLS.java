@@ -377,23 +377,27 @@ public class TLS{
 		//SelectionKey sk = socketChannel.register(selector, SelectionKey.OP_READ);
 		//socketChannel.register(selector, SelectionKey.OP_READ, null);
 		//final Object gate = new Object();
-		while(initialHSComplete != true){
-		//	System.out.println("in while1");
-			if (selector == null){
-				selector = Selector.open();
-				sk = socketChannel.register(selector, SelectionKey.OP_READ);		
-			}else
-				selector.select();
-			//System.out.println("in while2");
-			try{
-				doHandshake(sk);
-			}catch(SSLException ex){
-				Log.get().log(Level.WARNING, "TLS.connect, fail in handshake: {0}", ex.getLocalizedMessage());
-				
-				return false;
+		try{
+			while(initialHSComplete != true){
+				//	System.out.println("in while1");
+				if (selector == null){
+					selector = Selector.open();
+					sk = socketChannel.register(selector, SelectionKey.OP_READ);		
+				}else
+					selector.select();
+				//System.out.println("in while2");
+				try{
+					doHandshake(sk);
+				}catch(SSLException ex){
+					Log.get().log(Level.WARNING, "TLS.connect, fail in handshake: {0}", ex.getLocalizedMessage());
+
+					return false;
+				}
+				//System.out.println("while state: "+initialHSComplete);
+				//synchronized (gate) {}
 			}
-			//System.out.println("while state: "+initialHSComplete);
-			//synchronized (gate) {}
+		}finally{
+			selector.close();
 		}
 		/*if (engine.getHandshakeStatus() == HandshakeStatus.NOT_HANDSHAKING)
 				System.out.println("WTF NOT HANDSHAKED!");*/

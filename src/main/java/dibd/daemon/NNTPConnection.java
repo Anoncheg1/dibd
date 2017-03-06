@@ -400,7 +400,6 @@ public class NNTPConnection implements NNTPInterface{
 		else
 			host = channel.socket().getRemoteSocketAddress().toString();
 		
-		System.out.println("NNTPConnection.getHost(): tls enabled? "+tlsenabled+" "+host);
 		return host;
 	}
 }

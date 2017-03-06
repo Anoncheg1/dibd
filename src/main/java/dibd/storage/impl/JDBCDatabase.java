@@ -298,17 +298,14 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 	private void attachmentSaving(final int id, final String groupName, byte[] bfile, final String content_type,  final String file_name) throws SQLException, StorageBackendException, IOException{
 		if (content_type != null && content_type.length() > 256)
 			throw new StorageBackendException("Too long media-type");
-		String fileNameForSave;
-		//file_name
+		
+		String fileNameForSave = String.valueOf(id);
 		if(file_name != null){
 			String[] nameparts = file_name.split("[.]");
 			if (nameparts.length >= 2)
-				fileNameForSave = String.valueOf(id) + "." + nameparts[nameparts.length-1];
-			else
-				fileNameForSave = String.valueOf(id);
-		}else
-			fileNameForSave = String.valueOf(id);
-		//save file
+				fileNameForSave = fileNameForSave + "." + nameparts[nameparts.length-1];
+		}
+		
 		StorageManager.attachments.saveFile(groupName, fileNameForSave, bfile);
 		//save database record
 		this.pstmtAttachmentSaving.setInt(1, id);

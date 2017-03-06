@@ -95,9 +95,9 @@ public class StartTLSCommand implements Command {
 						//conn.close();
 					
 				}else{
-					System.out.println("shutdown TLS1");
-					tls.shutdown();
-					System.out.println("shutdown TLS2");
+					//System.out.println("shutdown TLS1");
+					tls.shutdown(); //will conn.setTLS(null);
+					//System.out.println("shutdown TLS2");
 				}
 
 			}else{

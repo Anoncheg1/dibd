@@ -58,7 +58,6 @@ public class CheckCommand implements Command {
     @Override
     public void processLine(NNTPInterface conn, final String line, byte[] raw)
             throws IOException, StorageBackendException {
-    	System.out.println("CheckCommand "+line);
     	
     	if (Config.inst().get(Config.NNTPALLOW_UNAUTORIZED, false) || conn.isTLSenabled()){
 
