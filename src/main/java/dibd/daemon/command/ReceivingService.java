@@ -333,13 +333,17 @@ class ReceivingService{
 	boolean checkRef() throws StorageBackendException{
 		if (ref != null && !ref[0].isEmpty()){
 
-			Article art = StorageManager.current().getArticle(ref[0], null);
+			Article art = StorageManager.current().getArticle(ref[0], null); //get thread
+			
 
-			if(!ref[0].equals(messageId)){ //check that it is replay
+			if( ! ref[0].equals(messageId)){ //if ref equal mId we assume it is thread 
 
-				if (art != null)
-					this.thread_id = art.getThread_id();
-				else{
+				if (art != null){
+					if (art.getId() == art.getThread_id()) //check that ref is a thread
+						this.thread_id = art.getThread_id(); //return true
+					else
+						return false;
+				}else{
 					try {
 						//request missed thread:
 						PullDaemon.queueForPush(group, Headers.ParseRawDate(date), messageId+" "+this.host+" "+path);

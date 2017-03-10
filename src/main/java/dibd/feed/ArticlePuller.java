@@ -27,6 +27,9 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -149,40 +152,76 @@ public class ArticlePuller {
 	private Response conn = new Response(); //hook for loopback
 
 	/**
-	 * List cant be null
+	 * We assume that newnews will return correct ordered list.
+	 *
+	 * map ordered
+	 *  
 	 * 
-	 * @param groupsTime
-	 * @return
+	 * @param group
+	 * @param last_post  mID, thread? + if true = thread, false = replay 
 	 * @throws IOException
 	 */
-	private List<String> newnewsScrap(Group group, long last_post) throws IOException{
-		List<String> messageIDs = new ArrayList<>();
-
+	private Map<String, Boolean> newnewsScrap(Group group, long last_post) throws IOException{
 		//NEWNEWS groupname 1464210306
 		//230 success
 		StringBuilder buf = new StringBuilder();
 		//String gs = groups.stream().map(e -> e.getName()).reduce( (e1, e2) -> e1+","+e2).get();//"group,group,group"
-		buf.append("NEWNEWS ").append(group.getName()).append(' ').append(last_post).append(NL);
+		buf.append("NEWTHREADS ").append(group.getName()).append(' ').append(last_post).append(NL);
 		this.out.print(buf.toString());
 		this.out.flush();
 
 		//this.lastActivity = System.currentTimeMillis();
 		String line = this.in.readLine();
 		if (line == null || !line.startsWith("230")) { //230 List of new articles follows (multi-line)
-			Log.get().log(Level.WARNING, "From host: {0} NEWNEWS response: {1}",
+			Log.get().log(Level.WARNING, "From host: {0} NEWTHREADS response: {1}",
 					new Object[]{this.host, line});
-			throw new IOException();
+			return new LinkedHashMap<>(); //skip group
 		}
 
+		Map<String, Boolean> messageIDs = new HashMap<String, Boolean>(0); //empty for return
+		Map<String, String> replays = new LinkedHashMap<>(250);
+		List<String> threads = new ArrayList<String>(250);
+		
 		//this.lastActivity = System.currentTimeMillis();
 		line = this.in.readLine();
-		while (line != null && !(".".equals(line.trim()))) {
-			if(line.matches(NNTPConnection.MESSAGE_ID_PATTERN))
-				messageIDs.add(line);
+		while (line != null && !(".".equals(line))) {
+			String[] lsplitted = line.split("\\p{Space}+");
+			
+			
+			/*if(lsplitted[0].matches(NNTPConnection.MESSAGE_ID_PATTERN)) //article match patter
+				if(lsplitted.length >= 2 && lsplitted[1].matches(NNTPConnection.MESSAGE_ID_PATTERN)) //if thread and match patter
+					messageIDs.putIfAbsent(lsplitted[0], false); //replay
+				else
+					messageIDs.putIfAbsent(lsplitted[0], true); //thread*/
+			
+			//Just for case we will sort input. It is important to have no missing threads.
+			
+			
+			if(lsplitted[0].matches(NNTPConnection.MESSAGE_ID_PATTERN))
+				if(lsplitted.length == 1) //if thread and match patter
+					threads.add(lsplitted[0]); //thread
+				else if(lsplitted.length >= 2 && lsplitted[1].matches(NNTPConnection.MESSAGE_ID_PATTERN)) 
+					replays.putIfAbsent(lsplitted[0], lsplitted[1]); //replay
+				else
+					Log.get().log(Level.WARNING, "From: {0} NENEWS unsupported Message-ID line: {1}", new Object[]{this.host, line});
+
+			if(replays.size() > 999000/2 || threads.size() > 999000/2){
+				Log.get().log(Level.SEVERE, "From host: {0} NEWNEWS for group {1}, there is over 999000 article lines like {2}",
+						new Object[]{this.host, group.getName(), line});
+				throw new IOException();
+			}
+
 			line = this.in.readLine();
 		}
 
-
+		if(replays.size() > 999000/2 || threads.size() > 999000/2){
+			Log.get().log(Level.SEVERE, "From host: {0} NEWNEWS for group {1}, there is over 999000 replays or threads", new Object[]{this.host, group.getName()});
+			throw new IOException();
+		}
+		
+		//sort just for case. It is important to have no missing threads.
+		messageIDs = FeedManager.sortThreadsReplays(threads, replays, this.host); //ordered LinkedHashMap
+		
 		return messageIDs;
 	}
 	
@@ -191,7 +230,8 @@ public class ArticlePuller {
 	 * 
 	 * @param ihavec
 	 * @param messageId
-	 * @throws IOException
+	 * @return true if accepted false if we don't want or remote article is missing 
+	 * @throws IOException for any inappropriate input from remote host
 	 * @throws StorageBackendException
 	 */
 	public boolean transferToItself(IhaveCommand ihavec, String messageId)
@@ -219,7 +259,7 @@ public class ArticlePuller {
 		line = this.in.readLine(); //read response for article request
 		if (line == null) {
 			Log.get().warning("Unexpected null ARTICLE reply from remote host " + this.host);
-			return false;
+			throw new IOException(); //we will retry
 		}else if (line.startsWith("430")) {
 			Log.get().log(Level.WARNING, "Message {0} not available at {1}",
 					new Object[]{messageId, this.host});
@@ -230,11 +270,11 @@ public class ArticlePuller {
 		}
 
 		do{ //read from ARTICLE response and write to loopback IHAVE
-			//this.lastActivity = System.currentTimeMillis();
+			
 			line = this.in.readLine();
 			if (line == null) {
 				Log.get().log(Level.WARNING, "Article from {0} {1} null line resived during reading", new Object[]{this.host, messageId} );
-				break;
+				return false;
 			}
 			//System.out.println(line);
 			byte[] raw = line.getBytes(charset);
@@ -266,11 +306,11 @@ public class ArticlePuller {
 	 *
 	 * @param groupsTime
 	 * @param pulldays - not necessary
-	 * @return
+	 * @return list of threads(true) following its replays(false) right after it.
 	 * @throws IOException
 	 * @throws StorageBackendException
 	 */
-	public List<String> check(final Map<Group, Long> groupsTime, int pulldays) throws IOException, StorageBackendException{
+	public Map<String, Boolean> check(final Map<Group, Long> groupsTime, int pulldays) throws StorageBackendException, IOException{
 		this.out.print("CAPABILITIES"+NL);
 		this.out.flush();
 		String line = this.in.readLine();
@@ -288,7 +328,7 @@ public class ArticlePuller {
 			throw new IOException(); //this is too strange we will not skip
 		}
 		
-		List<String> messageIDs = new ArrayList<>();
+		Map<String, Boolean> messageIDs = new LinkedHashMap<String, Boolean>();
 		for(Entry<Group, Long> entry: groupsTime.entrySet()){//fer every group
 			Group group = entry.getKey();
 			long last_post = entry.getValue(); //time since last post in group
@@ -296,40 +336,38 @@ public class ArticlePuller {
 				last_post -= 60*60*24*pulldays; // last_post = last_post - pulldays (it is not necessary)
 			
 			// The host is the same like we are
-			if (capabilties.contains("NEWNEWS"))
-				messageIDs.addAll(newnewsScrap(group, last_post));//sorted threads first
-			else // The host is nntpchan
-				messageIDs.addAll(oldFashionScrap(group));//only full scrap. to prevent thread partialization
+			if (capabilties.contains("NEWTHREADS")){//TODO:should put if absent
+				messageIDs.putAll(newnewsScrap(group, last_post));//sorted threads first
+			}else // The host is nntpchan
+				messageIDs.putAll(oldFashionScrap(group));//only full scrap. to prevent thread partialization
 				//messageIDs.addAll(oldFashionScrap(group, last_post));//sorted threads first
 		}
 		return messageIDs;
 		
-		
-		
 	}
 		
-		
+	
 	/**
 	 * Get list of articles. 
 	 * Peer MUST return sorted list.
 	 * (or else we will slow down in reseivingService loop for
 	 * "no reference" case)
 	 * 
+	 * XOVER 0
 	 *  
 	 * @param group
 	 * @return
 	 * @throws IOException
 	 */
-	private List<String> oldFashionScrap(final Group group) throws IOException{
-		List<String> ret = new ArrayList<>(500);//500 initial capacity may be anything. 500 is rough min posts count.(just more than default 10)
-		
+	private Map<String, Boolean> oldFashionScrap(final Group group) throws IOException{
+
 		String gname = group.getName();
 		this.out.print("GROUP "+gname+NL);
 		this.out.flush();
 		String line = this.in.readLine();
 		if (line == null || !line.startsWith("211")) { //Group selected
 			Log.get().log(Level.WARNING, "From host: {0} GROUP {1} request, response: {2}", new Object[]{this.host, gname, line});
-			return new ArrayList<>();//we will skip this group
+			return new LinkedHashMap<>();//we will skip this group
 		}
 
 		this.out.print("XOVER 0"+NL);
@@ -337,9 +375,15 @@ public class ArticlePuller {
 		line = this.in.readLine();
 		if (line == null || !line.startsWith("224")) { //overview follows
 			Log.get().log(Level.WARNING, "From host: {0} XOVER 0 for group {1}, response: {2}", new Object[]{this.host, gname, line});
-			return new ArrayList<>();//we will skip this group
+			return new LinkedHashMap<>();//we will skip this group
 		}
 
+		//500 initial capacity may be anything. 500 is rough min posts count.(just more than default 10)
+		Map<String, Boolean> messageIDs = new HashMap<String, Boolean>(0); //empty for return
+		
+		Map<String, String> replays = new LinkedHashMap<>(250);
+		List<String> threads = new ArrayList<String>(250);
+		
 		line = this.in.readLine();
 		while (line != null && !(".".equals(line.trim()))) {
 			String[] part = line.split("\t");
@@ -352,18 +396,34 @@ public class ArticlePuller {
 			//part[3] = time;
 			//part[4] = mId;
 			//part[5] = threadMId; //for replay
-			//6 7 - lines,bytes - old RFC format
-			ret.add(part[4]); //must be sorted by the server.
+			//6 7 - lines,bytes - old RFC format.  We do not allow such format and will crash
 			
-			if(ret.size() > 999000){
+			//sorted by replay post date. threads are disrupted
+			
+			if(part[4].matches(NNTPConnection.MESSAGE_ID_PATTERN)){
+				if (part.length == 5 || !part[5].matches(NNTPConnection.MESSAGE_ID_PATTERN))
+					threads.add(part[4]);
+				else if ( part.length == 6 && part[5].matches(NNTPConnection.MESSAGE_ID_PATTERN))
+					replays.put(part[4], part[5]);
+				else
+					Log.get().log(Level.WARNING, "From: {0} unsupported XOVER format of line: {1}", new Object[]{this.host, line});
+			}else
+				Log.get().log(Level.WARNING, "From: {0} unsupported XOVER format of line: {1}", new Object[]{this.host, line});
+
+			if(replays.size() > 999000/2 || threads.size() > 999000/2){
 				Log.get().log(Level.SEVERE, "From host: {0} XOVER 0 for group {1}, there is over 999000 article lines like {2}", new Object[]{this.host, gname, line});
-				throw new IOException("XOVER 0 overflow");
+				throw new IOException();
 			}
-			line = this.in.readLine();	
+
+			line = this.in.readLine();
 		}
-		return ret;
+		
+		//Sort. It is important to have no missing threads.
+		messageIDs = FeedManager.sortThreadsReplays(threads, replays, this.host); //ordered LinkedHashMap		
+
+		return messageIDs;
 	}
-	
+
 	/*private List<String> oldFashionScrap(final Group group, final long last_post) throws IOException{
 		Map<String, Long> threads = new HashMap<>();
 		Map<String, String> replThread = new HashMap<>(); //replay-id with thread-id

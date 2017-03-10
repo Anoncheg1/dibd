@@ -17,7 +17,9 @@
  */
 package dibd.storage;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import dibd.storage.GroupsProvider.Group;
 import dibd.storage.article.Article;
@@ -39,6 +41,15 @@ public interface StorageNNTP {
      * @throws StorageBackendException
      */
     Article getArticle(String message_id, Integer id) throws StorageBackendException;
+    
+    /**
+     * Simple id to message_id
+     * 
+     * @param id
+     * @return
+     * @throws StorageBackendException
+     */
+    String getMessageId(int id) throws StorageBackendException;
 
     /**
      * Get Article IDs.
@@ -88,14 +99,15 @@ public interface StorageNNTP {
 			throws StorageBackendException;
 	
 	/**
-	 * Get new articles with full threads for NEWNEWS command for "pulling".
+	 * Get ordered new articles with full threads for NEWNEWS command for "pulling".
+	 * May be empty
 	 * 
 	 * @param group
 	 * @param date
 	 * @return
 	 * @throws StorageBackendException
 	 */
-	List<String> getNewArticleIDs(Group group, long date)
+	Map<String, String> getNewArticleIDs(Group group, long date)
 			throws StorageBackendException;
 	
 	

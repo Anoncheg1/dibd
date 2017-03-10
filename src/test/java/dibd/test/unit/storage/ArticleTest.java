@@ -61,10 +61,10 @@ public class ArticleTest {
 		Article resa2 = new Article(null, thread_id, "<message-id@host.com>", "host.com", "петрик <собака@бфка>", "сабджект", "message", 
 				1466589502, "host!host2", group, fileName, "img/png");//with image
 		
-		Article retA= new Article(thread_id, thread_id, "<ref-message-id@foo.bar>", "foo.bar", null, "subject", "message", 
-				1466589502, "", group, null, null);
+		//Article retA= new Article(thread_id, thread_id, "<ref-message-id@foo.bar>", "foo.bar", null, "subject", "message", 
+			//	1466589502, "", group, null, null);
 		try {
-			when(storage.getArticle(null, thread_id)).thenReturn(retA);
+			when(storage.getMessageId(thread_id)).thenReturn("<refmessageid@foo.bar>");
 		} catch (StorageBackendException e) {e.printStackTrace();}
 				
 		String res = null; //without image 1)
@@ -84,7 +84,7 @@ public class ArticleTest {
         buf.append("Message-ID: <message-id@host.com>").append("\r\n");
         buf.append("Newsgroups: "+group).append("\r\n");
         buf.append("Subject: "+MimeUtility.encodeWord("сабджект")).append("\r\n");
-        buf.append("References: <ref-message-id@foo.bar>").append("\r\n");
+        buf.append("References: <refmessageid@foo.bar>").append("\r\n");
         buf.append("Path: 127.0.0.1!host!host2").append("\r\n");
         buf.append("Content-Type: text/plain; charset=utf-8").append("\r\n");
         buf.append("Content-Transfer-Encoding: 8bit").append("\r\n\r\n");
@@ -112,14 +112,14 @@ public class ArticleTest {
         buf.append("message-id: <message-id@host.com>").append("\r\n");
         buf.append("newsgroups: "+group).append("\r\n");
         buf.append("subject: "+MimeUtility.encodeWord("сабджект")).append("\r\n");
-        buf.append("references: <ref-message-id@foo.bar>").append("\r\n");
+        buf.append("references: <refmessageid@foo.bar>").append("\r\n");
         buf.append("path: 127.0.0.1!host!host2").append("\r\n");
         buf.append("content-transfer-encoding: 8bit").append("\r\n");
         buf.append("content-type: multipart/mixed; boundary=\"\"")
         .append("\r\n"); //boundary cutted
-        /*System.out.println(part[0].replace(boundary, ""));
-        System.out.println("##");
-        System.out.println(buf.toString());*/
+        //System.out.println(part[0].replace(boundary, ""));
+        //System.out.println("##");
+        //System.out.println(buf.toString());
         assertTrue(buf.toString().equalsIgnoreCase(part[0].replace(boundary, ""))); //headers part
         
         buf = new StringBuilder();

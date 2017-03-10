@@ -110,6 +110,7 @@ public class IHAVEandTAKETHISTest {
 		Config.inst().set(Config.HOSTNAME, "not-in-path.com"); //added to path
 		Article art0 = Mockito.mock(Article.class);//empty
 		when(storage.getArticle("<refmessageid@foo.bar>", null)).thenReturn(art0);
+		when(art0.getId()).thenReturn( 105 );
 		when(art0.getThread_id()).thenReturn( 105 );
 		
 		Set<String> host = new HashSet<String>(Arrays.asList("hschan.ano","host.com"));
@@ -665,6 +666,7 @@ public class IHAVEandTAKETHISTest {
 		Article art0 = Mockito.mock(Article.class);//empty
 		//when(storage.getArticle("<23456@host.com>", null)).thenReturn(art0);//ref
 		when(storage.getArticle("<refmessageid@foo.bar>", null)).thenReturn(art0);//ref
+		when(art0.getId()).thenReturn( 105 );
 		when(art0.getThread_id()).thenReturn( 105 );
 		
 		Set<String> host = new HashSet<String>(Arrays.asList("hschan.ano","host.com"));
@@ -705,5 +707,6 @@ public class IHAVEandTAKETHISTest {
 		verify(conn, atLeastOnce()).println(startsWith("239")); //article is accepted		
 
 	}
+	
 
 }

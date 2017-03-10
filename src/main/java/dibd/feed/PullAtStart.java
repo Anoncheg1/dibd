@@ -26,12 +26,13 @@ import java.util.Set;
 import java.util.logging.Level;
 import dibd.storage.StorageBackendException;
 import dibd.storage.StorageManager;
+import dibd.config.Config;
 import dibd.storage.GroupsProvider.Group;
 import dibd.storage.SubscriptionsProvider.Subscription;
 import dibd.util.Log;
 
 /**
- * The PullFeeder class pull articles from given peers.
+ * The PullFeeder thread for one subscription.
  *
  * @author Vitalij
  * @since dibd/0.0.1
@@ -57,7 +58,7 @@ public class PullAtStart extends Thread {
     	Set<Group> groups = StorageManager.groups.groupsPerPeer(sub);
     	if (groups == null)
     		return;
-    	Map<Group, Long> groupsTime = new HashMap<Group, Long>();//groups with last post time
+    	Map<Group, Long> groupsTime = new HashMap<Group, Long>();//groups with last post time (not ordered)
     	 
     	try {
     		for (Group g : groups){// we save post_time at the beginning to protect it from changing.
@@ -68,7 +69,7 @@ public class PullAtStart extends Thread {
     			}
         	}
     		
-    		PullDaemon.pull(groupsTime, this.proxy, host, port, 21, 60*1000);
+    		PullDaemon.pull(groupsTime, this.proxy, host, port, Config.inst().get(Config.PULLDAYS, 1), 21, 60*1000);
 
     	}catch (StorageBackendException e) {
     		Log.get().log(Level.WARNING, e.getLocalizedMessage(), e);

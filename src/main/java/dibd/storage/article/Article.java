@@ -471,11 +471,11 @@ public class Article { //extends ArticleHead
 			buf.append(Headers.SUBJECT).append(c).append(MimeUtility.fold(8, MimeUtility.encodeWord(a.subject))).append(nl);//256
 		//References
 		if(a.thread_id != null){
-			Article refArt = null;
+			String refArtMid = null;
 			try{
-				refArt = StorageManager.current().getArticle(null, a.thread_id);
+				refArtMid = StorageManager.current().getMessageId(a.thread_id);
 			} catch (StorageBackendException e) {	e.printStackTrace(); System.exit(1);} //Never happen
-			buf.append(Headers.REFERENCES).append(c).append(refArt.getMessageId()).append(nl);
+			buf.append(Headers.REFERENCES).append(c).append(refArtMid).append(nl);
 		}
 		//Path + localhost
 		buf.append(Headers.PATH).append(c);

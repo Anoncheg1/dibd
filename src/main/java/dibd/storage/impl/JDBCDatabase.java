@@ -89,6 +89,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 	protected PreparedStatement pstmtAddArticle3 = null;
 	protected PreparedStatement pstmtAddArticle4 = null;
 	protected PreparedStatement pstmtGetArticle = null;
+	protected PreparedStatement pstmtGetMessageId = null;
 	protected PreparedStatement pstmtGetArticleNumbers = null;
 	protected PreparedStatement pstmtGetArticleCountGroup = null;
 	protected PreparedStatement pstmtGetNewArticleIDs = null;
@@ -185,17 +186,20 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			
 			//     ************ NNTP **********
 			// Prepare simple statements for method getArticleCountGroup
-						this.pstmtGetArticleCountGroup = conn.prepareStatement("SELECT count(*) FROM thread,article WHERE group_id = ? AND article.thread_id = thread.thread_id;");
+						this.pstmtGetArticleCountGroup = conn.prepareStatement("SELECT count(*) FROM thread, article WHERE group_id = ? AND article.thread_id = thread.thread_id;");
 			// Prepare simple statements for method getArticleNumbers
-						this.pstmtGetArticleNumbers = conn.prepareStatement("SELECT article.id,post_time FROM thread,article WHERE group_id=? AND article.thread_id = thread.thread_id ORDER BY post_time OFFSET ?");
+						this.pstmtGetArticleNumbers = conn.prepareStatement("SELECT article.id FROM thread, article WHERE group_id=? AND article.thread_id = thread.thread_id ORDER BY post_time OFFSET ?");
 			// Prepare simple statements for method getArticle
 						this.pstmtGetArticle = conn.prepareStatement("SELECT id, article.thread_id, message_id, message_id_host, a_name, subject, message, post_time, path_header, group_id, file_path, media_type "
 							+ "FROM thread, article "
 							+"LEFT JOIN attachment ON article.id = attachment.article_id "
 							+"WHERE (( article.message_id = ? ) OR article.id = ?) AND thread.thread_id = article.thread_id;");
+			// Prepare simple statements for method GetMessageId
+						this.pstmtGetMessageId = conn.prepareStatement("SELECT message_id FROM article WHERE id = ?;"); 
 			// Prepare simple statements for method getNewArticleIDs
-						this.pstmtGetNewArticleIDs = conn.prepareStatement("SELECT article.message_id FROM article, thread "
-								+"WHERE group_id=? AND thread.last_post_time >= ? AND article.thread_id = thread.thread_id ORDER BY article.post_time;");
+						this.pstmtGetNewArticleIDs = conn.prepareStatement("SELECT article.message_id, article.thread_id FROM article, thread "
+								+ "WHERE thread.group_id=? AND thread.last_post_time >= ? AND article.thread_id = thread.thread_id "
+								+ "ORDER BY thread.last_post_time, article.post_time ASC;");
 			// Prepare simple statements for method getLastPostOfGroup
 						this.pstmtGetLastPostOfGroup = conn.prepareStatement("SELECT MAX(last_post_time) FROM thread WHERE group_id = ?;");
 						
@@ -630,7 +634,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			if(!rs.next())
 				throw new StorageBackendException("getThreads():getThreads");
 			else{
-				map = new LinkedHashMap<Article,List<Article>>();
+				map = new LinkedHashMap<Article,List<Article>>(); //ordered
 				do {
 					int thread_id =rs.getInt(1);
 					Article thread = new Article(thread_id, thread_id, rs.getString(2), rs.getString(3), rs.getString(4),
@@ -724,6 +728,59 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 		return count;
 	}
 	
+	public String getMessageId(int id) throws StorageBackendException {
+		ResultSet rs = null;
+		String mId = null;
+		try {
+			pstmtGetMessageId.setInt(1, id);
+			rs = pstmtGetMessageId.executeQuery();
+			if(rs.next())
+				mId = rs.getString(1);
+		} catch (SQLException ex) {
+			restartConnection(ex);
+			return getMessageId(id);
+		} finally {
+			closeResultSet(rs);
+			this.restarts = 0; // Reset error count
+		}
+		
+		return mId; //never null
+	}
+	
+	//newnews
+	@Override
+	public LinkedHashMap<String, String> getNewArticleIDs(Group group, long date) throws StorageBackendException {
+		//1) Get list of articles. in for <mid>  thread_id
+		//2) If thread_id not equal to one above => article is a thread
+		//3) Query for <mid> for thread
+		//4) If article is replay => <mid-replay> <mid-thread> If article is thread just => <mid-thread>
+		
+		ResultSet rs = null;
+		LinkedHashMap<String, String> ret= new LinkedHashMap<String, String>();
+		try {
+			pstmtGetNewArticleIDs.setInt(1, group.getInternalID());
+			pstmtGetNewArticleIDs.setLong(2, date);
+			rs = pstmtGetNewArticleIDs.executeQuery();
+			int t_id_above = -1;
+			String mId_above = null;
+			while (rs.next()){
+				int thread_id = rs.getInt(2);
+				if (thread_id != t_id_above){
+					t_id_above = thread_id; 
+					mId_above = getMessageId(thread_id);
+					ret.put(rs.getString(1), null); //thread
+				}else
+					ret.put(rs.getString(1), mId_above); //replay (mId_above never null)
+			}
+		} catch (SQLException ex) {
+			restartConnection(ex);
+			return getNewArticleIDs(group, date);
+		} finally {
+			closeResultSet(rs);
+			this.restarts = 0; // Reset error count
+		}
+		return ret; //may be empty
+	}
 	
 	
 	// ***********************************************************************************************
@@ -816,25 +873,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 		return art;
 	}
 
-	@Override
-	public List<String> getNewArticleIDs(Group group, long date) throws StorageBackendException {		
-		ResultSet rs = null;
-		List<String> ret= new ArrayList<String>();
-		try {
-			pstmtGetNewArticleIDs.setInt(1, group.getInternalID());
-			pstmtGetNewArticleIDs.setLong(2, date);
-			rs = pstmtGetNewArticleIDs.executeQuery();
-			while (rs.next())
-				ret.add(rs.getString(1));
-		} catch (SQLException ex) {
-			restartConnection(ex);
-			return getNewArticleIDs(group, date);
-		} finally {
-			closeResultSet(rs);
-			this.restarts = 0; // Reset error count
-		}
-		return ret;
-	}
+	
 
 	@Override
 	public long getLastPostOfGroup(Group g) throws StorageBackendException {

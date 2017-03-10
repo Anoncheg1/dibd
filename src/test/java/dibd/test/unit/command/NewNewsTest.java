@@ -19,7 +19,7 @@ import java.util.TimeZone;
 import org.junit.Test;
 import org.mockito.Mockito;
 import dibd.daemon.NNTPInterface;
-import dibd.daemon.command.NewNewsCommand;
+import dibd.daemon.command.NewThreadsCommand;
 import dibd.storage.GroupsProvider;
 import dibd.storage.StorageBackendException;
 import dibd.storage.StorageManager;
@@ -41,8 +41,8 @@ public class NewNewsTest {
 
 	@Test
 	public void NewNewsCommandTest() throws UnsupportedEncodingException, IOException, StorageBackendException, ParseException, NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, InstantiationException{
-		Class<?> nnc = NewNewsCommand.class;
-		NewNewsCommand co = (NewNewsCommand) nnc.newInstance();
+		Class<?> nnc = NewThreadsCommand.class;
+		NewThreadsCommand co = (NewThreadsCommand) nnc.newInstance();
 		Method parseDate = nnc.getDeclaredMethod("parseDate", new Class[]{String.class, String.class});
 		parseDate.setAccessible(true);
 		//new

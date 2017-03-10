@@ -24,7 +24,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.List;
+import java.util.Map;
 import java.util.TimeZone;
 
 import dibd.daemon.NNTPInterface;
@@ -81,11 +81,11 @@ import dibd.storage.GroupsProvider.Group;
  * @author me
  * @since dibd/1.0.1
  */
-public class NewNewsCommand implements Command {
+public class NewThreadsCommand implements Command {
 
 	@Override
 	public String[] getSupportedCommandStrings() {
-		return new String[] { "NEWNEWS" };
+		return new String[] { "NEWTHREADS" };
 	}
 
 	@Override
@@ -95,7 +95,7 @@ public class NewNewsCommand implements Command {
 
 	@Override
 	public String impliedCapability() {
-		return "NEWNEWS";
+		return "NEWTHREADS";
 	}
 
 	@Override
@@ -121,15 +121,20 @@ public class NewNewsCommand implements Command {
 			}
 
 			//news,sci without .*
-			conn.println("230 List of new articles follows (multi-line)");
+			conn.println("230 List of new threads follows (multi-line)");
 			for (String gn : command[1].split(",")){
 				Group g = StorageManager.groups.get(gn);
 				if (g != null)
 					if(!g.isDeleted()){
-						List<String> ids = StorageManager.current().getNewArticleIDs(g, date);
+						Map<String, String> ids = StorageManager.current().getNewArticleIDs(g, date);
 						
-						for(String s : ids)
-							conn.println(s);
+						for(String k : ids.keySet()){
+							String v = ids.get(k);
+							if( v != null)
+								conn.println(k+"\t"+v); //replay
+							else
+								conn.println(k); //thread
+						}
 					}
 			}
 			conn.println(".");

@@ -157,7 +157,7 @@ public class IhaveCommand implements Command{
 					isHeadersOK = false;
 				}*/
 				if(!rs.checkRef()){
-					conn.println("437 no such thread for replay. Thread will be pulled");
+					conn.println("437 no such thread for replay.");
 					isHeadersOK = false;
 				}
 				break;

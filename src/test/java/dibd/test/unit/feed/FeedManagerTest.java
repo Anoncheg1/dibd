@@ -11,11 +11,18 @@ import java.io.UnsupportedEncodingException;
 import java.net.Proxy;
 import java.net.Socket;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
 
 import org.junit.Test;
 
 import dibd.feed.FeedManager;
+import dibd.util.Log;
 
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 //import static org.mockito;
 
@@ -42,6 +49,26 @@ public class FeedManagerTest{
 		rOut.println("200 hello");
 		rOut.flush();
 		Socket socket = FeedManager.getHelloFromServer(rSocket, false, "testhost", Charset.forName("UTF-8"));
+		
+	}
+	
+	@Test
+	public void sortThreadsReplaysTest(){
+		
+		Map<String, String> replays = new LinkedHashMap<>(250);
+		List<String> threads = new ArrayList<String>(250);
+		
+		replays.put("1@hh", "nothread@hh");
+		replays.put("2@hh", "th@hh");
+		
+		threads.add("th@hh");
+		Log.get().setLevel(Level.SEVERE);
+		Map<String, Boolean> res = FeedManager.sortThreadsReplays(threads, replays, "host");
+		Log.get().setLevel(Level.WARNING);
+		assertEquals(res.size(), 2);
+		assertEquals(res.get("th@hh"), true);
+		assertEquals(res.get("2@hh"), false);
+		//System.out.println(res.size() == 2);
 		
 	}
 

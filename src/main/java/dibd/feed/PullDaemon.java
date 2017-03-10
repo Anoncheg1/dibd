@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
 
@@ -52,8 +53,8 @@ public class PullDaemon extends DaemonThread {
 	public static final int QUEUE_SIZE = 256;
 	
 	private static class MissingThread{
-		Group g;
-		long t;
+		Group g; //groupt to query to
+		long t;	//post time
 		String string_for_log;
 		/**
 		 * @param g
@@ -86,22 +87,24 @@ public class PullDaemon extends DaemonThread {
 	}
 	
     /**
-     * Pull groups at start or pull one thread.
+     * Share function to pull at start or pull one thread.
      * 
      * @param groupsTime group and last post_time
      * @param proxy
      * @param host
      * @param port
+     * @param added_day to retrieve.
      * @param retries
-     * @param sleep
+     * @param sleep starting value of sleep between retries
      * @throws StorageBackendException
      * @return -1 if error or articles pulled
      */
-    static int pull(Map<Group, Long> groupsTime, Proxy proxy, String host, int port, int retries, int sleep) throws StorageBackendException {
+    static int pull(Map<Group, Long> groupsTime, Proxy proxy, String host, int port, int added_days, int retries, int sleep) throws StorageBackendException {
     	for(int retry =1; retry<retries;retry++){
     		ArticlePuller ap = null;
     		try {
     			boolean TLSenabled = Config.inst().get(Config.TLSENABLED, false);
+    			//Connecting
     			try {
 					ap = new ArticlePuller(FeedManager.createSocket(proxy, host, port), TLSenabled, host);
 				} catch (SSLPeerUnverifiedException e) {
@@ -114,16 +117,42 @@ public class PullDaemon extends DaemonThread {
     					new Object[]{Thread.currentThread().getName(), host, groupsTime.size()});
     					//new Object[]{host, "["+groupsTime.keySet().stream().map(g -> g.getName()).collect(Collectors.joining(","))+"]"});
 
-    			List<String> mIDs = ap.check(groupsTime, Config.inst().get(Config.PULLDAYS, 1));
+    			//Scrap message-ids
+    			Map<String, Boolean> mIDs = ap.check(groupsTime, added_days);
     			if (mIDs.isEmpty()){
     				Log.get().log(Level.FINE,"{0}: no new articles found at host:{1}:{2}",
     						new Object[]{Thread.currentThread().getName(), host, port});
     				return 0;
     			}else{
+    				
+    				
     				int reseived = 0;
-    				for (String mId : mIDs){
-    					if (ap.transferToItself(new IhaveCommand(), mId))//IhaveCommand can't be reused.
-    						reseived ++;
+    				//we pass replays for accepted thread only
+    				//If thread was corrupted then we reject his replays
+    				//it will prevent "getting missing threads".
+    				boolean threadAccepted = false; // false - waiting for thread, replays rejected. true - thread was ok, replays accepted
+    				for (Entry<String, Boolean> mId : mIDs.entrySet()){
+    					
+    					if(threadAccepted == false){ // waiting for thread
+    						if (mId.getValue()) //is thread? else do nothing
+    							if (ap.transferToItself(new IhaveCommand(), mId.getKey())){//thread accepted?
+    								reseived ++;
+    								threadAccepted = true;
+    							}
+    						
+    					}else// waiting for replays (thread above was accepted)
+    						if (!mId.getValue()){ //is replay?
+    							//we don't care here accepted replay or not.(it is very bad ofcouse)
+    							if (ap.transferToItself(new IhaveCommand(), mId.getKey()))//IhaveCommand can't be reused.
+    								reseived ++;
+    						}else
+    							if (ap.transferToItself(new IhaveCommand(), mId.getKey())){//thread accepted?
+    								reseived ++;
+    								threadAccepted = true;
+    							}
+    						
+    							
+    							
     				}
     				Log.get().log(Level.FINE,"{0}: {1} articles of {2} successful reseived from host {3}:{4}",
     						new Object[]{Thread.currentThread().getName(), reseived, mIDs.size(), host, port});
@@ -152,21 +181,25 @@ public class PullDaemon extends DaemonThread {
     }
 
     
+    /////////    Getting missing thread    /////////
     @Override
     public void run() {
     	PullDaemon.running = isRunning(); 
     	while (isRunning()) {
-    		try{	
-    			MissingThread p = PullDaemon.groupQueue.take();
+    		try{
+
+    			MissingThread mthr = PullDaemon.groupQueue.take();
     			Thread.sleep(30000);//30sec wait for missing thread be spread to peer network we connected
-    			
+
     			List<Subscription> subs = new ArrayList<>(); 
     			for (Subscription sub : StorageManager.peers.getAll())
-    				if(p.g.getHosts().contains(sub.getHost()) //case sensitive group and peer 
+    				if(mthr.g.getHosts().contains(sub.getHost()) //case sensitive group and peer 
     						&& sub.getFeedtype() != FeedType.PUSH)
     					subs.add(sub);
 
-    			for (Subscription sub : subs){
+    			int res = 0;
+    			for (Subscription sub : subs){ //we query every peer in group
+    				
     				//TODO: make proxy configurable for every peer
     				Proxy proxy;
     				try {
@@ -175,16 +208,23 @@ public class PullDaemon extends DaemonThread {
     					Log.get().log(Level.SEVERE, "Wrong proxy configuration: {0}", e);
     					return;
     				}
-    				Map<Group, Long> gr = new HashMap<>(); //one entry map
-    				gr.put(p.g, p.t);
+    				
+    				// one group and post_time
+    				Map<Group, Long> gr = new HashMap<>();
+    				gr.put(mthr.g, mthr.t); 
     				
     				try {
-						if(pull(gr, proxy, sub.getHost(), sub.getPort(), 5, 60*1000) == 0)
-							Log.get().log(Level.WARNING, "No thread was found for missing thread: {0}", p.string_for_log);
+    					int r = pull(gr, proxy, sub.getHost(), sub.getPort(), 0, 5, 30*1000); //0 add days, 5 retries, 30 sec. 
+    					if (r != -1)
+    						res += r;  
+							
 					} catch (StorageBackendException e) {
 						Log.get().log(Level.WARNING, e.getLocalizedMessage(), e);
 					}
     			}
+    			
+    			if(res == 0)
+    				Log.get().log(Level.WARNING, "No thread was found for missing thread: {0} at {1} peers", new Object[] {mthr.string_for_log, subs.size()});
     		
     		} catch (InterruptedException e1) {
     			Log.get().log(Level.FINEST, "PullFeeder interrupted: {0}", e1.getLocalizedMessage());

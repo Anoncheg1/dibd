@@ -177,7 +177,7 @@ public class OverCommand implements Command {
                     if (command[0].equalsIgnoreCase("OVER")) {
                         conn.println("423 no articles in that range");
                     } else {
-                        conn.println("224 (empty) overview information follows:");
+                        conn.println("224 (empty) overview information follows");
                         conn.println(".");
                     }
                 } else {
@@ -200,7 +200,7 @@ public class OverCommand implements Command {
                         } else{ //if (n == artStart) {
                             // XOVER replies this although there is no data
                             // available
-                            conn.println("224 overview information follows");
+                            conn.println("224 overview information follows (multi-line)");
                         }
                         /*
                         for (Pair<Long, ArticleHead> article : articleHeads) {
@@ -248,7 +248,7 @@ public class OverCommand implements Command {
         .append('\t');
         //6) thread-Id
         if(art.getThread_id()!=art.getId()) //if replay
-        	overview.append(StorageManager.current().getArticle(null, art.getThread_id()).getMessageId());
+        	overview.append(StorageManager.current().getMessageId(art.getThread_id()));
         //overview.append('\t');
 
         //String bytes = art.getHeader(Headers.BYTES)[0];

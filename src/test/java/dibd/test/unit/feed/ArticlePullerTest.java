@@ -23,8 +23,10 @@ import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.logging.Level;
 
 import org.junit.Ignore;
 import org.junit.Test;
@@ -52,7 +54,7 @@ public class ArticlePullerTest {
 	
 	
 	private String mId = "<foobar@hschan.ano>";
-	private String[] send2 = {
+	private String[] send2 = { //thread
 			"Mime-Version: 1.0",
 			"Date: Thu, 02 May 2013 12:16:44 +0000",
 			"Message-ID: <foobar@hschan.ano>",
@@ -116,9 +118,12 @@ public class ArticlePullerTest {
     	}
     }
 	*/
+	private Socket rSocket;
+	private	BufferedReader rIn;
+	private PrintWriter rOut;
+	private IhaveCommand ihcom;
 	
-	
-	public ArticlePullerTest() throws NoSuchMethodException, SecurityException {
+	public ArticlePullerTest() throws NoSuchMethodException, SecurityException, IOException {
 		//Storage
 		storage = mock(StorageNNTP.class);
 		StorageManager.enableProvider(new dibd.test.unit.storage.TestingStorageProvider(storage));
@@ -128,11 +133,28 @@ public class ArticlePullerTest {
 		groupC = cg.getDeclaredConstructor(new Class[]{String.class, Integer.TYPE, Integer.TYPE, Set.class});
 		groupC.setAccessible(true);
 		
+		
+		//preparing remote connection Socket First parameter for ArticlePuller
+		//and pipeline fot testing
+		rSocket = mock(Socket.class);
+		PipedInputStream inForOut = new PipedInputStream();
+		PipedOutputStream outForIn = new PipedOutputStream();
+		rIn = new BufferedReader(new InputStreamReader(inForOut, "UTF-8"));
+		rOut = new PrintWriter(new OutputStreamWriter(outForIn, "UTF-8"));
+
+		when(rSocket.getOutputStream()).thenReturn(new PipedOutputStream(inForOut));
+		when(rSocket.getInputStream()).thenReturn(new PipedInputStream(outForIn));
+
+		ihcom = mock(IhaveCommand.class); //Second parameter for ArticlePuller
+		
+		
+		
+		
 		Log.get().setLevel(java.util.logging.Level.WARNING);
 	}
 
 	@Test
-    public void ConstructorCheckTransferTest() throws StorageBackendException, IOException, InterruptedException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchFieldException, SecurityException{
+    public void PullNEWNEWStest() throws StorageBackendException, IOException, InterruptedException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchFieldException, SecurityException{
 		//group mocking part 2
 		Set<String> host = new HashSet<String>(Arrays.asList("hschan.ano","host.com"));
 		final Group group1 = (Group) groupC.newInstance("local.test",23,0,host);
@@ -144,18 +166,7 @@ public class ArticlePullerTest {
 		//groupsTime.put(group2, (long) 0);
 		
 		
-		//preparing remote connection Socket First parameter for ArticlePuller
-		//and pipeline fot testing
-        final Socket rSocket = mock(Socket.class);
-        PipedInputStream inForOut = new PipedInputStream();
-        PipedOutputStream outForIn = new PipedOutputStream();
-        BufferedReader rIn = new BufferedReader(new InputStreamReader(inForOut, "UTF-8"));
-        PrintWriter rOut = new PrintWriter(new OutputStreamWriter(outForIn, "UTF-8"));
-        
-        when(rSocket.getOutputStream()).thenReturn(new PipedOutputStream(inForOut));
-        when(rSocket.getInputStream()).thenReturn(new PipedInputStream(outForIn));
-        
-        final IhaveCommand ihcom = mock(IhaveCommand.class); //Second parameter for ArticlePuller
+		
         
         
         
@@ -181,19 +192,26 @@ public class ArticlePullerTest {
         }
         rOut.println(".");
         
-        //NEWNEWS
+        //NEWNEWS resp
         rOut.println("230 List of new articles follows (multi-line)");
+		
+		rOut.println("<a@hh> <sad@hh>");
+		rOut.println("<agh@hh> "+mId);
 		rOut.println(mId);
 		rOut.println(".");
 		rOut.flush();
-		List<String> mIDs = ap.check(groupsTime, Config.inst().get(Config.PULLDAYS, 1));
-		assertEquals(mIDs.get(0),mId);
-		
+		Log.get().setLevel(Level.SEVERE);
+		Map<String, Boolean> mIDs = ap.check(groupsTime, Config.inst().get(Config.PULLDAYS, 1)); //newnews request
+		Log.get().setLevel(Level.WARNING);
+		assertEquals(mIDs.get(mId), true); //thread = true
+		assertEquals(mIDs.get("<a@hh>"), null); //no such thread
+		assertEquals(mIDs.get("<agh@hh>"), false); //replay = false
+
 		assertEquals(rIn.readLine(), "CAPABILITIES");
-		
-		String ne = "NEWNEWS local.test "+(140000-60*60*24);
+
+		String ne = "NEWTHREADS local.test "+(140000-60*60*24);
 		assertEquals(rIn.readLine(), ne);
-		
+
 		// ######## ap.transferToItself() ########
 		//Article
 		rOut.println("220 " + 0 + " " + mId + " article retrieved - head and body follow");
@@ -250,6 +268,89 @@ public class ArticlePullerTest {
     		}})
     	.when(ihcom).processLine(Mockito.any(NNTPChannel.class), Mockito.anyString(), Mockito.any(byte[].class));
     	*/
+	}
+	
+	@Test
+    public void PullXOVERtest() throws StorageBackendException, IOException, InterruptedException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchFieldException, SecurityException{
+		//group mocking part 2
+		Set<String> host = new HashSet<String>(Arrays.asList("hschan.ano","host.com"));
+		final Group group1 = (Group) groupC.newInstance("local.test",23,0,host);
+		//final Group group2 = (Group) groupC.newInstance(StorageManager.groups,"random",24,0,host);
+		//when(storage.getLastPostOfGroup(group1)).thenReturn((long) 140000);//it is inside of newnews
+		//when(storage.getLastPostOfGroup(group2)).thenReturn((long) 0);//it is inside of newnews
+		Hashtable<Group, Long> groupsTime = new Hashtable<Group, Long>();//groups with last post time //for ArticlePuller.check()
+		groupsTime.put(group1, (long) 140000);
+		//groupsTime.put(group2, (long) 0);
+		
+		
+        
+        // ######## ArticlePuller Constructor ########  
+        rOut.println("200 hello");
+        rOut.flush();
+        
+        ArticlePuller ap = new ArticlePuller(rSocket, false, "testhost");
+        
+        // ######## ap.check() ######## 
+        Field connField = ArticlePuller.class.getDeclaredField("conn");
+        connField.setAccessible(true);
+        NNTPInterface conn = (NNTPInterface) connField.get(ap); // now we have hook field for IhaveCommand
+        
+        //CAPABILITIES
+        rOut.println("101 Capabilities list:");
+        //for (String cap : CapabilitiesCommand.CAPABILITIES) {  //with NEWNEWS
+        	rOut.println("READER");
+        //}
+        rOut.println(".");
+
+        //GROUP response
+        rOut.println("211 bla bla bla group selected");
+        
+        //OVER resp
+        rOut.println("224 overview information follows");
+        rOut.println("\t\t\t\t<a2@hh>\t"+mId);
+        rOut.println("\t\t\t\t"+mId);
+		rOut.println("\t\t\t\t<a@hh>\t<sad@hh>");
+		rOut.println(".");
+		rOut.flush();
+		Log.get().setLevel(Level.SEVERE);
+		Map<String, Boolean> mIDs = ap.check(groupsTime, Config.inst().get(Config.PULLDAYS, 1)); //newnews request
+		Log.get().setLevel(Level.WARNING);
+		assertEquals(mIDs.get(mId), true); //thread = true
+		assertEquals(mIDs.get("<a@hh>"), null); //no thread
+		assertEquals(mIDs.get("<a2@hh>"), false); //replay = false
+		assertEquals(mIDs.size(), 2); //replay = false
+
+		assertEquals(rIn.readLine(), "CAPABILITIES");
+
+		String grs = "GROUP local.test";
+		assertEquals(rIn.readLine(), grs);
+		
+		String xo = "XOVER 0";
+		assertEquals(rIn.readLine(), xo);
+
+		// ######## ap.transferToItself() ########
+		//Article
+		rOut.println("220 " + 0 + " " + mId + " article retrieved - head and body follow");
+        for(int i = 0; i < send2.length; i++){
+        	rOut.println(send2[i]);
+		}
+        rOut.flush();
+        
+        //ihave emulation
+        conn.println("335 send article");
+        conn.println("235 article posted ok");
+        
+		boolean res = ap.transferToItself(ihcom, mId);//IhaveCommand can't be reused.
+		assertEquals(rIn.readLine(), "ARTICLE " + mId);
+		assertTrue(res);
+		//######## ap.close() ########
+		rOut.println("qua");
+		rOut.flush();
+		
+		ap.close();
+		
+		assertEquals(rIn.readLine(), "QUIT");
+		
 	}
 
 }

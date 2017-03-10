@@ -249,7 +249,7 @@ public class GroupsProvider {
 				if (inGroup) //1.2
 					groupsPerSubscription.put(s, sgroups);
 				else{//host must be at least in one of the group;
-					//groupsPerSubscription.put(s, null);
+					groupsPerSubscription.put(s, null);
 					Log.get().log(Level.WARNING, "Host {0} of peers.conf must be in one of the group(groups.conf)", s.getHost());
 				}
 			}
@@ -329,8 +329,11 @@ public class GroupsProvider {
 	 * @return Group or null
 	 */
 	public Set<Group> groupsPerPeer(Subscription s) {
-		return Collections.unmodifiableSet(groupsPerSubscription.get(s)) ;
-
+		Set<Group> set = groupsPerSubscription.get(s);
+		if (set != null)
+			return Collections.unmodifiableSet(set);
+		else
+			return null;
 	}
 
 }
