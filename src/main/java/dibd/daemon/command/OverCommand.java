@@ -247,7 +247,7 @@ public class OverCommand implements Command {
         overview.append(escapeString(art.getMessageId()))
         .append('\t');
         //6) thread-Id
-        if(art.getThread_id()!=art.getId()) //if replay
+        if(art.getThread_id().intValue() != art.getId().intValue()) //if replay
         	overview.append(StorageManager.current().getMessageId(art.getThread_id()));
         //overview.append('\t');
 

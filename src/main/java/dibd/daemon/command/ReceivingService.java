@@ -57,9 +57,12 @@ class ReceivingService{
 	private final String command;
 	private final NNTPInterface conn;
 
-	public ReceivingService(String command, NNTPInterface conn){
+	private boolean allowPush = false; // for ArticlePuller
+	
+	public ReceivingService(String command, NNTPInterface conn, boolean allowPush){
 		this.command = command.toUpperCase();
 		this.conn = conn;
+		this.allowPush = allowPush; 
 	}
 
 	//headers
@@ -331,31 +334,29 @@ class ReceivingService{
 	 * @throws ParseException 
 	 */
 	boolean checkRef() throws StorageBackendException{
-		if (ref != null && !ref[0].isEmpty()){
+		//if ref equal mId we assume it is thread
+		if (ref != null && !ref[0].isEmpty() && ! ref[0].equals(messageId)){ 
 
 			Article art = StorageManager.current().getArticle(ref[0], null); //get thread
-			
 
-			if( ! ref[0].equals(messageId)){ //if ref equal mId we assume it is thread 
-
-				if (art != null){
-					if (art.getId() == art.getThread_id()) //check that ref is a thread
-						this.thread_id = art.getThread_id(); //return true
-					else
-						return false;
-				}else{
-					try {
-						//request missed thread:
-						PullDaemon.queueForPush(group, Headers.ParseRawDate(date), messageId+" "+this.host+" "+path);
-					} catch (ParseException e) {
-						Log.get().log(Level.INFO, "{0}: {1} can not parse date {2}",
-								new Object[]{this.command, messageId, date});
-					}
-					return false; //"no such REFERENCE";
+			if (art != null){
+				if (art.getId().intValue() == art.getThread_id().intValue()){ //check that ref is a thread
+					this.thread_id = art.getThread_id(); //return true
+				}else
+					return false;
+			}else{
+				try {
+					//request missed thread:
+					PullDaemon.queueForPush(group, Headers.ParseRawDate(date), messageId+" "+this.host+" "+path);
+				} catch (ParseException e) {
+					Log.get().log(Level.INFO, "{0}: {1} can not parse date {2}",
+							new Object[]{this.command, messageId, date});
 				}
-
+				return false; //"no such REFERENCE";
 			}
+
 		}
+
 
 		return true;
 
@@ -579,15 +580,16 @@ class ReceivingService{
 			
 			
 			//3) Third check. Sender must be in group.
-			if(group.getHosts().contains(mId[1])){
+			if( ! group.getHosts().contains(mId[1])){
+				Log.get().log(Level.SEVERE, "{0}: sender {1} have NEW SOURCE {2} in group {3}",
+						new Object[]{this.command, host, mId[1], group.getName()});
+				//FeedManager.lazyQueueForPush(art);
+				
+			}else if (allowPush){
 				article.setRaw(rawArticle);
 				PushDaemon.queueForPush(article); //send to peers
 				Log.get().log(Level.FINE, "{0}: article {1} received and it is {2} that we can send it to another hosts",
 						new Object[]{this.command, messageId, group.getHosts().contains(mId[1])});
-			}else{
-				Log.get().log(Level.SEVERE, "{0}: sender {1} have NEW SOURCE {2} in group {3}",
-						new Object[]{this.command, host, mId[1], group.getName()});
-				//FeedManager.lazyQueueForPush(art);
 			}
 			
 		}

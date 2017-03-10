@@ -106,7 +106,7 @@ public class TakeThisCommand implements Command {
 								return;
 							}else{ //ok
 								host = conn.getHost();
-								rs = new ReceivingService("TAKETHIS", conn);
+								rs = new ReceivingService("TAKETHIS", conn, true);
 								state = PostState.ReadingHeaders;
 								return;
 							}

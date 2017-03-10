@@ -110,7 +110,7 @@ public class PostCommand implements Command {
 				if (line.equalsIgnoreCase("POST")) { //ok
 					host = conn.getHost();
 					conn.println("340 send article to be posted. End with <CR-LF>.<CR-LF>");
-					rs = new ReceivingService("POST", conn);
+					rs = new ReceivingService("POST", conn, true);
 					state = PostState.ReadingHeaders;
 					return;
 				} else 

@@ -237,6 +237,8 @@ public class ArticlePuller {
 	public boolean transferToItself(IhaveCommand ihavec, String messageId)
 			throws IOException, StorageBackendException {
 		
+		ihavec.blockPush(); //we do not need to push pulled articles. we will push pushed articles.
+		
 		String s = "IHAVE "+ messageId;
 		ihavec.processLine(conn, s, s.getBytes("UTF-8")); //send ihave
 	
@@ -244,6 +246,7 @@ public class ArticlePuller {
 		if (line == null || !line.startsWith("335")) {
 			if (line != null && line.startsWith("435"))
 				Log.get().log(Level.FINE, "IHAVE-loopback {0} we already have this or don't want it", messageId);
+			
 			else
 				Log.get().log(Level.WARNING, "transferToItself from {0} {1} we ihave:{2}", new Object[]{this.host, messageId, line} );
 			return false; //we don't want to receive
@@ -286,14 +289,18 @@ public class ArticlePuller {
 
 		}while(!".".equals(line));
 
-		//this.lastActivity = System.currentTimeMillis();
+		
 		line = conn.readLine();//IHAVE response
 		if (line != null)
 			if(line.startsWith("235")) {
 				Log.get().log(Level.INFO, "Message {0} successfully transmitted", messageId);
 				return true;
-			} else
-				Log.get().log(Level.WARNING, "Pulling {0} from {1} IHAVE: {2}", new Object[]{messageId, this.host, line});
+			} else if (line.equals(ihavec.noRef)){
+				Log.get().log(Level.SEVERE, "PULL from {0} {1} NO SUCH THREAD", new Object[]{this.host, messageId} );
+				System.err.println("PULL from "+this.host+" "+messageId+" NO SUCH THREAD");
+				System.exit(1);
+			}else
+				Log.get().log(Level.WARNING, "Pulling {0} from {1} self IHAVE: {2}", new Object[]{messageId, this.host, line});
 			
 		return false;
 	}
@@ -406,9 +413,9 @@ public class ArticlePuller {
 				else if ( part.length == 6 && part[5].matches(NNTPConnection.MESSAGE_ID_PATTERN))
 					replays.put(part[4], part[5]);
 				else
-					Log.get().log(Level.WARNING, "From: {0} unsupported XOVER format of line: {1}", new Object[]{this.host, line});
+					Log.get().log(Level.WARNING, "From: {0} unsupported XOVER format of line or mesage id:\n{1}", new Object[]{this.host, line});
 			}else
-				Log.get().log(Level.WARNING, "From: {0} unsupported XOVER format of line: {1}", new Object[]{this.host, line});
+				Log.get().log(Level.WARNING, "From: {0} unsupported XOVER format of line or mesage id:\n{1}", new Object[]{this.host, line});
 
 			if(replays.size() > 999000/2 || threads.size() > 999000/2){
 				Log.get().log(Level.SEVERE, "From host: {0} XOVER 0 for group {1}, there is over 999000 article lines like {2}", new Object[]{this.host, gname, line});

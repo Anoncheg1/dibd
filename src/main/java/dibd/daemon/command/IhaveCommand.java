@@ -77,6 +77,15 @@ public class IhaveCommand implements Command{
 	
 	private String host; //for log ONLY
 	
+	public final String noRef = "437 no such thread for replay.";
+	
+	//For ArticlePuller
+	public boolean allowPush = true;
+	
+	public void blockPush(){
+		this.allowPush = false;
+	}
+	
 	/**
 	 * Process the given line String. line.trim() was called by NNTPConnection.
 	 *
@@ -113,7 +122,7 @@ public class IhaveCommand implements Command{
 								
 								conn.println("335 send article");
 
-								rs = new ReceivingService("IHAVE", conn);
+								rs = new ReceivingService("IHAVE", conn, this.allowPush);
 								state = PostState.ReadingHeaders;
 								return;
 							}
@@ -157,7 +166,7 @@ public class IhaveCommand implements Command{
 					isHeadersOK = false;
 				}*/
 				if(!rs.checkRef()){
-					conn.println("437 no such thread for replay.");
+					conn.println(this.noRef); //437 no such thread for replay.
 					isHeadersOK = false;
 				}
 				break;
