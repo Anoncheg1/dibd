@@ -225,6 +225,48 @@ public class ArticlePuller {
 		return messageIDs;
 	}
 	
+	
+	/**
+	 * @param mIDs  mind, isThread?
+	 * @return
+	 * @throws IOException
+	 * @throws StorageBackendException
+	 */
+	public int toItself(Map<String, Boolean> mIDs) throws IOException, StorageBackendException{
+		int reseived = 0;
+		//we pass replays for accepted thread only
+		//If thread was corrupted then we reject his replays
+		//it will prevent "getting missing threads".
+		boolean threadAccepted = false; // false - waiting for thread, replays rejected. true - thread was ok, replays accepted
+		for (Entry<String, Boolean> mId : mIDs.entrySet()){
+			
+			if(threadAccepted == false){ // waiting for thread
+				if (mId.getValue()) //is thread? else do nothing
+					if (transferToItself(new IhaveCommand(), mId.getKey())){//thread accepted?
+						reseived ++;
+						threadAccepted = true;
+					} //else threadAccepted = false anyway 
+				
+			}else// waiting for replays (thread above was accepted)
+				if (!mId.getValue()){ //is replay?
+					//we don't care here accepted replay or not.(it is very bad of cause)
+					if (transferToItself(new IhaveCommand(), mId.getKey()))
+						reseived ++;
+				}else
+					if (transferToItself(new IhaveCommand(), mId.getKey())){//thread accepted?
+						reseived ++;
+						threadAccepted = true;
+					}else
+						threadAccepted = false;
+				
+					
+					
+		}
+		return reseived;
+	}
+	
+	
+	
 	/**
 	 * Get article with ARTICLE and offer it to himself with IhaveCommand class.
 	 * 

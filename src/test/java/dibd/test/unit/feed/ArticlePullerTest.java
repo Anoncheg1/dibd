@@ -17,16 +17,20 @@ import java.io.PrintWriter;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.Socket;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
+
+import javax.net.ssl.SSLPeerUnverifiedException;
 
 import org.junit.Ignore;
 import org.junit.Test;
@@ -123,7 +127,11 @@ public class ArticlePullerTest {
 	private PrintWriter rOut;
 	private IhaveCommand ihcom;
 	
-	public ArticlePullerTest() throws NoSuchMethodException, SecurityException, IOException {
+	Method transferToItselfS; //string
+	
+	Hashtable<Group, Long> groupsTime;
+	
+	public ArticlePullerTest() throws NoSuchMethodException, SecurityException, IOException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
 		//Storage
 		storage = mock(StorageNNTP.class);
 		StorageManager.enableProvider(new dibd.test.unit.storage.TestingStorageProvider(storage));
@@ -148,32 +156,26 @@ public class ArticlePullerTest {
 		ihcom = mock(IhaveCommand.class); //Second parameter for ArticlePuller
 		
 		
+		transferToItselfS = ArticlePuller.class.getDeclaredMethod("transferToItself", new Class<?>[]{IhaveCommand.class, String.class});
+		transferToItselfS.setAccessible(true);
 		
+		Set<String> host = new HashSet<String>(Arrays.asList("hschan.ano","host.com"));
+		final Group group1 = (Group) groupC.newInstance("local.test",23,0,host);
+		groupsTime = new Hashtable<Group, Long>();//groups with last post time //for ArticlePuller.check()
+		groupsTime.put(group1, (long) 140000);
+		
+		/*
+		 * Method[] me = ap.getClass().getDeclaredMethods();
+        for(Method m :me)
+        	System.out.println(m);
+		 */
 		
 		Log.get().setLevel(java.util.logging.Level.WARNING);
 	}
 
 	@Test
     public void PullNEWNEWStest() throws StorageBackendException, IOException, InterruptedException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchFieldException, SecurityException{
-		//group mocking part 2
-		Set<String> host = new HashSet<String>(Arrays.asList("hschan.ano","host.com"));
-		final Group group1 = (Group) groupC.newInstance("local.test",23,0,host);
-		//final Group group2 = (Group) groupC.newInstance(StorageManager.groups,"random",24,0,host);
-		//when(storage.getLastPostOfGroup(group1)).thenReturn((long) 140000);//it is inside of newnews
-		//when(storage.getLastPostOfGroup(group2)).thenReturn((long) 0);//it is inside of newnews
-		Hashtable<Group, Long> groupsTime = new Hashtable<Group, Long>();//groups with last post time //for ArticlePuller.check()
-		groupsTime.put(group1, (long) 140000);
-		//groupsTime.put(group2, (long) 0);
 		
-		
-		
-        
-        
-        
-        //MyThread myT = new MyThread(rSocket, groupsTime);
-        //myT.start();
-      //Thread.sleep(100); //waiting for ArticlePuller.ap constructor
-        
         // ######## ArticlePuller Constructor ########  
         rOut.println("200 hello");
         rOut.flush();
@@ -224,7 +226,21 @@ public class ArticlePullerTest {
         conn.println("335 send article");
         conn.println("235 article posted ok");
         
-		boolean res = ap.transferToItself(ihcom, mId);//IhaveCommand can't be reused.
+        
+        
+		//when(transferToItselfS.invoke(ap, "<agh@hh>")).thenReturn(true);
+		//when(transferToItselfS.invoke(ap, "<a@hh>")).thenReturn(true);
+        //when(transferToItselfS.invoke(ap, mId)).thenReturn(true);
+        
+        /*
+         * when(ap.transferToItself("<agh@hh>")).thenReturn(true);
+		when(ap.transferToItself("<a@hh>")).thenReturn(true);
+		when(ap.transferToItself(mId)).thenReturn(true);
+         */
+        
+        
+        //there must be transferToItself for Map.
+        boolean res = (boolean) transferToItselfS.invoke(ap, ihcom, mId);
 		assertEquals(rIn.readLine(), "ARTICLE " + mId);
 		assertTrue(res);
 		//######## ap.close() ########
@@ -272,16 +288,6 @@ public class ArticlePullerTest {
 	
 	@Test
     public void PullXOVERtest() throws StorageBackendException, IOException, InterruptedException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchFieldException, SecurityException{
-		//group mocking part 2
-		Set<String> host = new HashSet<String>(Arrays.asList("hschan.ano","host.com"));
-		final Group group1 = (Group) groupC.newInstance("local.test",23,0,host);
-		//final Group group2 = (Group) groupC.newInstance(StorageManager.groups,"random",24,0,host);
-		//when(storage.getLastPostOfGroup(group1)).thenReturn((long) 140000);//it is inside of newnews
-		//when(storage.getLastPostOfGroup(group2)).thenReturn((long) 0);//it is inside of newnews
-		Hashtable<Group, Long> groupsTime = new Hashtable<Group, Long>();//groups with last post time //for ArticlePuller.check()
-		groupsTime.put(group1, (long) 140000);
-		//groupsTime.put(group2, (long) 0);
-		
 		
         
         // ######## ArticlePuller Constructor ########  
@@ -340,7 +346,8 @@ public class ArticlePullerTest {
         conn.println("335 send article");
         conn.println("235 article posted ok");
         
-		boolean res = ap.transferToItself(ihcom, mId);//IhaveCommand can't be reused.
+		//boolean res = ap.transferToItself(ihcom, mId);//IhaveCommand can't be reused.
+        boolean res = (boolean) transferToItselfS.invoke(ap, ihcom, mId);
 		assertEquals(rIn.readLine(), "ARTICLE " + mId);
 		assertTrue(res);
 		//######## ap.close() ########
@@ -351,6 +358,34 @@ public class ArticlePullerTest {
 		
 		assertEquals(rIn.readLine(), "QUIT");
 		
+	}
+	
+	@Test
+	public void transferToItselfTest() throws SSLPeerUnverifiedException, IOException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, StorageBackendException{
+		
+		// ######## ArticlePuller Constructor ########  
+        rOut.println("200 hello");
+        rOut.flush();
+        
+        ArticlePuller ap = new ArticlePuller(rSocket, false, "testhost");
+		
+        Map<String, Boolean> mIDs = new LinkedHashMap<String, Boolean>(500);
+        mIDs.put("1@h", true);
+        mIDs.put("2@h", false);
+        mIDs.put("3@h", true);
+        mIDs.put("4@h", false);
+        
+        ArticlePuller ap2 = Mockito.spy(ap);
+        //when(transferToItselfS.invoke(ap, Mockito.any(IhaveCommand.class), "1@h")).thenReturn(true);
+        Mockito.doReturn(true).when(ap2).transferToItself(Mockito.any(IhaveCommand.class), Mockito.eq("1@h"));
+        Mockito.doReturn(true).when(ap2).transferToItself(Mockito.any(IhaveCommand.class), Mockito.eq("2@h"));
+        Mockito.doReturn(false).when(ap2).transferToItself(Mockito.any(IhaveCommand.class), Mockito.eq("3@h"));
+        Mockito.doReturn(true).when(ap2).transferToItself(Mockito.any(IhaveCommand.class), Mockito.eq("4@h")); //replay should not be accepted
+        //when(ap2.transferToItself(Mockito.any(IhaveCommand.class), Mockito.eq("1@h"))).thenReturn(true);
+        int r = ap2.toItself(mIDs);
+        assertEquals(r,2);
+        
+        
 	}
 
 }

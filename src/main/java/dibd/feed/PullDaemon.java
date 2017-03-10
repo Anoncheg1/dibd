@@ -126,34 +126,7 @@ public class PullDaemon extends DaemonThread {
     			}else{
     				
     				
-    				int reseived = 0;
-    				//we pass replays for accepted thread only
-    				//If thread was corrupted then we reject his replays
-    				//it will prevent "getting missing threads".
-    				boolean threadAccepted = false; // false - waiting for thread, replays rejected. true - thread was ok, replays accepted
-    				for (Entry<String, Boolean> mId : mIDs.entrySet()){
-    					
-    					if(threadAccepted == false){ // waiting for thread
-    						if (mId.getValue()) //is thread? else do nothing
-    							if (ap.transferToItself(new IhaveCommand(), mId.getKey())){//thread accepted?
-    								reseived ++;
-    								threadAccepted = true;
-    							}
-    						
-    					}else// waiting for replays (thread above was accepted)
-    						if (!mId.getValue()){ //is replay?
-    							//we don't care here accepted replay or not.(it is very bad ofcouse)
-    							if (ap.transferToItself(new IhaveCommand(), mId.getKey()))//IhaveCommand can't be reused.
-    								reseived ++;
-    						}else
-    							if (ap.transferToItself(new IhaveCommand(), mId.getKey())){//thread accepted?
-    								reseived ++;
-    								threadAccepted = true;
-    							}
-    						
-    							
-    							
-    				}
+    				int reseived = ap.toItself(mIDs);
     				Log.get().log(Level.FINE,"{0}: {1} articles of {2} successful reseived from host {3}:{4}",
     						new Object[]{Thread.currentThread().getName(), reseived, mIDs.size(), host, port});
     					return reseived;

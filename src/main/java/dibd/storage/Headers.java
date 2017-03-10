@@ -74,7 +74,15 @@ public final class Headers {
 	 * @throws ParseException
 	 */
 	public static long ParseRawDate(String date) throws ParseException{
-		return dateFormat.parse(date).getTime()/1000;
+		try {
+			return dateFormat.parse(date).getTime()/1000;
+		} catch (ParseException e) {
+			//10 Dec 2013 11:54:32 +0000 (UTC)
+			DateFormat dateFormat2 = new SimpleDateFormat("dd MMM yyyy HH:mm:ss Z" );
+			return dateFormat2.parse(date).getTime()/1000;
+		}
+		
+		
 	}
 	
 	public static String formatDate(long time_epoch){

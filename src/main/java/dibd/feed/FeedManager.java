@@ -234,7 +234,7 @@ public class FeedManager {
 	 * @param threads
 	 * @param replays
 	 * @param host just for log
-	 * @return sorted threads with his replays followed right after it.
+	 * @return sorted threads with his replays followed right after it. true - thread, false - replay
 	 */
 	public static Map<String, Boolean> sortThreadsReplays(List<String> threads, Map<String, String> replays, String host){
 		//500 initial capacity may be anything. 500 is rough min posts count.(just more than default 10)
