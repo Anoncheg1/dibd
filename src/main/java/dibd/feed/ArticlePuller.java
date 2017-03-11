@@ -18,14 +18,18 @@
 
 package dibd.feed;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -46,7 +50,9 @@ import dibd.daemon.NNTPInterface;
 import dibd.daemon.TLS;
 import dibd.daemon.command.IhaveCommand;
 import dibd.storage.StorageBackendException;
+import dibd.storage.StorageManager;
 import dibd.storage.GroupsProvider.Group;
+import dibd.storage.Headers;
 import dibd.storage.article.Article;
 import dibd.util.Log;
 
@@ -69,6 +75,9 @@ public class ArticlePuller {
 	private final Charset charset = Charset.forName("UTF-8");
 	private final String host; //for log messages
 	private final boolean TLSEnabled; //for private class Response
+	
+	private ChannelLineBuffers lineBuffers;
+	private BufferedInputStream instream;
 	
 	//private long lastActivity = System.currentTimeMillis();
 
@@ -93,11 +102,15 @@ public class ArticlePuller {
 			//new encrypted streams
 			this.out = new PrintWriter(new OutputStreamWriter(sslsocket.getOutputStream(), this.charset));
 			this.in = new BufferedReader(new InputStreamReader(sslsocket.getInputStream(), this.charset));
+			instream = new BufferedInputStream(sslsocket.getInputStream());
 			
 		}else{
 			this.out = new PrintWriter(new OutputStreamWriter(this.socket.getOutputStream(), this.charset));
 			this.in = new BufferedReader(new InputStreamReader(this.socket.getInputStream(), this.charset));
+			instream = new BufferedInputStream(socket.getInputStream());
 		}
+		
+		lineBuffers = new ChannelLineBuffers();
 	}
 
 	//Hook for command connection
@@ -161,7 +174,7 @@ public class ArticlePuller {
 	 * @param last_post  mID, thread? + if true = thread, false = replay 
 	 * @throws IOException
 	 */
-	private Map<String, Boolean> newnewsScrap(Group group, long last_post) throws IOException{
+	private Map<String, List<String>> newnewsScrap(Group group, long last_post) throws IOException{
 		//NEWNEWS groupname 1464210306
 		//230 success
 		StringBuilder buf = new StringBuilder();
@@ -178,7 +191,7 @@ public class ArticlePuller {
 			return new LinkedHashMap<>(); //skip group
 		}
 
-		Map<String, Boolean> messageIDs = new HashMap<String, Boolean>(0); //empty for return
+		
 		Map<String, String> replays = new LinkedHashMap<>(250);
 		List<String> threads = new ArrayList<String>(250);
 		
@@ -218,48 +231,37 @@ public class ArticlePuller {
 			Log.get().log(Level.SEVERE, "From host: {0} NEWNEWS for group {1}, there is over 999000 replays or threads", new Object[]{this.host, group.getName()});
 			throw new IOException();
 		}
-		
+		 
 		//sort just for case. It is important to have no missing threads.
-		messageIDs = FeedManager.sortThreadsReplays(threads, replays, this.host); //ordered LinkedHashMap
+		 Map<String, List<String>> messageIDs = FeedManager.sortThreadsReplays(threads, replays, this.host); //ordered LinkedHashMap
 		
 		return messageIDs;
 	}
 	
 	
 	/**
+	 * Pull articles from carefully sorted list of threads and replays message-ids. 
+	 * 
 	 * @param mIDs  mind, isThread?
 	 * @return
 	 * @throws IOException
 	 * @throws StorageBackendException
 	 */
-	public int toItself(Map<String, Boolean> mIDs) throws IOException, StorageBackendException{
+	public int toItself(Map<String, List<String>> mIDs) throws IOException, StorageBackendException{
 		int reseived = 0;
 		//we pass replays for accepted thread only
 		//If thread was corrupted then we reject his replays
 		//it will prevent "getting missing threads".
-		boolean threadAccepted = false; // false - waiting for thread, replays rejected. true - thread was ok, replays accepted
-		for (Entry<String, Boolean> mId : mIDs.entrySet()){
-			
-			if(threadAccepted == false){ // waiting for thread
-				if (mId.getValue()) //is thread? else do nothing
-					if (transferToItself(new IhaveCommand(), mId.getKey())){//thread accepted?
-						reseived ++;
-						threadAccepted = true;
-					} //else threadAccepted = false anyway 
+		
+		for (Entry<String, List<String>> mId : mIDs.entrySet()){
+			if (transferToItself(new IhaveCommand(), mId.getKey()))//thread accepted?
+				reseived ++;
+			else 
+				continue; 
 				
-			}else// waiting for replays (thread above was accepted)
-				if (!mId.getValue()){ //is replay?
-					//we don't care here accepted replay or not.(it is very bad of cause)
-					if (transferToItself(new IhaveCommand(), mId.getKey()))
-						reseived ++;
-				}else
-					if (transferToItself(new IhaveCommand(), mId.getKey())){//thread accepted?
-						reseived ++;
-						threadAccepted = true;
-					}else
-						threadAccepted = false;
-				
-					
+			for(String replay : mId.getValue())
+				if (transferToItself(new IhaveCommand(), replay))
+					reseived ++;
 					
 		}
 		return reseived;
@@ -301,6 +303,7 @@ public class ArticlePuller {
 		/**	220 0|n message-id    Article follows (multi-line)
 	    *	430                   No article with that message-id
 	    */
+
 		line = this.in.readLine(); //read response for article request
 		if (line == null) {
 			Log.get().warning("Unexpected null ARTICLE reply from remote host " + this.host);
@@ -314,6 +317,57 @@ public class ArticlePuller {
 			throw new IOException(); //we will retry
 		}
 
+		ByteBuffer buf1 = this.lineBuffers.getInputBuffer();
+		/*
+		while (true){
+			System.out.println("wtf0");
+			boolean end = false;
+			while (buf1.hasRemaining()) {
+				System.out.println("wtf001"+instream.available());
+				int b = this.instream.read();
+				System.out.println("wtf002");
+				if (b == -1) {
+					break;
+				}
+				System.out.println("wtf1");
+				buf1.put( (byte) b);
+			}
+			System.out.println("wtf2");
+			List<ByteBuffer> buffers = this.lineBuffers.getInputLines();
+			for(ByteBuffer buf2 : buffers){ // Complete line was received
+				System.out.println("wtf3");
+				final byte[] rawline = new byte[buf2.limit()];
+				buf2.get(rawline);
+				ChannelLineBuffers.recycleBuffer(buf2);
+
+				String line2 = new String(rawline, this.charset);
+				Log.get().log(Level.FINER, "<< {0}", line2);
+				if (".".equals(line2)){
+					end = true;
+					break;
+				}
+				if (line == null) {
+					Log.get().log(Level.WARNING, "Article from {0} {1} null line resived during reading", new Object[]{this.host, messageId} );
+					return false;
+				}
+			
+				try {//Why we send this.conn to very processLine? Because most of commands isStateful.
+	            	//It is not important for execution speed. 
+					ihavec.processLine(conn, line, rawline);
+	            } catch (StorageBackendException ex) {
+	                Log.get()
+	                        .info("Retry command processing after StorageBackendException");
+
+	                // Try it a second time, so that the backend has time to recover
+	                ihavec.processLine(conn, line, rawline);
+	            }
+			}
+			
+			if(end)
+				break;
+		}
+		*/
+		
 		do{ //read from ARTICLE response and write to loopback IHAVE
 			
 			line = this.in.readLine();
@@ -359,7 +413,7 @@ public class ArticlePuller {
 	 * @throws IOException
 	 * @throws StorageBackendException
 	 */
-	public Map<String, Boolean> check(final Map<Group, Long> groupsTime, int pulldays) throws StorageBackendException, IOException{
+	public Map<String, List<String>> check(final Map<Group, Long> groupsTime, int pulldays) throws StorageBackendException, IOException{
 		this.out.print("CAPABILITIES"+NL);
 		this.out.flush();
 		String line = this.in.readLine();
@@ -377,7 +431,7 @@ public class ArticlePuller {
 			throw new IOException(); //this is too strange we will not skip
 		}
 		
-		Map<String, Boolean> messageIDs = new LinkedHashMap<String, Boolean>();
+		Map<String, List<String>> messageIDs = new LinkedHashMap<>(100);
 		for(Entry<Group, Long> entry: groupsTime.entrySet()){//fer every group
 			Group group = entry.getKey();
 			long last_post = entry.getValue(); //time since last post in group
@@ -388,7 +442,7 @@ public class ArticlePuller {
 			if (capabilties.contains("NEWTHREADS")){//TODO:should put if absent
 				messageIDs.putAll(newnewsScrap(group, last_post));//sorted threads first
 			}else // The host is nntpchan
-				messageIDs.putAll(oldFashionScrap(group));//only full scrap. to prevent thread partialization
+				messageIDs.putAll(oldFashionScrap(group, last_post));//only full scrap. to prevent thread partialization
 				//messageIDs.addAll(oldFashionScrap(group, last_post));//sorted threads first
 		}
 		return messageIDs;
@@ -405,10 +459,12 @@ public class ArticlePuller {
 	 * XOVER 0
 	 *  
 	 * @param group
+	 * @param last_post 
 	 * @return
 	 * @throws IOException
+	 * @throws StorageBackendException 
 	 */
-	private Map<String, Boolean> oldFashionScrap(final Group group) throws IOException{
+	private Map<String, List<String>> oldFashionScrap(final Group group, long last_post) throws IOException, StorageBackendException{
 
 		String gname = group.getName();
 		this.out.print("GROUP "+gname+NL);
@@ -427,11 +483,12 @@ public class ArticlePuller {
 			return new LinkedHashMap<>();//we will skip this group
 		}
 
-		//500 initial capacity may be anything. 500 is rough min posts count.(just more than default 10)
-		Map<String, Boolean> messageIDs = new HashMap<String, Boolean>(0); //empty for return
+		
 		
 		Map<String, String> replays = new LinkedHashMap<>(250);
 		List<String> threads = new ArrayList<String>(250);
+		Map<String, String> aReplTime = new HashMap<>();
+		Map<String, String> aThreads = new HashMap<>();
 		
 		line = this.in.readLine();
 		while (line != null && !(".".equals(line.trim()))) {
@@ -450,11 +507,13 @@ public class ArticlePuller {
 			//sorted by replay post date. threads are disrupted
 			
 			if(part[4].matches(NNTPConnection.MESSAGE_ID_PATTERN)){
-				if (part.length == 5 || !part[5].matches(NNTPConnection.MESSAGE_ID_PATTERN))
+				if (part.length == 5 || !part[5].matches(NNTPConnection.MESSAGE_ID_PATTERN)){
 					threads.add(part[4]);
-				else if ( part.length == 6 && part[5].matches(NNTPConnection.MESSAGE_ID_PATTERN))
+					aThreads.put(part[4], part[3]);
+				}else if ( part.length == 6 && part[5].matches(NNTPConnection.MESSAGE_ID_PATTERN)){
 					replays.put(part[4], part[5]);
-				else
+					aReplTime.put(part[4], part[3]);
+				}else
 					Log.get().log(Level.WARNING, "From: {0} unsupported XOVER format of line or mesage id:\n{1}", new Object[]{this.host, line});
 			}else
 				Log.get().log(Level.WARNING, "From: {0} unsupported XOVER format of line or mesage id:\n{1}", new Object[]{this.host, line});
@@ -467,9 +526,36 @@ public class ArticlePuller {
 			line = this.in.readLine();
 		}
 		
+		//500 initial capacity may be anything. 500 is rough min posts count.(just more than default 10)
+		Map<String, List<String>> messageIDs = new LinkedHashMap<>(0); //empty for return
+		
 		//Sort. It is important to have no missing threads.
-		messageIDs = FeedManager.sortThreadsReplays(threads, replays, this.host); //ordered LinkedHashMap		
-
+		messageIDs = FeedManager.sortThreadsReplays(threads, replays, this.host); //ordered LinkedHashMap
+		
+		//replay with larger date should be after replay with earlier date
+		Log.get().log(Level.SEVERE, "BEFORE: {0} ", messageIDs.size());
+		//remove old threads
+		Iterator<Entry<String, List<String>>> mit = messageIDs.entrySet().iterator();
+		while(mit.hasNext()){
+			Entry<String, List<String>> th = mit.next();
+			
+			//check post date of last replay
+			String rdate;
+			List<String> re = th.getValue();
+			if ( ! re.isEmpty()) //thread is not empty
+				rdate = aReplTime.get(re.get(re.size()-1));
+			else
+				rdate = aThreads.get(th.getKey());
+			
+			try {
+				if( Headers.ParseRawDate(rdate) < last_post){
+					mit.remove();
+				}
+			} catch (ParseException e) {
+				Log.get().log(Level.WARNING, "cannot parse date: {0} ", e.getLocalizedMessage());
+			}
+		}
+		Log.get().log(Level.SEVERE, "AFTER: {0} ", messageIDs.size());
 		return messageIDs;
 	}
 

@@ -15,6 +15,7 @@ import java.net.Proxy.Type;
 import java.nio.charset.Charset;
 import java.security.cert.X509Certificate;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -231,11 +232,47 @@ public class FeedManager {
 	/**
 	 * Sort replays to threads. No replays without threads should be left.
 	 * 
+	 * Replays order should be save.
+	 * 
 	 * @param threads
 	 * @param replays
 	 * @param host just for log
 	 * @return sorted threads with his replays followed right after it. true - thread, false - replay
 	 */
+	public static Map<String, List<String>> sortThreadsReplays(List<String> threads, Map<String, String> replays, String host){
+
+		Map<String, List<String>> messageIDs = new LinkedHashMap<>(50);
+
+
+		for(String th: threads){
+			List<String> trepl = new ArrayList<String>();
+
+			Iterator<Entry<String, String>> rit = replays.entrySet().iterator();
+
+			//search replays for this threads
+			while(rit.hasNext()){
+				Map.Entry<String, String> rep = rit.next();
+
+				if(rep.getValue().equals(th)){ //replay for this thread?
+					trepl.add(rep.getKey());
+					rit.remove();
+				}
+			}
+			messageIDs.put(th, trepl);
+		}
+
+
+		//replays without thread
+		if (! replays.isEmpty()){
+			StringBuilder restreplays= new StringBuilder();
+			replays.entrySet().forEach(e -> restreplays.append(e).append(" "));
+			Log.get().log(Level.WARNING, "From: {0} NEWNEWS or XOVER replays without thread: {1}", new Object[]{host, restreplays.toString()});
+		}
+
+		return messageIDs;
+	}
+	
+	/* old
 	public static Map<String, Boolean> sortThreadsReplays(List<String> threads, Map<String, String> replays, String host){
 		//500 initial capacity may be anything. 500 is rough min posts count.(just more than default 10)
 		Map<String, Boolean> messageIDs = new LinkedHashMap<String, Boolean>(500);
@@ -267,6 +304,7 @@ public class FeedManager {
 		}
 		
 		return messageIDs;
-	}
+	}*/
+	
 
 }

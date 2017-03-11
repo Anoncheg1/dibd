@@ -124,7 +124,7 @@ public class AttachmentProvider {
 		if (media_type.substring(0, 6).equals("image/")){//we will add other formats later
 			try{
 				String pathSource = getAPath(groupName, fileName);   //1
-				String pathTarget = getTnPath(groupName, checkSupported(fileName));    //2
+				String pathTarget = getTnPath(groupName, fileName);    //2
 
 				ConvertCmd cmd = new ConvertCmd();
 				File sourceFile = new File(pathSource);
@@ -137,7 +137,7 @@ public class AttachmentProvider {
 					//System.out.println(op.getCmdArgs());
 					cmd.run(op);
 				}
-			} catch (IOException | InterruptedException | IM4JavaException e) {
+			} catch (Exception e) {
 				Log.get().log(Level.WARNING, "Can not create thumbnail: {0}", e);
 			}
 		}
@@ -168,10 +168,11 @@ public class AttachmentProvider {
 	
 	public void delFile (String groupName, String fileName){
 		File fileImg = new File(getAPath(groupName, fileName)); //img
-		File fileThm = new File(getAPath(groupName, fileName)); //thm
+		File fileThm = new File(this.getTnPath(groupName, fileName)); //thm
 		if(!fileImg.delete())
 			Log.get().warning("Can not detete image");
-		if(!fileThm.delete())
-			Log.get().warning("Can not detete image");
+		if(fileThm.exists())
+			if(!fileThm.delete())
+				Log.get().warning("Can not detete image");
 	}
 }

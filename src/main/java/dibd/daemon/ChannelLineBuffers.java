@@ -141,10 +141,12 @@ public class ChannelLineBuffers {
      * Currently a channel has only one input buffer. This *may* be a bottleneck
      * and should investigated in the future.
      * Always ready for input to this buffer.[inputBuffer.put(src),  sec.get(inputBuffer)]
+     * 
+     * Warning Should used only in ChannelReader and ArticlePuller
      *
      * @return The input buffer associated with given channel.
      */
-    ByteBuffer getInputBuffer() { //ChannelReader 1 thread
+    public ByteBuffer getInputBuffer() { //ChannelReader 1 thread
         return inputBuffer;
     }
 
@@ -192,10 +194,12 @@ public class ChannelLineBuffers {
      * Return List<ByteBuffer> never null 
      * RETURNED BUFFERS MUST BE RECYCLED WITH recycleBuffer METHOD  
      *
+     *Warning must be used only in ConnectionWorker and ArticlePuller
+     *
      * @param channel
      * @return A List of ByteBuffers each wrapping the line.
      */
-    List<ByteBuffer> getInputLines() {
+    public List<ByteBuffer> getInputLines() {
 
     	List<ByteBuffer> lines = new ArrayList<>(); //return value
 

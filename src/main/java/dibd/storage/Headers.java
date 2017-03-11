@@ -61,9 +61,13 @@ public final class Headers {
     public static final String MIME_VERSION = "MIME-Version: 1.0";
     
 	static private DateFormat dateFormat;
+	static private DateFormat dateFormat2;
 	static{ 
 		dateFormat = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss Z" );
 		dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+		//Wed Jul 30 11:54:32 2014
+		dateFormat2 = new SimpleDateFormat("EEE MMM dd HH:mm:ss yyyy" );
+		dateFormat2.setTimeZone(TimeZone.getTimeZone("UTC"));
 	}
 
 	/**
@@ -77,9 +81,14 @@ public final class Headers {
 		try {
 			return dateFormat.parse(date).getTime()/1000;
 		} catch (ParseException e) {
-			//10 Dec 2013 11:54:32 +0000 (UTC)
-			DateFormat dateFormat2 = new SimpleDateFormat("dd MMM yyyy HH:mm:ss Z" );
-			return dateFormat2.parse(date).getTime()/1000;
+			try {
+				return dateFormat2.parse(date).getTime()/1000;
+			} catch (ParseException e1) {
+				//10 Dec 2013 11:54:32 +0000 (UTC)
+				DateFormat dateFormat3 = new SimpleDateFormat("dd MMM yyyy HH:mm:ss Z" );
+				return dateFormat3.parse(date).getTime()/1000;
+			}
+			
 		}
 		
 		

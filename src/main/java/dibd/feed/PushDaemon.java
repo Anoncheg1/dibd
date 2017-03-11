@@ -143,7 +143,9 @@ public class PushDaemon extends DaemonThread {
 			} catch (InterruptedException ex) {
 				Log.get().log(Level.FINEST, "PushFeeder interrupted: {0}", ex.getLocalizedMessage());
 				return;
-			}
+			}catch (Exception e) {
+	    		Log.get().log(Level.SEVERE, e.getLocalizedMessage(), e);
+	    	}
 		}
 	}
 

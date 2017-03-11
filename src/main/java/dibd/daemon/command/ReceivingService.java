@@ -297,7 +297,7 @@ class ReceivingService{
 		if(group.getHosts().contains(lastSender))
 			return true;
 		else{
-			Log.get().log(Level.INFO, "{0}: {1} sender {2}, is not in group {3}",
+			Log.get().log(Level.INFO, "{0}: Last {1} sender {2}, is not in group {3}",
 				    new Object[] {command, messageId, lastSender, group.getName()});
 			return false;
 		}
@@ -412,9 +412,12 @@ class ReceivingService{
 			///  MULTIPART MESSAGE  ///
 			String[] headers_and_message = new String[2];
 			int i = parts[1].indexOf("\r\n\r\n"); //empty line
-
+			
 			headers_and_message[0] = parts[1].substring(2, i);
-			headers_and_message[1] = parts[1].substring(i+4,parts[1].length()-2);
+			if (i+4 == parts[1].length())
+				headers_and_message[1] = null;
+			else
+				headers_and_message[1] = parts[1].substring(i+4,parts[1].length()-2);
 
 			InternetHeaders mHeaders = new InternetHeaders(
 					new ByteArrayInputStream(headers_and_message[0].trim().getBytes()));
@@ -447,12 +450,12 @@ class ReceivingService{
 				fCD = new ContentDisposition(fHeaders.getHeader(Headers.CONTENT_DISP)[0]); //file attachment Content-Disposition header
 			if(fHeaders.getHeader(Headers.ENCODING)[0].equalsIgnoreCase("base64")){ //base64
 				//System.out.println(messageId[0]+" file size:"+ " fCT START"+fCT.getPrimaryType()+"END"+fCT.getPrimaryType().equalsIgnoreCase("image"));
-				if(fCT.getPrimaryType().equalsIgnoreCase("image")){ //image support only
+				//if(fCT.getPrimaryType().equalsIgnoreCase("image")){ //image support only
 					byte[] fileB64 = headers_and_file[1].replaceAll("\r?\n", "").getBytes();
 					file = Base64.getDecoder().decode(fileB64);
-					
+					gfileCT = fCT.getBaseType();
 
-					InputStream is = new BufferedInputStream(new ByteArrayInputStream(file));
+					/*InputStream is = new BufferedInputStream(new ByteArrayInputStream(file));
 					gfileCT = URLConnection.guessContentTypeFromStream(is);
 					
 					if( ! fCT.getBaseType().equals(gfileCT)){//Detected Content-Type != Content-Type in header
@@ -460,11 +463,11 @@ class ReceivingService{
 						gfileCT = null;
 						Log.get().log(Level.INFO, "{0}: {1} Unknewn file type {2} or {3} from {4}",
 								 new Object[] {command, messageId, fCT.getBaseType(), gfileCT, lastSender});
-					}
+					}*/
 					
-				}else
-					Log.get().log(Level.INFO, "{0}: {1} Not image file type {2} or {3} from {4}",
-							 new Object[] {command, messageId, fCT.getBaseType(), gfileCT, lastSender});
+				//}else
+					//Log.get().log(Level.INFO, "{0}: {1} Not image file type {2} or {3} from {4}",
+						//	 new Object[] {command, messageId, fCT.getBaseType(), gfileCT, lastSender});
 				
 			}else
 				return "Wrong Content-Transfer-Encoding header of body";
@@ -481,7 +484,10 @@ class ReceivingService{
 				}
 			}else{ //Content-Transfer-Encoding = null or anything else
 				message = bufBody.toString(charset.name());
-				message = message.substring(0,message.length()-2);//removeing last \r\n
+				if (message.isEmpty())
+					message= null;
+				else
+					message = message.substring(0,message.length()-2);//removeing last \r\n
 			}
 
 		}

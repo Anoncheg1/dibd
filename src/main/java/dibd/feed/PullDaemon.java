@@ -118,7 +118,7 @@ public class PullDaemon extends DaemonThread {
     					//new Object[]{host, "["+groupsTime.keySet().stream().map(g -> g.getName()).collect(Collectors.joining(","))+"]"});
 
     			//Scrap message-ids
-    			Map<String, Boolean> mIDs = ap.check(groupsTime, added_days);
+    			Map<String, List<String>> mIDs = ap.check(groupsTime, added_days);
     			if (mIDs.isEmpty()){
     				Log.get().log(Level.FINE,"{0}: no new articles found at host:{1}:{2}",
     						new Object[]{Thread.currentThread().getName(), host, port});
@@ -202,7 +202,9 @@ public class PullDaemon extends DaemonThread {
     		} catch (InterruptedException e1) {
     			Log.get().log(Level.FINEST, "PullFeeder interrupted: {0}", e1.getLocalizedMessage());
     			return;
-			}
+			}catch (Exception e) {
+	    		Log.get().log(Level.SEVERE, e.getLocalizedMessage(), e);
+	    	}
     	}
     }
 }

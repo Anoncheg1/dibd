@@ -69,10 +69,14 @@ public class PullAtStart extends Thread {
     			}
         	}
     		
-    		PullDaemon.pull(groupsTime, this.proxy, host, port, Config.inst().get(Config.PULLDAYS, 1), 21, 60*1000);
+    		int res = PullDaemon.pull(groupsTime, this.proxy, host, port, Config.inst().get(Config.PULLDAYS, 1), 21, 60*1000);
+    		
+    		Log.get().log(Level.INFO, "Pull from {0} sucessfully completed, {1} articles reseived.",new Object[]{sub.getHost(), res});
 
     	}catch (StorageBackendException e) {
     		Log.get().log(Level.WARNING, e.getLocalizedMessage(), e);
+    	}catch (Exception e) {
+    		Log.get().log(Level.SEVERE, e.getLocalizedMessage(), e);
     	}
     }
 }

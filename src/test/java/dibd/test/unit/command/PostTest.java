@@ -125,5 +125,40 @@ public class PostTest {
 			//	art, Base64.getDecoder().decode("R0lGODlhAQABAIAAAP///wAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw=="), "image/gif"); //ReceivingService here
 		verify(conn, atLeastOnce()).println(startsWith("240")); //article is accepted
 	}
+	
+	@Test
+	public void Postmultipart() throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, UnsupportedEncodingException, IOException, StorageBackendException, ParseException {
+
+		Set<String> host = new HashSet<String>(Arrays.asList("hschan.ano","host.com"));
+		//name id flags hosts
+		when(StorageManager.groups.get("local.test")).thenReturn(
+				(Group) groupC.newInstance("local.test",23,0,host));
+		when(StorageManager.groups.getName(23)).thenReturn("local.test");
+				
+		
+		String[] send2 = { //thread
+				"Content-Transfer-Encoding: 8bit",
+				//"References: <koa2q6$r28$1@t1r10n.localhost>",
+				"Date: Thu, 06 Mar 2014 21:08:19 +0000",
+				"From: Anonymous <nobody@no.where>",
+				"Content-Type: text/plain; charset=UTF-8",
+				"Newsgroups: local.test",
+				"Path: ev7fnjzjdbtu3miq.onion!changolia!ucavviu7wl6azuw7.onion!nntp.nsfl.tk!backdoor.nsa.gov!nntp.middlebox.tld!pNewss.Core.UCIS.nl!sfor-SRNd!sfor-SRNd!sfor-SRNd!web.overchan.imoutochan",
+				"Message-Id: <dkwqfzowhm1394140099@web.overchan.imoutochan>",
+				"Subject: None",
+				"",
+				"t",
+				"."
+		};
+		
+		PostCommand c = new PostCommand();
+		
+		c.processLine(conn, "POST", "POST".getBytes("UTF-8"));
+		verify(conn, atLeastOnce()).println(startsWith("340"));//OK
+		for(int i = 1; i < send2.length; i++)
+			c.processLine(conn, send2[i], send2[i].getBytes("UTF-8"));
+		
+		verify(conn, atLeastOnce()).println(startsWith("240")); //article is accepted
+	}
 
 }

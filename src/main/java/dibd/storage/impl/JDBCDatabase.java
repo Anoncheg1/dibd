@@ -459,8 +459,9 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			
 			int max_threads =  threads_per_page * pages + archive_threads;
 			//If THREADS_PER_PAGE or PAGE_COUNT change => we must idle once and remove several threads once.
-			for (int i = threadsNow; i > max_threads; i--)
-				deleteOneOldestThread(groupId, groupName);
+			if(threadsNow + 2 > max_threads) //idle for 2 threads
+				for (int i = threadsNow; i > max_threads; i--)
+					deleteOneOldestThread(groupId, groupName);
 			
 		} catch (SQLException e1) {
 			throw new StorageBackendException("Count postings return nothing!");

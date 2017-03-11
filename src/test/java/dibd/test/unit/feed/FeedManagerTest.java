@@ -52,6 +52,7 @@ public class FeedManagerTest{
 		
 	}
 	
+	
 	@Test
 	public void sortThreadsReplaysTest(){
 		
@@ -63,12 +64,11 @@ public class FeedManagerTest{
 		
 		threads.add("th@hh");
 		Log.get().setLevel(Level.SEVERE);
-		Map<String, Boolean> res = FeedManager.sortThreadsReplays(threads, replays, "host");
+		Map<String, List<String>> res = FeedManager.sortThreadsReplays(threads, replays, "host");
 		Log.get().setLevel(Level.WARNING);
-		assertEquals(res.size(), 2);
-		assertEquals(res.get("th@hh"), true);
-		assertEquals(res.get("2@hh"), false);
-		//System.out.println(res.size() == 2);
+		assertEquals(res.size(), 1);
+		assertEquals(res.get("th@hh").size(), 1);
+		assertEquals(res.get("th@hh").get(0), "2@hh");
 		
 	}
 
