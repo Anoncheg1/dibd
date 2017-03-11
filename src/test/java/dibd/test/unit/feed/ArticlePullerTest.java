@@ -52,6 +52,7 @@ import dibd.storage.StorageNNTP;
 
 
  //in dev //WORKING! but fail sometimes because of 2 threads when only 1 must be used.
+
 public class ArticlePullerTest {
 	
 	private StorageNNTP storage; //mock
@@ -133,7 +134,7 @@ public class ArticlePullerTest {
 	
 	Hashtable<Group, Long> groupsTime;
 	
-	OutputStreamWriter rOut2; 
+	//OutputStreamWriter rOut2; 
 	
 	public ArticlePullerTest() throws NoSuchMethodException, SecurityException, IOException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
 		//Storage
@@ -153,7 +154,7 @@ public class ArticlePullerTest {
 		PipedOutputStream outForIn = new PipedOutputStream();
 		rIn = new BufferedReader(new InputStreamReader(inForOut, "UTF-8"));
 		rOut = new PrintWriter(new OutputStreamWriter(outForIn, "UTF-8"));
-		rOut2 = new OutputStreamWriter(new BufferedOutputStream(outForIn), "UTF-8");
+	//	rOut2 = new OutputStreamWriter(new BufferedOutputStream(outForIn), "UTF-8");
 		
 		when(rSocket.getOutputStream()).thenReturn(new PipedOutputStream(inForOut));
 		when(rSocket.getInputStream()).thenReturn(new PipedInputStream(outForIn));
@@ -179,8 +180,7 @@ public class ArticlePullerTest {
 	}
 
 	@Test
-	@Ignore
-    public void PullNEWNEWStest() throws StorageBackendException, IOException, InterruptedException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchFieldException, SecurityException{
+	public void PullNEWNEWStest() throws StorageBackendException, IOException, InterruptedException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchFieldException, SecurityException{
 		
         // ######## ArticlePuller Constructor ########  
         rOut.println("200 hello");
@@ -255,17 +255,17 @@ public class ArticlePullerTest {
 		when(ap.transferToItself(mId)).thenReturn(true);
          */
         
-        Log.get().setLevel(Level.ALL);
+        Log.get().setLevel(Level.WARNING);
         //there must be transferToItself for Map.
         boolean res = (boolean) transferToItselfS.invoke(ap, ihcom, mId);
-        System.out.println("wtf");
+        
 		assertEquals(rIn.readLine(), "ARTICLE " + mId);
 		assertTrue(res);
 		//######## ap.close() ########
-		rOut2.write("qua"+"\r\n");
-		rOut2.flush();
-		//rOut.println("qua");
-		//rOut.flush();
+		//rOut2.write("qua"+"\r\n");
+		//rOut2.flush();
+		rOut.println("qua");
+		rOut.flush();
 		
 		ap.close();
 		
@@ -307,8 +307,7 @@ public class ArticlePullerTest {
 	}
 	
 	@Test
-	@Ignore
-    public void PullXOVERtest() throws StorageBackendException, IOException, InterruptedException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchFieldException, SecurityException{
+	public void PullXOVERtest() throws StorageBackendException, IOException, InterruptedException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchFieldException, SecurityException{
 		
         
         // ######## ArticlePuller Constructor ########  
@@ -383,7 +382,6 @@ public class ArticlePullerTest {
 	}
 	
 	@Test
-	@Ignore
 	public void transferToItselfTest() throws SSLPeerUnverifiedException, IOException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, StorageBackendException{
 		
 		// ######## ArticlePuller Constructor ########  
