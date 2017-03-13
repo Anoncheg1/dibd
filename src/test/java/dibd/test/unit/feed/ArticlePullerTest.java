@@ -52,7 +52,6 @@ import dibd.storage.StorageNNTP;
 
 
  //in dev //WORKING! but fail sometimes because of 2 threads when only 1 must be used.
-
 public class ArticlePullerTest {
 	
 	private StorageNNTP storage; //mock
@@ -333,15 +332,16 @@ public class ArticlePullerTest {
         
         //OVER resp
         rOut.println("224 overview information follows");
-        rOut.println("\t\t\t\t<a2@hh>\t"+mId);
-        rOut.println("\t\t\t\t"+mId);
-		rOut.println("\t\t\t\t<a@hh>\t<sad@hh>");
-		rOut.println("\t\t\t\t<asdfg@hh>");
+        rOut.println("\t\t\tThu, 02 May 2013 12:16:40 +0000\t<a2@hh>\t"+mId);
+        rOut.println("\t\t\tThu, 02 May 2013 12:16:41 +0000\t"+mId);
+		rOut.println("\t\t\tThu, 02 May 2013 12:16:42 +0000\t<a@hh>\t<sad@hh>");
+		rOut.println("\t\t\tThu, 02 May 2013 12:16:43 +0000\t<asdfg@hh>");
 		rOut.println(".");
 		rOut.flush();
 		Log.get().setLevel(Level.SEVERE);
 		Map<String, List<String>> mIDs = ap.check(groupsTime, Config.inst().get(Config.PULLDAYS, 1)); //newnews request
 		Log.get().setLevel(Level.WARNING);
+		
 		assertTrue(mIDs.get(mId).contains("<a2@hh>"));
 		assertTrue(mIDs.get(mId).size() == 1);
 		assertTrue(mIDs.get("<asdfg@hh>").isEmpty());

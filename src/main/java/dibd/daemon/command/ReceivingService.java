@@ -445,9 +445,9 @@ class ReceivingService{
 			
 			if (tmpct == null) return "Multipart file Content-Type is not defined";
 			
-			ContentType fCT = new ContentType(fHeaders.getHeader(Headers.CONTENT_TYPE)[0]); //file attachment Content-Type header
+			ContentType fCT = new ContentType(tmpct[0]); //file attachment Content-Type header
 			if (tmpcd != null)
-				fCD = new ContentDisposition(fHeaders.getHeader(Headers.CONTENT_DISP)[0]); //file attachment Content-Disposition header
+				fCD = new ContentDisposition(tmpcd[0]); //file attachment Content-Disposition header
 			if(fHeaders.getHeader(Headers.ENCODING)[0].equalsIgnoreCase("base64")){ //base64
 				//System.out.println(messageId[0]+" file size:"+ " fCT START"+fCT.getPrimaryType()+"END"+fCT.getPrimaryType().equalsIgnoreCase("image"));
 				//if(fCT.getPrimaryType().equalsIgnoreCase("image")){ //image support only

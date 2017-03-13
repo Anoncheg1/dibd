@@ -187,53 +187,6 @@ public class IhaveCommand implements Command{
 			}
 			
 			
-			/*
-			if (r == 0)
-				return;//continue
-			else
-			if (r == 1){//error to recognize headers
-				//state = PostState.Finished;
-				isHeadersOK = false;
-				Log.get().log(Level.WARNING, "{0} No date or path or messageId in headers from", CMessageId);
-			}else if (r == 2){//OK Normal
-				if (rs.circleCheck()){
-					conn.println("437 Circle detected");
-					isHeadersOK = false;
-				}else
-				if(!rs.getMessageId().equals(CMessageId)){ //message-id check to be sure
-					conn.println("437 message-id in command not equal one in headers");
-					isHeadersOK = false;
-				}else
-				if(!rs.checkSender1()){//1) first check of sender
-					isHeadersOK = false;// no answer
-				}else
-				if(!rs.checkSender2()){//2) second check of sender
-					//conn.println("437 Group is unknown; do not retry"); //just like fuck off.
-					conn.println("437 You do not have permission for this group; do not retry");
-					isHeadersOK = false;
-				}else
-				//if(!rs.checkSender3()){//3) third check for new senders in group
-					//isHeadersOK = false;
-				//}
-				if(!rs.checkRef()){
-					conn.println("437 no such thread for replay will be pulled");
-					isHeadersOK = false;
-				}
-				
-			}else if (r == 3){
-				conn.println("500 No body for article.");
-				state = PostState.Finished;
-			}else if (r == 4){
-				conn.println("500 No such news group.");
-				isHeadersOK = false;
-			}else if (r == 5){
-				Log.get().severe("IHAVECommand: headers is too large for "+this.CMessageId+" from host "+host);
-				conn.println("500 headers is too large.");
-				isHeadersOK = false;
-			}else if (r == 6){
-				conn.println("435 no refered thread.");
-				isHeadersOK = false;
-			}*/
 			state = PostState.ReadingBody;
 			break;
 		}
