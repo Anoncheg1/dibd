@@ -500,7 +500,7 @@ public class ArticlePuller {
 		for(; i<size; i++){
 			String mid = thTimeList.get(i).getKey();
 			List<String> val = messageIDs.get(mid);
-			if (thTimeList.get(i).getValue().longValue() >= last_post)
+			//if (thTimeList.get(i).getValue().longValue() >= last_post) //will be problem if peer was off and we had new messages. not very old peers threads will be rejected. 
 				messageIDs2.put(mid, val);
 		}
 		
