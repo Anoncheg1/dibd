@@ -43,6 +43,7 @@ import dibd.storage.StorageNNTP;
 import dibd.storage.GroupsProvider.Group;
 import dibd.storage.article.Article;
 import dibd.storage.web.StorageWeb;
+import dibd.storage.web.ThRLeft;
 import dibd.util.Log;
 
 /**
@@ -174,7 +175,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 					"SELECT article.id, article.message_id, article.message_id_host, article.a_name, article.subject, article.message, article.post_time, attachment.file_path "
 							+"FROM article "
 							+"LEFT JOIN attachment ON article.id = attachment.article_id " 
-							+ "WHERE article.thread_id = ? ORDER BY post_time DESC LIMIT ?;"); //comments
+							+ "WHERE article.thread_id = ? AND article.id != article.thread_id ORDER BY post_time DESC LIMIT ?;"); //rLeft
 			
 			// Prepare statements for method getOneThread(int)
 			this.pstmtGetOneThread = conn.prepareStatement("SELECT article.id, article.message_id, article.message_id_host, article.a_name, article.subject, article.message, article.post_time, attachment.file_path "
@@ -182,7 +183,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 							+ "LEFT JOIN attachment ON article.id = attachment.article_id "
 							+ "WHERE article.thread_id = ? ORDER BY post_time;");
 			// Prepare statements for method getReplaysCount(int)
-			this.pstmtGetReplaysCount = conn.prepareStatement("SELECT COUNT(*) FROM article WHERE thread_id = ?;");
+			this.pstmtGetReplaysCount = conn.prepareStatement("SELECT COUNT(*) FROM article WHERE thread_id = ?");
 			
 			//     ************ NNTP **********
 			// Prepare simple statements for method getArticleCountGroup
@@ -203,9 +204,6 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			// Prepare simple statements for method getLastPostOfGroup
 						this.pstmtGetLastPostOfGroup = conn.prepareStatement("SELECT MAX(last_post_time) FROM thread WHERE group_id = ?;");
 						
-			
-			
-
 		} catch (Exception ex) {
 			throw new Error("Database connection problem!", ex);
 		}
@@ -549,7 +547,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 	public Article createReplay(Article article, byte[] bfile,
 			final String file_ct, final String file_name)
 					throws StorageBackendException {
-		//TODO: Get replays  in thread and throw Exception if them too many 
+		//TODO: Get rLeft  in thread and throw Exception if them too many 
 		int id = 0;
 		String groupName = article.getGroupName();
 		
@@ -614,12 +612,16 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 		return null;//Never happen. restartConnection() will throw exception or recursion.
 	}
 
-	public Map<Article,List<Article>> getThreads(int boardId, int boardPage, String boardName) throws StorageBackendException {
+	
+	
+	//Phantom Reads
+	public Map<ThRLeft<Article>, List<Article>> getThreads(int boardId, int boardPage, String boardName) throws StorageBackendException {
 		ResultSet rs = null;
 		ResultSet rs2 = null;
-		Map<Article,List<Article>> map;
+		Map<ThRLeft<Article>, List<Article>> map;
 		
 		try {
+			this.conn.setAutoCommit(false); // start transaction
 			//1) get threads
 			int threads_per_page = Config.inst().get(Config.THREADS_PER_PAGE, 5);
 			this.pstmtGetThreads1.setInt(1, boardId);
@@ -635,28 +637,43 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			if(!rs.next())
 				throw new StorageBackendException("getThreads():getThreads");
 			else{
-				map = new LinkedHashMap<Article,List<Article>>(); //ordered
+				map = new LinkedHashMap<ThRLeft<Article>,List<Article>>(); //ordered
 				do {
 					int thread_id =rs.getInt(1);
 					Article thread = new Article(thread_id, thread_id, rs.getString(2), rs.getString(3), rs.getString(4),
 							rs.getString(5), rs.getString(6), rs.getLong(7), null, boardName, rs.getString(8), null); //thread
 
-					int replays = 3;
+		  			int replays = Config.inst().get(Config.REPLAYSONBOARD, 3);
+					//get rLeft for thread
 					this.pstmtGetThreads2.setInt(1, rs.getInt(1));//thread_id
 					this.pstmtGetThreads2.setInt(2, replays);//limit
 					rs2 = this.pstmtGetThreads2.executeQuery();
 					Deque<Article> rd = new ArrayDeque<Article>(); //reversed order
 					while (rs2.next()) {
 						if(rs2.getInt(1) == rs.getInt(1))
-							continue;//skip thread, we need replays
+							continue;//skip thread, we need rLeft
 						rd.push(new Article(rs2.getInt(1), thread_id, rs2.getString(2), rs2.getString(3), rs2.getString(4),
 								rs2.getString(5), rs2.getString(6), rs2.getLong(7), null, boardName, rs2.getString(8), null)); //replay
 					}
-					map.put(thread, new ArrayList<Article>(rd));
+					
+					//replays left hidden
+					int count = this.getReplaysCount(thread_id);
+					Integer left = count - Config.inst().get(Config.REPLAYSONBOARD, 3);
+					if (left.intValue() <= 0)
+						left = null;
+					map.put(new ThRLeft<>(thread, left), new ArrayList<Article>(rd));
 					closeResultSet(rs2);
 				} while (rs.next());
 			}
+			this.conn.commit();
+			this.conn.setAutoCommit(true);
 		} catch (SQLException ex) {
+			try {
+				this.conn.setAutoCommit(true); // and release locks
+			} catch (SQLException ex2) {
+				Log.get().log(Level.SEVERE, "setAutoCommit(true) of createReplay() failed: {0}", ex2);
+			}
+
 			restartConnection(ex);
 			return getThreads(boardId, boardPage, boardName);
 		} finally {
@@ -709,15 +726,18 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 		return threads;
 	}
 	
-	
+	//-1 if error or no thread 0 - no rLeft
 	public int getReplaysCount(int threadId) throws StorageBackendException{
 		ResultSet rs = null;
-		int count = 0;
+		int count = -1;
 		try {
 			this.pstmtGetReplaysCount.setInt(1, threadId);
 			rs = this.pstmtGetReplaysCount.executeQuery();
 			if(rs.next())
 				count = rs.getInt(1);
+			if (count == 0) //no such thread
+				count = -1;
+			else count -= 1; //minus thread
 		} catch (SQLException ex) {
 			restartConnection(ex);
 			return getReplaysCount(threadId);

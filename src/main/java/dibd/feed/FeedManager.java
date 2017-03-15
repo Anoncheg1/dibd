@@ -69,7 +69,7 @@ public class FeedManager {
 	 */
 	public static void startPull(){
 		if (Config.inst().get(Config.PEERING, true)) {
-			//1) Pull daemon which pulling threads for replays without ones 
+			//1) Pull daemon which pulling threads for rLeft without ones 
 			final int pullThreadsAmount = 10; //TODO:make configurable
 			for(int i = 0; i < pullThreadsAmount; i++){
         		(new PullDaemon()).start();
@@ -230,14 +230,14 @@ public class FeedManager {
 	}
 	
 	/**
-	 * Sort replays to threads. No replays without threads should be left.
+	 * Sort rLeft to threads. No rLeft without threads should be left.
 	 * 
 	 * Replays order should be save.
 	 * 
 	 * @param threads
-	 * @param replays
+	 * @param rLeft
 	 * @param host just for log
-	 * @return sorted threads with his replays followed right after it. true - thread, false - replay
+	 * @return sorted threads with his rLeft followed right after it. true - thread, false - replay
 	 */
 	public static Map<String, List<String>> sortThreadsReplays(List<String> threads, Map<String, String> replays, String host){
 
@@ -249,7 +249,7 @@ public class FeedManager {
 
 			Iterator<Entry<String, String>> rit = replays.entrySet().iterator();
 
-			//search replays for this threads
+			//search rLeft for this threads
 			while(rit.hasNext()){
 				Map.Entry<String, String> rep = rit.next();
 
@@ -262,18 +262,18 @@ public class FeedManager {
 		}
 
 
-		//replays without thread
+		//rLeft without thread
 		if (! replays.isEmpty()){
 			StringBuilder restreplays= new StringBuilder();
 			replays.entrySet().forEach(e -> restreplays.append(e).append(" "));
-			Log.get().log(Level.WARNING, "From: {0} NEWNEWS or XOVER replays without thread: {1}", new Object[]{host, restreplays.toString()});
+			Log.get().log(Level.WARNING, "From: {0} NEWNEWS or XOVER rLeft without thread: {1}", new Object[]{host, restreplays.toString()});
 		}
 
 		return messageIDs;
 	}
 	
 	/* old
-	public static Map<String, Boolean> sortThreadsReplays(List<String> threads, Map<String, String> replays, String host){
+	public static Map<String, Boolean> sortThreadsReplays(List<String> threads, Map<String, String> rLeft, String host){
 		//500 initial capacity may be anything. 500 is rough min posts count.(just more than default 10)
 		Map<String, Boolean> messageIDs = new LinkedHashMap<String, Boolean>(500);
 		
@@ -282,9 +282,9 @@ public class FeedManager {
 		for( String th: threads){
 			messageIDs.put(th, true);
 		
-			Iterator<Entry<String, String>> rit = replays.entrySet().iterator();
+			Iterator<Entry<String, String>> rit = rLeft.entrySet().iterator();
 			
-			//search replays for this threads
+			//search rLeft for this threads
 			while(rit.hasNext()){
 				Map.Entry<String, String> rep = rit.next();
 				
@@ -296,11 +296,11 @@ public class FeedManager {
 		}
 		
 
-		//replays without thread
-		if (! replays.isEmpty()){
+		//rLeft without thread
+		if (! rLeft.isEmpty()){
 			StringBuilder restreplays= new StringBuilder();
-			replays.entrySet().forEach(e -> restreplays.append(e).append(" "));
-			Log.get().log(Level.WARNING, "From: {0} NEWNEWS or XOVER replays without thread: {1}", new Object[]{host, restreplays.toString()});
+			rLeft.entrySet().forEach(e -> restreplays.append(e).append(" "));
+			Log.get().log(Level.WARNING, "From: {0} NEWNEWS or XOVER rLeft without thread: {1}", new Object[]{host, restreplays.toString()});
 		}
 		
 		return messageIDs;

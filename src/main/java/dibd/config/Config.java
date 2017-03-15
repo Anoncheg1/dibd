@@ -103,6 +103,7 @@ public class Config extends AbstractConfig {
     public static final String THREADS_PER_PAGE = "dibd.web.threads_per_page";
     public static final String PAGE_COUNT = "dibd.web.page_count";
     public static final String MAX_REPLAYS = "dibd.web.max_replays";
+    public static final String REPLAYSONBOARD = "dibd.web.replays_on_board";
 
     /**
      * Key constant. Value is the name of the host which is allowed to use the

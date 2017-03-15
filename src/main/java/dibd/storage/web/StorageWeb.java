@@ -80,10 +80,10 @@ public interface StorageWeb {
 	 * @param boardId
 	 * @param boardPage
 	 * @param boardName
-	 * @return thread,replays
+	 * @return thread,rLeft
 	 * @throws StorageBackendException
 	 */
-	Map<Article,List<Article>> getThreads(int boardId, int boardPage, String boardName) throws StorageBackendException;
+	Map<ThRLeft<Article>, List<Article>> getThreads(int boardId, int boardPage, String boardName) throws StorageBackendException;
 	
 	/**
 	 * Get one thread. ThreadService.
@@ -100,12 +100,12 @@ public interface StorageWeb {
 	List<Article> getOneThread(int threadId, String boardName) throws StorageBackendException;
 	
 	/**
-	 * Get amount of replays+1 for thread.
-	 * Required to make limit of replays.
-	 * If thread do not exist return 0 else replays+1 or 1 if no replays.
+	 * Get amount of rLeft for thread.
+	 * Required to make limit of rLeft.
+	 * If thread do not exist return -1 else rLeft or 0 if no rLeft.
 	 * 
 	 * @param threadId
-	 * @return if thread exist replays+1 returned.
+	 * @return if thread exist rLeft returned if no such thread -1.
 	 * @throws StorageBackendException
 	 */
 	int getReplaysCount(int threadId) throws StorageBackendException;

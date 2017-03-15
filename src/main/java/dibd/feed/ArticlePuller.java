@@ -218,7 +218,7 @@ public class ArticlePuller {
 		}
 
 		if(replays.size() > 999000/2 || threads.size() > 999000/2){
-			Log.get().log(Level.SEVERE, "From host: {0} NEWNEWS for group {1}, there is over 999000 replays or threads", new Object[]{this.host, group.getName()});
+			Log.get().log(Level.SEVERE, "From host: {0} NEWNEWS for group {1}, there is over 999000 rLeft or threads", new Object[]{this.host, group.getName()});
 			throw new IOException();
 		}
 		 
@@ -230,7 +230,7 @@ public class ArticlePuller {
 	
 	
 	/**
-	 * Pull articles from carefully sorted list of threads and replays message-ids. 
+	 * Pull articles from carefully sorted list of threads and rLeft message-ids. 
 	 * 
 	 * @param mIDs  mind, isThread?
 	 * @return
@@ -239,8 +239,8 @@ public class ArticlePuller {
 	 */
 	public int toItself(Map<String, List<String>> mIDs) throws IOException, StorageBackendException{
 		int reseived = 0;
-		//we pass replays for accepted thread only
-		//If thread was corrupted then we reject his replays
+		//we pass rLeft for accepted thread only
+		//If thread was corrupted then we reject his rLeft
 		//it will prevent "getting missing threads".
 		
 		for (Entry<String, List<String>> mId : mIDs.entrySet()){
@@ -344,7 +344,7 @@ public class ArticlePuller {
 	 *
 	 * @param groupsTime
 	 * @param pulldays - not necessary
-	 * @return list of threads(true) following its replays(false) right after it.
+	 * @return list of threads(true) following its rLeft(false) right after it.
 	 * @throws IOException
 	 * @throws StorageBackendException
 	 */
@@ -465,7 +465,7 @@ public class ArticlePuller {
 		//500 initial capacity may be anything. 500 is rough min posts count.(just more than default 10)
 		Map<String, List<String>> messageIDs;// = new LinkedHashMap<>(0); //empty for return
 		
-		//remove replays without threads
+		//remove rLeft without threads
 		messageIDs = FeedManager.sortThreadsReplays(threads, replays, this.host); //ordered LinkedHashMap
 		
 		//replay with larger date should be after replay with earlier date
@@ -566,13 +566,13 @@ public class ArticlePuller {
 			line = this.in.readLine();
 		}
 		
-		//1) get all replays and threads which date is accepted
-		//2) search for all threads for accepted replays
-		//3) search for all replays for accepted threads
+		//1) get all rLeft and threads which date is accepted
+		//2) search for all threads for accepted rLeft
+		//3) search for all rLeft for accepted threads
 		Map<String, String> aReplThread = new HashMap<>();//accepted
 		Map<String, Long> aReplTime = new HashMap<>();
 		Map<String, Long> aThreads = new HashMap<>();
-		//1. replays
+		//1. rLeft
 		Iterator it = replTime.entrySet().iterator();
 		while(it.hasNext()){
 			@SuppressWarnings("unchecked")
@@ -597,12 +597,12 @@ public class ArticlePuller {
 		//2.
 		for(Entry<String, String> aRT : aReplThread.entrySet()){
 			String threadId = aRT.getValue();//thread-id we assume it is message-id
-			if (!aThreads.containsKey(threadId)) //many replays has same thread
+			if (!aThreads.containsKey(threadId)) //many rLeft has same thread
 				aThreads.put(threadId, threads.get(threadId));
 		}
 		//3.
 		for(String aTH : aThreads.keySet()){ //for each accpeted thread
-				for(Entry<String, String> rt : replThread.entrySet()) //we search replays
+				for(Entry<String, String> rt : replThread.entrySet()) //we search rLeft
 					//if replay in accepted and was not added before
 					//if(rt.getValue().equals(aTH) && !aReplThread.containsKey(rt.getKey())){  
 					if(rt.getValue().equals(aTH)){// No need to worry if was added before.
