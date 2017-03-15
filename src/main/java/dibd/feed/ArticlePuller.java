@@ -500,7 +500,8 @@ public class ArticlePuller {
 		for(; i<size; i++){
 			String mid = thTimeList.get(i).getKey();
 			List<String> val = messageIDs.get(mid);
-			messageIDs2.put(mid, val);
+			if (thTimeList.get(i).getValue().longValue() >= last_post)
+				messageIDs2.put(mid, val);
 		}
 		
 		Log.get().log(Level.INFO, "Threads to PULL: {0} ", messageIDs2.size());

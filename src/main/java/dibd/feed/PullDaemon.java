@@ -123,14 +123,9 @@ public class PullDaemon extends DaemonThread {
     				Log.get().log(Level.FINE,"{0}: no new articles found at host:{1}:{2}",
     						new Object[]{Thread.currentThread().getName(), host, port});
     				return 0;
-    			}else{
-    				
-    				
-    				int reseived = ap.toItself(mIDs);
-    				Log.get().log(Level.FINE,"{0}: {1} articles of {2} successful reseived from host {3}:{4}",
-    						new Object[]{Thread.currentThread().getName(), reseived, mIDs.size(), host, port});
-    					return reseived;
-    			}
+    			}else
+    				return ap.toItself(mIDs); //return received number
+    			
 
     		}catch (IOException ex) {
     			Log.get().log(Level.INFO,"{0}: try {1} for host:{2}:{3} {4}",
