@@ -198,8 +198,8 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			// Prepare simple statements for method GetMessageId
 						this.pstmtGetMessageId = conn.prepareStatement("SELECT message_id FROM article WHERE id = ?;"); 
 			// Prepare simple statements for method getNewArticleIDs
-						this.pstmtGetNewArticleIDs = conn.prepareStatement("SELECT article.message_id, article.thread_id FROM article, thread "
-								+ "WHERE thread.group_id=? AND thread.last_post_time >= ? AND article.thread_id = thread.thread_id "
+						this.pstmtGetNewArticleIDs = conn.prepareStatement("SELECT article.message_id, article.id, article.thread_id FROM article, thread "
+								+ "WHERE thread.group_id=? AND article.post_time >= ? AND article.thread_id = thread.thread_id "
 								+ "ORDER BY thread.last_post_time, article.post_time ASC;");
 			// Prepare simple statements for method getLastPostOfGroup
 						this.pstmtGetLastPostOfGroup = conn.prepareStatement("SELECT MAX(last_post_time) FROM thread WHERE group_id = ?;");
@@ -771,11 +771,6 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 	//newnews
 	@Override
 	public LinkedHashMap<String, String> getNewArticleIDs(Group group, long date) throws StorageBackendException {
-		//1) Get list of articles. in for <mid>  thread_id
-		//2) If thread_id not equal to one above => article is a thread
-		//3) Query for <mid> for thread
-		//4) If article is replay => <mid-replay> <mid-thread> If article is thread just => <mid-thread>
-		
 		ResultSet rs = null;
 		LinkedHashMap<String, String> ret= new LinkedHashMap<String, String>();
 		try {
@@ -785,13 +780,17 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			int t_id_above = -1;
 			String mId_above = null;
 			while (rs.next()){
-				int thread_id = rs.getInt(2);
+				String mId = rs.getString(1);
+				int id = rs.getInt(2);
+				int thread_id = rs.getInt(3);
 				if (thread_id != t_id_above){
 					t_id_above = thread_id; 
 					mId_above = getMessageId(thread_id);
-					ret.put(rs.getString(1), null); //thread
-				}else
-					ret.put(rs.getString(1), mId_above); //replay (mId_above never null)
+				}
+				if(id == thread_id)
+					ret.put(mId, null); //thread
+				else
+					ret.put(mId, mId_above); //replay (mId_above never null)
 			}
 		} catch (SQLException ex) {
 			restartConnection(ex);

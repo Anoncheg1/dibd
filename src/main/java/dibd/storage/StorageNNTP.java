@@ -104,7 +104,7 @@ public interface StorageNNTP {
 	 * 
 	 * @param group
 	 * @param date
-	 * @return
+	 * @return article-message_id
 	 * @throws StorageBackendException
 	 */
 	Map<String, String> getNewArticleIDs(Group group, long date)

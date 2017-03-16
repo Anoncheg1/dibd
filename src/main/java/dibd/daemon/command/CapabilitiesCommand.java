@@ -57,7 +57,7 @@ public class CapabilitiesCommand implements Command {
             "OVER", // Server implements OVER command
             "IHAVE", // Server implements IHAVE command
             "STARTTLS", //TLS
-            "NEWTHREADS"
+            "NEWNEWS" //bad idea
             
     };
 

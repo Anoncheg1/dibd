@@ -170,7 +170,7 @@ public class ArticlePuller {
 	 *
 	 * map ordered
 	 *  
-	 * 
+	 * TODO:do we really need last_post? what if peer was off for the first start. 
 	 * @param group
 	 * @param last_post  mID, thread? + if true = thread, false = replay 
 	 * @throws IOException
@@ -244,6 +244,7 @@ public class ArticlePuller {
 		//it will prevent "getting missing threads".
 		
 		for (Entry<String, List<String>> mId : mIDs.entrySet()){
+			//TODO: if already have then it is ok let's try replays. 
 			if (transferToItself(new IhaveCommand(), mId.getKey()))//thread accepted?
 				reseived ++;
 			else 
@@ -500,7 +501,7 @@ public class ArticlePuller {
 		for(; i<size; i++){
 			String mid = thTimeList.get(i).getKey();
 			List<String> val = messageIDs.get(mid);
-			//if (thTimeList.get(i).getValue().longValue() >= last_post) //will be problem if peer was off and we had new messages. not very old peers threads will be rejected. 
+			//if (thTimeList.get(i).getValue().longValue() >= last_post) //will be problem if peer was off and we had new messages. not very old peer threads will be rejected.
 				messageIDs2.put(mid, val);
 		}
 		
