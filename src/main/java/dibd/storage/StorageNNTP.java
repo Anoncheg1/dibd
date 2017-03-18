@@ -17,7 +17,6 @@
  */
 package dibd.storage;
 
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -36,6 +35,7 @@ public interface StorageNNTP {
 
     /**
      * Get article for message_id:{@literal <}random{@literal @}host{@literal >} OR for internal id
+     * articles with status = 1 rejected;
      * 
      * @return Article or null
      * @throws StorageBackendException
@@ -54,6 +54,8 @@ public interface StorageNNTP {
     /**
      * Get Article IDs.
      * 
+     * For ARTICLE command old format.
+     * 
      * Return value or empty list
      * 
      * @param groupID
@@ -63,7 +65,7 @@ public interface StorageNNTP {
      */
     List<Integer> getArticleNumbers(int groupID, int start) throws StorageBackendException;
 
-    //Done
+    //Group command
     int getArticleCountGroup(int groupID) throws StorageBackendException;    
 
     
@@ -111,6 +113,43 @@ public interface StorageNNTP {
 			throws StorageBackendException;
 	
 	
-	long getLastPostOfGroup(Group g) throws StorageBackendException;
+	/**
+	 * Get last_post time in group
+	 * 
+	 * @param group
+	 * @return 0 if group is empty
+	 * @throws StorageBackendException
+	 */
+	//long getLastPostOfGroup(Group group) throws StorageBackendException;
+	
+	
+	/**
+	 * Get one thread. for XOVER
+	 * boardName used for article initialization only.
+	 * 
+	 * throw StorageBackendException if thread do not found.
+	 * 
+	 * 
+	 * @param threadId
+	 * @param boardName for article attachment string
+	 * @return
+	 * @throws StorageBackendException if no such thread
+	 */
+	List<Article> getOneThread(int threadId, String boardName, int status) throws StorageBackendException;
+	
+	
+	/**
+	 * Scrap threads with status = 0 only. 1 rejected
+	 * 
+	 * @param group
+	 * @param limit
+	 * @return
+	 * @throws StorageBackendException
+	 */
+	Map<Integer, String> scrapThreadIds(Group group, int limit) throws StorageBackendException;
+	
+	
+	
+	
 	
 }

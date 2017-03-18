@@ -37,6 +37,7 @@ import dibd.storage.StorageNNTP;
 import dibd.storage.SubscriptionsProvider;
 import dibd.storage.GroupsProvider.Group;
 import dibd.storage.article.Article;
+import dibd.test.unit.storage.TestingStorageProvider;
 //import dibd.test.unit.storage.TestingStorageProvider;
 import dibd.util.Log;
 
@@ -54,7 +55,7 @@ public class IHAVEandTAKETHISTest {
 	
 	public IHAVEandTAKETHISTest() throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, StorageBackendException, NoSuchMethodException, SecurityException, IOException {
 		storage = Mockito.mock(StorageNNTP.class);
-		StorageManager.enableProvider(new dibd.test.unit.storage.TestingStorageProvider(storage));
+		StorageManager.enableProvider(new TestingStorageProvider(storage));
 		conn = Mockito.mock(NNTPInterface.class);
 		when(conn.getCurrentCharset()).thenReturn(Charset.forName("UTF-8"));
 		when(conn.isTLSenabled()).thenReturn(true);
@@ -147,7 +148,7 @@ public class IHAVEandTAKETHISTest {
 		//Article art = new Article(thread_id, mId[0], mId[1], from, subjectT, message,
 		//date[0], path[0], groupHeader[0], group.getInternalID());
 		Article art = new Article(105, "<23456@host.com>", "host.com", "петрик <foo@bar.ano>", "ыффывфыв фыв фыв фыв фыв фыв фыв фыв фыв фыв фыв фы", "message",
-				"Thu, 02 May 2013 12:16:44 +0000", "hschan.ano!dontcare", "local.test", 23);
+				"Thu, 02 May 2013 12:16:44 +0000", "hschan.ano!dontcare", "local.test", 23, 0);
 		verify(this.storage, atLeastOnce()).createReplay(art, null, null, null); //ReceivingService here
 		verify(conn, atLeastOnce()).println(startsWith("235")); //article is accepted		
 
@@ -201,7 +202,7 @@ public class IHAVEandTAKETHISTest {
 		//Article art = new Article(thread_id, mId[0], mId[1], from, subjectT, message,
 		//date[0], path[0], groupHeader[0], group.getInternalID());
 		Article art = new Article(null, "<23456@host.com>", "host.com", null, "subj", "message",
-				"Thu, 02 May 2013 12:16:44 +0000", "hschan.ano", "local.test", 23);
+				"Thu, 02 May 2013 12:16:44 +0000", "hschan.ano", "local.test", 23, 0);
 		verify(this.storage, atLeastOnce()).createThread(
 				art, Base64.getDecoder().decode("R0lGODlhAQABAIAAAP///wAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw=="),"image/gif", "Blank.gif"); //ReceivingService here
 		verify(conn, atLeastOnce()).println(startsWith("235")); //article is accepted
@@ -702,7 +703,7 @@ public class IHAVEandTAKETHISTest {
 		//Article art = new Article(thread_id, mId[0], mId[1], from, subjectT, message,
 		//date[0], path[0], groupHeader[0], group.getInternalID());
 		Article art = new Article(105, "<23456@host.com>", "host.com", "петрик <foo@bar.ano>", "ыффывфыв фыв фыв фыв фыв фыв фыв фыв фыв фыв фыв фы ыффывфыв фыв фыв фыв фыв фыв фыв фыв фыв фыв фыв фы", "message",
-				"Thu, 02 May 2013 12:16:44 +0000", "hschan.ano!dontcare", "local.test", 23);
+				"Thu, 02 May 2013 12:16:44 +0000", "hschan.ano!dontcare", "local.test", 23, 0);
 		verify(this.storage, atLeastOnce()).createReplay(art, null, null, null); //ReceivingService here
 		verify(conn, atLeastOnce()).println(startsWith("239")); //article is accepted		
 

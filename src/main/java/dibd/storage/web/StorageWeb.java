@@ -89,15 +89,15 @@ public interface StorageWeb {
 	 * Get one thread. ThreadService.
 	 * boardName used for article initialization only.
 	 * 
-	 * throw StorageBackendException if thread do not found.
-	 * 
+	 * If thread do not found 
 	 * 
 	 * @param threadId
 	 * @param boardName for article attachment string
+	 * @param status
 	 * @return
-	 * @throws StorageBackendException when restart fail
+	 * @throws StorageBackendException if no such thread
 	 */
-	List<Article> getOneThread(int threadId, String boardName) throws StorageBackendException;
+	List<Article> getOneThread(int threadId, String boardName, int status) throws StorageBackendException;
 	
 	/**
 	 * Get amount of rLeft for thread.

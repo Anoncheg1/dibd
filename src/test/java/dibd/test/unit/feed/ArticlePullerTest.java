@@ -131,7 +131,7 @@ public class ArticlePullerTest {
 	
 	Method transferToItselfS; //string
 	
-	Hashtable<Group, Long> groupsTime;
+	Set<Group> groups;
 	
 	//OutputStreamWriter rOut2; 
 	
@@ -166,8 +166,9 @@ public class ArticlePullerTest {
 		
 		Set<String> host = new HashSet<String>(Arrays.asList("hschan.ano","host.com"));
 		final Group group1 = (Group) groupC.newInstance("local.test",23,0,host);
-		groupsTime = new Hashtable<Group, Long>();//groups with last post time //for ArticlePuller.check()
-		groupsTime.put(group1, (long) 140000);
+		groups = new HashSet<Group>(1); //groups with last post time //for ArticlePuller.scrap()
+		groups.add(group1);
+		
 		
 		/*
 		 * Method[] me = ap.getClass().getDeclaredMethods();
@@ -178,7 +179,9 @@ public class ArticlePullerTest {
 		Log.get().setLevel(java.util.logging.Level.WARNING);
 	}
 
+	//was bad idea
 	@Test
+	@Ignore
 	public void PullNEWNEWStest() throws StorageBackendException, IOException, InterruptedException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchFieldException, SecurityException{
 		
         // ######## ArticlePuller Constructor ########  
@@ -208,7 +211,7 @@ public class ArticlePullerTest {
 		rOut.println(".");
 		rOut.flush();
 		Log.get().setLevel(Level.SEVERE);
-		Map<String, List<String>> mIDs = ap.check(groupsTime, Config.inst().get(Config.PULLDAYS, 1)); //newnews request
+		Map<String, List<String>> mIDs = ap.scrap(groups); //newnews request
 		Log.get().setLevel(Level.WARNING);
 		
 		assertTrue(mIDs.get(mId).contains("<agh@hh>"));
@@ -339,7 +342,7 @@ public class ArticlePullerTest {
 		rOut.println(".");
 		rOut.flush();
 		Log.get().setLevel(Level.SEVERE);
-		Map<String, List<String>> mIDs = ap.check(groupsTime, Config.inst().get(Config.PULLDAYS, 1)); //newnews request
+		Map<String, List<String>> mIDs = ap.scrap(groups); //xover
 		Log.get().setLevel(Level.WARNING);
 		
 		assertTrue(mIDs.get(mId).contains("<a2@hh>"));
@@ -368,9 +371,9 @@ public class ArticlePullerTest {
         conn.println("235 article posted ok");
         
 		//boolean res = ap.transferToItself(ihcom, mId);//IhaveCommand can't be reused.
-        boolean res = (boolean) transferToItselfS.invoke(ap, ihcom, mId);
+        int res = (int) transferToItselfS.invoke(ap, ihcom, mId);
 		assertEquals(rIn.readLine(), "ARTICLE " + mId);
-		assertTrue(res);
+		assertTrue(res == 0);
 		//######## ap.close() ########
 		rOut.println("qua");
 		rOut.flush();
@@ -397,17 +400,21 @@ public class ArticlePullerTest {
         t = new ArrayList<>();
         t.add("4@h");
         mIDs.put("3@h", t);
-        
+        t = new ArrayList<>();
+        t.add("5@h"); //replay
+        mIDs.put("6@h", t); //thread
         
         ArticlePuller ap2 = Mockito.spy(ap);
         //when(transferToItselfS.invoke(ap, Mockito.any(IhaveCommand.class), "1@h")).thenReturn(true);
-        Mockito.doReturn(true).when(ap2).transferToItself(Mockito.any(IhaveCommand.class), Mockito.eq("1@h"));
-        Mockito.doReturn(true).when(ap2).transferToItself(Mockito.any(IhaveCommand.class), Mockito.eq("2@h"));
-        Mockito.doReturn(false).when(ap2).transferToItself(Mockito.any(IhaveCommand.class), Mockito.eq("3@h"));
-        Mockito.doReturn(true).when(ap2).transferToItself(Mockito.any(IhaveCommand.class), Mockito.eq("4@h")); //replay should not be accepted
+        Mockito.doReturn(0).when(ap2).transferToItself(Mockito.any(IhaveCommand.class), Mockito.eq("1@h"));
+        Mockito.doReturn(0).when(ap2).transferToItself(Mockito.any(IhaveCommand.class), Mockito.eq("2@h"));
+        Mockito.doReturn(1).when(ap2).transferToItself(Mockito.any(IhaveCommand.class), Mockito.eq("3@h"));
+        Mockito.doReturn(0).when(ap2).transferToItself(Mockito.any(IhaveCommand.class), Mockito.eq("4@h")); //replay should not be accepted
+        Mockito.doReturn(-1).when(ap2).transferToItself(Mockito.any(IhaveCommand.class), Mockito.eq("5@h")); //exist
+        Mockito.doReturn(0).when(ap2).transferToItself(Mockito.any(IhaveCommand.class), Mockito.eq("6@h")); //replay should be accepted
         //when(ap2.transferToItself(Mockito.any(IhaveCommand.class), Mockito.eq("1@h"))).thenReturn(true);
         int r = ap2.toItself(mIDs);
-        assertEquals(r,2);
+        assertEquals(r,3); //1 thread accepted, 2 thread rejected, 3 thread - thread exist, his replay accepted 
         
         
 	}

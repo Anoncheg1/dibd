@@ -3,14 +3,11 @@
  */
 package dibd.daemon.command;
 
-import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
-import java.net.URLConnection;
 import java.nio.charset.Charset;
 import java.text.ParseException;
 import java.util.Base64;
@@ -49,7 +46,7 @@ class ReceivingService{
 	private long bodySize = 0;
 	private InternetHeaders headers = null;
 	// Size in bytes:
-	private final long maxBodySize = Config.inst().get(Config.ARTICLE_MAXSIZE, 100) * 1024L * 1024L; //Mb
+	private final int maxBodySize = Config.inst().get(Config.ARTICLE_MAXSIZE, 1) * 1024 * 1024; //MB
 	private final ByteArrayOutputStream bufHead = new ByteArrayOutputStream(); //raw bytes UTF-8 by default
 	private final ByteArrayOutputStream bufBody = new ByteArrayOutputStream(); //raw bytes UTF-8 by default
 	//private StringBuilder strHead = new StringBuilder();
@@ -235,7 +232,7 @@ class ReceivingService{
 			
 			if(bodySize == 0) //no body
 				return 2;
-			else if (bodySize > maxBodySize) 
+			else if (command.equals("POST") && bodySize > maxBodySize) 
 				return 3;
 			
 		}
@@ -345,13 +342,8 @@ class ReceivingService{
 				}else
 					return false;
 			}else{
-				try {
-					//request missed thread:
-					PullDaemon.queueForPush(group, Headers.ParseRawDate(date), messageId+" "+this.host+" "+path);
-				} catch (ParseException e) {
-					Log.get().log(Level.INFO, "{0}: {1} can not parse date {2}",
-							new Object[]{this.command, messageId, date});
-				}
+				//request missed thread:
+				PullDaemon.queueForPush(group, ref[0], messageId+" "+this.host+" "+path);
 				return false; //"no such REFERENCE";
 			}
 
@@ -545,15 +537,15 @@ class ReceivingService{
 		////////////////////  SAVING  ////////////////////
 		//1. cache save
 		//2. attachment save to cache
-		//3. attachment save to database
+		//3. attachment save to database if fail roll back
 		//4. save thumbnail - Not critical.
 		//5. article to database
 		if (command.equals("POST")){
 			if(thread_id != null){ //replay
-				art = new Article(thread_id, from, subject, message, group.getInternalID(), group.getName());
+				art = new Article(thread_id, from, subject, message, group);
 				article = StorageManager.current().createReplay(art, file, gfileCT, file_name);
 			}else{ //thread
-				art = new Article(null, from, subject, message, group.getInternalID(), group.getName());
+				art = new Article(null, from, subject, message, group);
 				article = StorageManager.current().createThread(art, file, gfileCT, file_name);
 			}
 			PushDaemon.queueForPush(article); //send to peers
@@ -561,26 +553,39 @@ class ReceivingService{
 			
 			////   IHAVE, TAKETHIS    //////
 			
+			int status = rawArticle.length > maxBodySize ? 1 : 0; //0 - ok
+
 			if(thread_id != null){ //replay
 				art = new Article(thread_id, messageId, mId[1], from, subject, message,
-						date, path, group.getName(), group.getInternalID());
-				File fl = StorageManager.nntpcache.saveFile(group.getName(), messageId, rawArticle);
-				try{
+						date, path, group.getName(), group.getInternalID(), status);
+				
+				if(status == 0){
+					
+					File fl = StorageManager.nntpcache.saveFile(group.getName(), messageId, rawArticle);
+					try{
+						article = StorageManager.current().createReplay(art, file, gfileCT, file_name);
+					}catch(StorageBackendException e){ //rollback cache
+						StorageManager.nntpcache.delFile(fl);
+						throw new StorageBackendException(e);
+					}
+					
+				}else //if (status == 1)//no need cache if status =1
 					article = StorageManager.current().createReplay(art, file, gfileCT, file_name);
-				}catch(StorageBackendException e){ //rollback cache
-					StorageManager.nntpcache.delFile(fl);
-					throw new StorageBackendException(e);
-				}
+				
 			}else{ //thread
 				art = new Article(null, messageId, mId[1], from, subject, message,
-						date, path, group.getName(), group.getInternalID());
-				File fl = StorageManager.nntpcache.saveFile(group.getName(), messageId, rawArticle);
-				try{
+						date, path, group.getName(), group.getInternalID(), status);
+
+				if(status == 0){
+					File fl = StorageManager.nntpcache.saveFile(group.getName(), messageId, rawArticle);	
+					try{
+						article = StorageManager.current().createThread(art, file, gfileCT, file_name);
+					}catch(StorageBackendException e){ //rollback cache
+						StorageManager.nntpcache.delFile(fl);
+						throw new StorageBackendException(e);
+					}
+				}else //if (status == 1)//no need cache if status =1
 					article = StorageManager.current().createThread(art, file, gfileCT, file_name);
-				}catch(StorageBackendException e){ //rollback cache
-					StorageManager.nntpcache.delFile(fl);
-					throw new StorageBackendException(e);
-				}
 				
 			}
 			
@@ -591,7 +596,8 @@ class ReceivingService{
 						new Object[]{this.command, host, mId[1], group.getName()});
 				//FeedManager.lazyQueueForPush(art);
 				
-			}else if (allowPush){
+			}else if (allowPush && status == 0){
+				assert(article != null);
 				article.setRaw(rawArticle);
 				PushDaemon.queueForPush(article); //send to peers
 				Log.get().log(Level.FINE, "{0}: article {1} received and it is {2} that we can send it to another hosts",

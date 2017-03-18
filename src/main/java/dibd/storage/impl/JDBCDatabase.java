@@ -20,27 +20,26 @@ package dibd.storage.impl;
 
 import java.io.IOException;
 import java.sql.Connection;
-
 import java.sql.DriverManager;
-import java.sql.SQLException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.TreeMap;
 import java.util.logging.Level;
 
-import org.im4java.core.IM4JavaException;
-
 import dibd.config.Config;
+import dibd.storage.GroupsProvider.Group;
 import dibd.storage.StorageBackendException;
 import dibd.storage.StorageManager;
 import dibd.storage.StorageNNTP;
-import dibd.storage.GroupsProvider.Group;
 import dibd.storage.article.Article;
 import dibd.storage.web.StorageWeb;
 import dibd.storage.web.ThRLeft;
@@ -55,6 +54,7 @@ import dibd.util.Log;
  */
 public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Storage
 	public static final int MAX_RESTARTS = 2;
+	public static final int maxBodySize = Config.inst().get(Config.ARTICLE_MAXSIZE, 1) * 1024 * 1024;
 
 	protected Connection conn = null;
 
@@ -94,7 +94,8 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 	protected PreparedStatement pstmtGetArticleNumbers = null;
 	protected PreparedStatement pstmtGetArticleCountGroup = null;
 	protected PreparedStatement pstmtGetNewArticleIDs = null;
-	protected PreparedStatement pstmtGetLastPostOfGroup = null;
+	//protected PreparedStatement pstmtGetLastPostOfGroup = null;
+	protected PreparedStatement pstmtScrapThreadIds = null;
 	
 	/** How many times the database connection was reinitialized */
 	protected int restarts = 0;
@@ -136,7 +137,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 							+ "(SELECT min(last_post_time) FROM thread WHERE group_id = ?);");
 			this.pstmtDeleteOneOldestThread2 = conn
 					.prepareStatement("SELECT file_path FROM attachment WHERE article_id IN "
-							+ "(SELECT id FROM article WHERE thread_id = ?);");
+							+ "(SELECT id FROM article WHERE thread_id = ? AND article.status = 0);");
 			this.pstmtDeleteOneOldestThread3 = conn
 					.prepareStatement("DELETE FROM thread WHERE thread_id = ?;");
 			/*this.pstmtDeleteOneOldestThread1 = conn
@@ -149,7 +150,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 
 			// Prepare statements for method createThread()
 			this.pstmtCreateThread1 = conn.prepareStatement(
-					"INSERT INTO article (id, thread_id, message_id, message_id_host, hash, a_name, subject, message, post_time, path_header) VALUES (?, null,?,?,?,?,?,?,?,?);");
+					"INSERT INTO article (id, thread_id, message_id, message_id_host, hash, a_name, subject, message, post_time, path_header, status) VALUES (?, null,?,?,?,?,?,?,?,?,?);");
 			this.pstmtCreateThread2 = conn.prepareStatement(
 					"INSERT INTO thread (thread_id, group_id, last_post_time) VALUES (?,?,?);");
 			this.pstmtCreateThread3 = conn
@@ -161,7 +162,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 
 			// Prepare statements for method createReplay()
 			this.pstmtCreateReplay1 = conn.prepareStatement(
-					"INSERT INTO article (id, thread_id, message_id, message_id_host, hash, a_name, subject, message, post_time, path_header) VALUES (?,?,?,?,?,?,?,?,?,?);");
+					"INSERT INTO article (id, thread_id, message_id, message_id_host, hash, a_name, subject, message, post_time, path_header, status) VALUES (?,?,?,?,?,?,?,?,?,?,?);");
 			this.pstmtCreateReplay2 = conn
 					.prepareStatement("UPDATE thread SET last_post_time = ? WHERE thread_id = ?;");
 
@@ -170,18 +171,18 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 					"SELECT article.id, article.message_id, article.message_id_host, article.a_name, article.subject, article.message, article.post_time, attachment.file_path "
 							+ "FROM thread, article "
 							+ "LEFT JOIN attachment ON article.thread_id = attachment.article_id "
-							+ "WHERE thread.group_id = ? AND thread.thread_id = article.id ORDER BY last_post_time DESC LIMIT ? OFFSET ?;"); //threads
+							+ "WHERE thread.group_id = ? AND thread.thread_id = article.id AND article.status <= 1 ORDER BY last_post_time DESC LIMIT ? OFFSET ?;"); //threads
 			this.pstmtGetThreads2 = conn.prepareStatement(
 					"SELECT article.id, article.message_id, article.message_id_host, article.a_name, article.subject, article.message, article.post_time, attachment.file_path "
 							+"FROM article "
 							+"LEFT JOIN attachment ON article.id = attachment.article_id " 
-							+ "WHERE article.thread_id = ? AND article.id != article.thread_id ORDER BY post_time DESC LIMIT ?;"); //rLeft
+							+ "WHERE article.thread_id = ? AND article.id != article.thread_id AND article.status <= 1 ORDER BY post_time DESC LIMIT ?;"); //rLeft
 			
-			// Prepare statements for method getOneThread(int)
+			// Prepare statements for method getOneThread(int) //nntp too
 			this.pstmtGetOneThread = conn.prepareStatement("SELECT article.id, article.message_id, article.message_id_host, article.a_name, article.subject, article.message, article.post_time, attachment.file_path "
 							+ "FROM article "
 							+ "LEFT JOIN attachment ON article.id = attachment.article_id "
-							+ "WHERE article.thread_id = ? ORDER BY post_time;");
+							+ "WHERE article.thread_id = ? AND article.status <= ? ORDER BY post_time;");
 			// Prepare statements for method getReplaysCount(int)
 			this.pstmtGetReplaysCount = conn.prepareStatement("SELECT COUNT(*) FROM article WHERE thread_id = ?");
 			
@@ -194,7 +195,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 						this.pstmtGetArticle = conn.prepareStatement("SELECT id, article.thread_id, message_id, message_id_host, a_name, subject, message, post_time, path_header, group_id, file_path, media_type "
 							+ "FROM thread, article "
 							+"LEFT JOIN attachment ON article.id = attachment.article_id "
-							+"WHERE (( article.message_id = ? ) OR article.id = ?) AND thread.thread_id = article.thread_id;");
+							+"WHERE (( article.message_id = ? ) OR article.id = ?) AND thread.thread_id = article.thread_id AND article.status = 0;");
 			// Prepare simple statements for method GetMessageId
 						this.pstmtGetMessageId = conn.prepareStatement("SELECT message_id FROM article WHERE id = ?;"); 
 			// Prepare simple statements for method getNewArticleIDs
@@ -202,7 +203,12 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 								+ "WHERE thread.group_id=? AND article.post_time >= ? AND article.thread_id = thread.thread_id "
 								+ "ORDER BY thread.last_post_time, article.post_time ASC;");
 			// Prepare simple statements for method getLastPostOfGroup
-						this.pstmtGetLastPostOfGroup = conn.prepareStatement("SELECT MAX(last_post_time) FROM thread WHERE group_id = ?;");
+				//		this.pstmtGetLastPostOfGroup = conn.prepareStatement("SELECT MAX(last_post_time) FROM thread WHERE group_id = ?;");
+			// Prepare simple statements for method getLastPostOfGroup
+						this.pstmtScrapThreadIds = conn.prepareStatement("SELECT thread.thread_id, article.message_id FROM thread "
+								+ "LEFT JOIN article ON article.id = thread.thread_id "
+								+ "WHERE thread.group_id = ? AND article.status = 0 ORDER BY thread.last_post_time DESC LIMIT ?");
+						
 						
 		} catch (Exception ex) {
 			throw new Error("Database connection problem!", ex);
@@ -301,21 +307,27 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 		if (content_type != null && content_type.length() > 256)
 			throw new StorageBackendException("Too long media-type");
 		
-		String fileNameForSave = String.valueOf(id);
+		String fileNameForSave;
+		if (bfile.length <= maxBodySize)
+			fileNameForSave = String.valueOf(id);
+		else
+			fileNameForSave = "No File(was too large)";
+		
 		if(file_name != null){
 			String[] nameparts = file_name.split("[.]");
 			if (nameparts.length >= 2)
 				fileNameForSave = fileNameForSave + "." + nameparts[nameparts.length-1];
 		}
 		
-		StorageManager.attachments.saveFile(groupName, fileNameForSave, bfile);
+		if( bfile.length <= maxBodySize)
+			StorageManager.attachments.saveFile(groupName, fileNameForSave, bfile);
 		//save database record
 		this.pstmtAttachmentSaving.setInt(1, id);
 		this.pstmtAttachmentSaving.setString(2, fileNameForSave);
 		this.pstmtAttachmentSaving.setString(3, content_type);
 		this.pstmtAttachmentSaving.execute();
 		//create thumbbnail (not critical)
-		if (content_type != null)
+		if (content_type != null && bfile.length <= maxBodySize)
 			StorageManager.attachments.createThumbnail(groupName, fileNameForSave, content_type);
 
 	} 
@@ -329,42 +341,53 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 	 * @throws SQLException
 	 */
 	private void deleteOneOldestThread(int groupId, String groupName) throws StorageBackendException {
-		ResultSet thread = null;
+		ResultSet article = null;
 		ResultSet file = null;
-		try {//1) get oldest thread_id
+		try {
 			this.conn.setAutoCommit(false); // start transaction
-			
+			//1) get oldest thread_id with his articles
 			pstmtDeleteOneOldestThread1.setInt(1, groupId);
-			thread = pstmtDeleteOneOldestThread1.executeQuery();
+			article = pstmtDeleteOneOldestThread1.executeQuery();
 			
-			if (thread.next()){ //thread.thread_id(const), message_id, message_id_host
-				int thread_id = thread.getInt(1);
+			if (article.next()){ //thread.thread_id(const), message_id, message_id_host
+				int thread_id = article.getInt(1); 
 				//2) get file path for images in thread
 				pstmtDeleteOneOldestThread2.setInt(1, thread_id);
 				file = pstmtDeleteOneOldestThread2.executeQuery();
 				while (file.next())
 					StorageManager.attachments.delFile(groupName, file.getString(1));
-				//3) delete thread
+				//3) delete full thread
 				pstmtDeleteOneOldestThread3.setInt(1, thread_id);
 				pstmtDeleteOneOldestThread3.executeUpdate();
 				// transaction end
 				this.conn.commit(); //I hope this will not close resultSet
 				this.conn.setAutoCommit(true);
-				//delete nntp cache
+				//4) delete nntp cache for every article of pstmtDeleteOneOldestThread1 request
 				do {
-					String host = thread.getString(3).trim();
-					if (!host.equals(Config.inst().get(Config.HOSTNAME, null)))
+					String host = article.getString(3).trim();
+					if (! host.equals(Config.inst().get(Config.HOSTNAME, null)))
 						//groupName, message_id=thread.getString(2)
-						StorageManager.nntpcache.delArticle(groupName, thread.getString(2).trim());
-				}while(thread.next());
+						StorageManager.nntpcache.delArticle(groupName, article.getString(2).trim());
+				}while(article.next());
 			}
 			
 		} catch (SQLException ex) {
-			Log.get().log(Level.SEVERE, "Fail in deleteOneOldestThread() failed: {0}", ex);
+			try {
+				this.conn.rollback(); // Rollback changes
+			} catch (SQLException ex2) {
+				Log.get().log(Level.SEVERE, "Rollback of createThread() failed: {0}", ex2);
+			}
+
+			try {
+				this.conn.setAutoCommit(true); // and release locks
+			} catch (SQLException ex2) {
+				Log.get().log(Level.SEVERE, "setAutoCommit(true) of createThread() failed: {0}", ex2);
+			}
+			
 			this.restartConnection(ex);
 			deleteOneOldestThread(groupId, groupName);
 		} finally {
-			closeResultSet(thread);
+			closeResultSet(article);
 			//no oldest thread maybe at start
 			closeResultSet(file);
 			//this.restarts = 0; // we do not reset for private methods
@@ -480,6 +503,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			}
 			// insert article
 			pstmtCreateThread1.setInt(1, id);
+			//thread_id = null for referential cycle insert
 			pstmtCreateThread1.setString(2, messageId);
 			pstmtCreateThread1.setString(3, article.getMsgID_host());
 			pstmtCreateThread1.setInt(4, article.getHash());
@@ -488,6 +512,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			pstmtCreateThread1.setString(7, article.getMessage());
 			pstmtCreateThread1.setLong(8, article.getPost_time());
 			pstmtCreateThread1.setString(9, article.getPath_header());
+			pstmtCreateThread1.setInt(10, article.getStatus());
 			pstmtCreateThread1.execute();
 			// insert thread
 			pstmtCreateThread2.setInt(1, id);
@@ -511,6 +536,13 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 
 			return new Article(article, id, messageId, file_ct);
 		} catch (IOException e) {
+			
+			try {
+				this.conn.rollback(); // Rollback changes
+			} catch (SQLException ex2) {
+				Log.get().log(Level.SEVERE, "Rollback of createThread() failed: {0}", ex2);
+			}
+			
 			Log.get().log(Level.SEVERE, "Can't save attachment: {0}", e);
 			throw new StorageBackendException("Can not save attachment");
 		} catch (SQLException ex) {
@@ -547,7 +579,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 	public Article createReplay(Article article, byte[] bfile,
 			final String file_ct, final String file_name)
 					throws StorageBackendException {
-		//TODO: Get rLeft  in thread and throw Exception if them too many 
+		//TODO: Get replays count  in thread and throw Exception if count > replays max  
 		int id = 0;
 		String groupName = article.getGroupName();
 		
@@ -573,6 +605,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			pstmtCreateReplay1.setString(8, article.getMessage());
 			pstmtCreateReplay1.setLong(9, article.getPost_time());
 			pstmtCreateReplay1.setString(10, article.getPath_header());
+			pstmtCreateReplay1.setInt(11, article.getStatus());
 			pstmtCreateReplay1.execute();
 			//update thread (post time, thread_id)
 			pstmtCreateReplay2.setLong(1, article.getPost_time());
@@ -656,12 +689,12 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 								rs2.getString(5), rs2.getString(6), rs2.getLong(7), null, boardName, rs2.getString(8), null)); //replay
 					}
 					
-					//replays left hidden
+					//replays left status
 					int count = this.getReplaysCount(thread_id);
 					Integer left = count - Config.inst().get(Config.REPLAYSONBOARD, 3);
 					if (left.intValue() <= 0)
 						left = null;
-					map.put(new ThRLeft<>(thread, left), new ArrayList<Article>(rd));
+					map.put(new ThRLeft<>(thread, left), new ArrayList<Article>(rd)); //normal order
 					closeResultSet(rs2);
 				} while (rs.next());
 			}
@@ -691,14 +724,16 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 	 * 
 	 * @param threadId
 	 * @param boardName for article attachment string
+	 * @param status for replays mainly and for thread.
 	 * @return
-	 * @throws StorageBackendException when restart fail
+	 * @throws StorageBackendException when restart fail or no such thread
 	 */
-	public List<Article> getOneThread(int threadId, String boardName) throws StorageBackendException {
+	public List<Article> getOneThread(int threadId, String boardName, int status) throws StorageBackendException {
 		ResultSet rs = null;
-		List<Article> threads;
+		List<Article> thread;
 		try {
 			this.pstmtGetOneThread.setInt(1, threadId);
+			this.pstmtGetOneThread.setInt(2, status); //status <= ?
 			rs = this.pstmtGetOneThread.executeQuery();
 
 			// Log.get().log(Level.INFO, "SQL Timeout Exception: check that your
@@ -707,23 +742,23 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			//4article.a_name, 5article.subject, 6article.message, 7article.post_time,
 			//8attachment.file_path
 			if(!rs.next())
-				throw new StorageBackendException("getOneThread():No such thread");
+					throw new StorageBackendException("no such thread");
 			else{
-				threads = new ArrayList<Article>();
+				thread = new ArrayList<Article>();
 				do {
-					threads.add(new Article(rs.getInt(1), threadId, rs.getString(2), rs.getString(3), rs.getString(4),
+					thread.add(new Article(rs.getInt(1), threadId, rs.getString(2), rs.getString(3), rs.getString(4),
 							rs.getString(5), rs.getString(6), rs.getLong(7), null, boardName, rs.getString(8), null));
 				} while (rs.next());
 			}
 		} catch (SQLException ex) {
 			restartConnection(ex);
-			return getOneThread(threadId, boardName);
+			return getOneThread(threadId, boardName, status);
 		} finally {
 			closeResultSet(rs);
 			this.restarts = 0; // Reset error count
 		}
 
-		return threads;
+		return thread;
 	}
 	
 	//-1 if error or no thread 0 - no rLeft
@@ -893,8 +928,31 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 		return art;
 	}
 
+		
+	public Map<Integer, String> scrapThreadIds(Group group, int limit) throws StorageBackendException{
+		assert(group != null);
+		ResultSet rs = null;
+		Map<Integer, String> tm = new TreeMap<>(Collections.reverseOrder());   //reversed order
+		try {
+			
+			pstmtScrapThreadIds.setInt(1, group.getInternalID());
+			pstmtScrapThreadIds.setInt(2, limit);
+			rs = pstmtScrapThreadIds.executeQuery(); //reversed order
+			while (rs.next())
+				tm.put(rs.getInt(1), rs.getString(2)); //now in normal order
+			
+			return tm;
+		} catch (SQLException ex) {
+			restartConnection(ex);
+			return scrapThreadIds(group, limit);
+		} finally {
+			closeResultSet(rs);
+			this.restarts = 0; // Reset error count
+		}
+	}
 	
-
+	
+/*
 	@Override
 	public long getLastPostOfGroup(Group g) throws StorageBackendException {
 		ResultSet rs = null;
@@ -914,5 +972,5 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			this.restarts = 0; // Reset error count
 		}
 	}
-
+*/
 }

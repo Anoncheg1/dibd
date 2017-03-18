@@ -41,7 +41,7 @@ import dibd.util.Log;
  * 
  * Common usage: 
  * Article message-id
- * Article internal-global-id
+ * Article internal-id
  * 
  * First form (message-id specified)
      220 0|n message-id    Article follows (multi-line)

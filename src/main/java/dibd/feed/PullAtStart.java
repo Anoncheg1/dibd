@@ -18,12 +18,19 @@
 
 package dibd.feed;
 
+import java.io.IOException;
 import java.net.Proxy;
 import java.net.UnknownHostException;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
+
+import javax.net.ssl.SSLPeerUnverifiedException;
+
 import dibd.storage.StorageBackendException;
 import dibd.storage.StorageManager;
 import dibd.config.Config;
@@ -50,28 +57,96 @@ public class PullAtStart extends Thread {
     	proxy = FeedManager.getProxy(sub);
     }
     
+    /**
+     * Share function to pull at start.
+     * 
+     * @param groupsTime group and last post_time
+     * @param host
+     * @param port
+     * @param retries
+     * @param sleep starting value of sleep between retries
+     * @throws StorageBackendException
+     * @return -1 if error or articles pulled
+     */
+    private int pull(Set<Group> groups, String host, int port, int retries, int sleep) throws StorageBackendException {
+    	for(int retry =1; retry<retries;retry++){
+    		ArticlePuller ap = null;
+    		try {
+    			boolean TLSenabled = Config.inst().get(Config.TLSENABLED, false);
+    			//Connecting
+    			try {
+					ap = new ArticlePuller(FeedManager.createSocket(proxy, host, port), TLSenabled, host);
+				} catch (SSLPeerUnverifiedException e) {
+					Log.get().log(Level.WARNING, "For host {0} TLS did not present a valid certificate",
+		        			host);
+					break;
+				}
+    			Log.get().log(
+    					Level.INFO, "{0}: pulling from {1} groups:{2}", //his groups {1}",
+    					new Object[]{Thread.currentThread().getName(), host, groups.size()});
+    					//new Object[]{host, "["+groupsTime.keySet().stream().map(g -> g.getName()).collect(Collectors.joining(","))+"]"});
+
+    			//Scrap message-ids
+    			Map<String, List<String>> mIDs = ap.scrap(groups);
+    			if (mIDs.isEmpty()){
+    				Log.get().log(Level.FINE,"{0}: no new articles found at host:{1}:{2}",
+    						new Object[]{Thread.currentThread().getName(), host, port});
+    				return 0;
+    			}else
+    				return ap.toItself(mIDs); //return received number
+    			
+
+    		}catch (IOException ex) {
+    			Log.get().log(Level.INFO,"{0}: try {1} for host:{2}:{3} {4}",
+    					new Object[]{Thread.currentThread().getName(), retry, host, port, ex.toString()});
+    		}catch (NullPointerException e) {
+    			Log.get().log(Level.WARNING,"No error if it is shutdown {0}", e);
+    			return -1;
+    		}finally{
+    			//Log.get().log(Level.WARNING, "Finally host: {0}:{1} can not pull from.", new Object[]{host, port});
+    			if (ap != null)
+    				ap.close();
+    		}
+
+    		try {
+    			Thread.sleep(sleep*retry*retry);//geometric progression 
+    		} catch (InterruptedException e) {
+    			break;
+    		}
+    	}
+    	return -1;
+    }
+    
     
     @Override
     public void run() {
     	String host = sub.getHost();
     	int port = sub.getPort();
-    	Set<Group> groups = StorageManager.groups.groupsPerPeer(sub);
-    	if (groups == null)
+    	Set<Group> groups = new HashSet<Group>();
+    	groups.addAll(StorageManager.groups.groupsPerPeer(sub));
+    	if (groups.isEmpty())
     		return;
-    	Map<Group, Long> groupsTime = new HashMap<Group, Long>();//groups with last post time (not ordered)
+    	//Map<Group, Long> groupsTime = new HashMap<Group, Long>();//groups with last post time (not ordered)
     	 
     	try {
-    		for (Group g : groups){// we save post_time at the beginning to protect it from changing.
+    		
+    		for (Iterator<Group> iterator = groups.iterator(); iterator.hasNext();) {
+    			Group g = iterator.next();
+    			assert(g != null);
+    			if(g.isDeleted())
+    				iterator.remove();
+    		}
+    		/*for (Group g : groups){// we save post_time at the beginning to protect it from changing.
     			assert (g != null);
     			if(!g.isDeleted()){
     				long t = StorageManager.current().getLastPostOfGroup(g);
     				groupsTime.put(g, t);
     			}
         	}
+    		*/
+    		int res = pull(groups, host, port, 21, 60*1000);
     		
-    		int res = PullDaemon.pull(groupsTime, this.proxy, host, port, Config.inst().get(Config.PULLDAYS, 1), 21, 60*1000);
-    		
-    		Log.get().log(Level.INFO, "Pull from {0} sucessfully completed, {1} articles reseived.",new Object[]{sub.getHost(), res});
+    		Log.get().log(Level.INFO, "Pull from {0} sucessfully completed, {1} articles reseived.",new Object[]{host, res});
 
     	}catch (StorageBackendException e) {
     		Log.get().log(Level.WARNING, e.getLocalizedMessage(), e);

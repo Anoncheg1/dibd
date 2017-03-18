@@ -166,6 +166,12 @@ public class AttachmentProvider {
 		return Files.readAllBytes(path);
 	}
 	
+	/**
+	 * Delete attachment and thumbnail if exist
+	 * 
+	 * @param groupName
+	 * @param fileName
+	 */
 	public void delFile (String groupName, String fileName){
 		File fileImg = new File(getAPath(groupName, fileName)); //img
 		File fileThm = new File(this.getTnPath(groupName, fileName)); //thm

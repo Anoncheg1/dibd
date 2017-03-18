@@ -20,8 +20,12 @@ package dibd.daemon.command;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
+import dibd.config.Config;
 import dibd.daemon.NNTPInterface;
+import dibd.storage.GroupsProvider.Group;
 import dibd.storage.StorageBackendException;
 import dibd.storage.StorageManager;
 import dibd.storage.article.Article;
@@ -134,98 +138,29 @@ public class OverCommand implements Command {
     @Override
     public void processLine(NNTPInterface conn, final String line, byte[] raw)
             throws IOException, StorageBackendException {
-        if (conn.getCurrentGroup() == null) {
+    	Group group = conn.getCurrentGroup();
+        if (group == null) {
             conn.println("412 no newsgroup selected");
         } else {
-            String[] command = line.split("\\p{Space}+");
-
-            // If no parameter was specified, show information about
-            // the currently selected article(s)
-            if (command.length == 1) {
-                final Article art = conn.getCurrentArticle();
-                if (art == null) {
-                    conn.println("420 no article(s) selected");
-                    return;
-                }
-
-                conn.println(buildOverview(art, -1));
-            } // otherwise print information about the specified range
-            else {
-                long artStart;
-                long artEnd = conn.getCurrentGroup().getLastArticleNumber();
-                String[] nums = command[1].split("-");
-                if (nums.length >= 1) {
-                    try {
-                        artStart = Integer.parseInt(nums[0]);
-                    } catch (NumberFormatException e) {
-                        Log.get().info(e.getMessage());
-                        artStart = Integer.parseInt(command[1]);
-                    }
-                } else {
-                    artStart = conn.getCurrentGroup().getFirstArticleNumber();
-                }
-
-                if (nums.length >= 2) {
-                    try {
-                        artEnd = Integer.parseInt(nums[1]);
-                    } catch (NumberFormatException e) {
-                        e.printStackTrace();
-                    }
-                }
-
-                if (artStart > artEnd) {
-                    if (command[0].equalsIgnoreCase("OVER")) {
-                        conn.println("423 no articles in that range");
-                    } else {
-                        conn.println("224 (empty) overview information follows");
-                        conn.println(".");
-                    }
-                } else {
-                 //   for (long n = artStart; n <= artEnd; n += MAX_LINES_PER_DBREQUEST) {
-                   //     long nEnd = Math.min(n + MAX_LINES_PER_DBREQUEST - 1,
-                     //           artEnd);
-                        //List<Pair<Long, ArticleHead>> articleHeads = conn.getCurrentChannel().getArticleHeads(n, nEnd);
-                        //List<Integer> mid = StorageManager.current().getArticleNumbers(conn.getCurrentGroup().getInternalID(), (int)n);
-                        List<Integer> mid = StorageManager.current().getArticleNumbers(conn.getCurrentGroup().getInternalID(), 0);
-                        //if (articleHeads.isEmpty() && n == artStart
-                          //      && command[0].equalsIgnoreCase("OVER")) {
-                        
-                        //if (( mid.isEmpty() || n == artStart)
-                        if (mid.isEmpty() 
-                                     && command[0].equalsIgnoreCase("OVER")) {
-                            // This reply is only valid for OVER, not for XOVER
-                            // command
-                            conn.println("423 no articles in that range");
-                            return;
-                        } else{ //if (n == artStart) {
-                            // XOVER replies this although there is no data
-                            // available
-                            conn.println("224 overview information follows (multi-line)");
-                        }
-                        /*
-                        for (Pair<Long, ArticleHead> article : articleHeads) {
-                            String overview = buildOverview(article.getB(),
-                                    article.getA());
-                            conn.println(overview);
-                        }*/
-                        //int count = 0; 
-                        for(int id : mid){
-                      //  	if(count++ < MAX_LINES_PER_DBREQUEST){
-                        		//System.out.println("AAAAAAAAAAAAAAAAAAAAAid:"+id);
-                        		Article a = StorageManager.current().getArticle(null, id);
-                        		String overview = buildOverview(a,id);
-                        		conn.println(overview);
-                        		
-                        //	}
-                        }	
-                    //} // for
-                    conn.println(".");
-                }
-            }
+        	//int allThreads = Config.inst().get(Config.THREADS_PER_PAGE, 5) * Config.inst().get(Config.PAGE_COUNT, 6);
+        	Map<Integer, String> th_ids = StorageManager.current().scrapThreadIds(group, Integer.MAX_VALUE);//no limit
+        	if ( ! th_ids.isEmpty()){
+        		int i = 1;
+        		for (Entry<Integer, String> tIdAndMid : th_ids.entrySet()){
+        			try{
+        				List<Article> thread = StorageManager.current().getOneThread(tIdAndMid.getKey(), group.getName(), 0);
+        				if ( ! thread.isEmpty()){
+        					for( Article art: thread)
+        						buildOverview(art, i++, tIdAndMid.getValue());
+        				}
+        			}catch(StorageBackendException ex){	/*no thread, skip*/ }
+        		}
+        	}
+        	conn.println(".");
         }
     }
 
-    private String buildOverview(Article art, long nr) throws StorageBackendException {
+    private String buildOverview(Article art, long nr, String threadMid) throws StorageBackendException {
         StringBuilder overview = new StringBuilder();
         //1) number
         overview.append(nr)
@@ -247,8 +182,8 @@ public class OverCommand implements Command {
         overview.append(escapeString(art.getMessageId()))
         .append('\t');
         //6) thread-Id
-        if(art.getThread_id().intValue() != art.getId().intValue()) //if replay
-        	overview.append(StorageManager.current().getMessageId(art.getThread_id()));
+        if( ! art.getMessageId().equals(threadMid)) //if replay
+        	overview.append(threadMid);
         //overview.append('\t');
 
         //String bytes = art.getHeader(Headers.BYTES)[0];

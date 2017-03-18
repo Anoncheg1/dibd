@@ -46,6 +46,9 @@ public interface NNTPInterface{
 
 	Article getCurrentArticle();
 
+	/**
+	 * @return may be null
+	 */
 	Group getCurrentGroup();
 
 	void setCurrentArticle(Article article);

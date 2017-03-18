@@ -64,7 +64,7 @@ public class ShortRefParser {
 		 * @throws StorageBackendException 
 		 */
 		public static Map <String, WebRef> getGlobalRefs(StorageWeb db,
-				final String message) throws StorageBackendException{
+				final String message){
 			
 			Map <String, WebRef> short_ref_messageId = new HashMap<>();
 			
@@ -76,7 +76,12 @@ public class ShortRefParser {
 
 			while (matcher.find()) {
 				
-				Article art = db.getArticle(matcher.group(), null); //diff
+				Article art;
+				try {
+					art = db.getArticle(matcher.group(), null);  //diff
+				} catch (StorageBackendException e) {
+					art = null;
+				}
 				
 				if (art != null)
 					short_ref_messageId.put(matcher.group(),

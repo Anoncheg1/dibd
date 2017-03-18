@@ -32,6 +32,7 @@ import javax.mail.internet.MimeUtility;
 
 import dibd.config.Config;
 import dibd.daemon.NNTPConnection;
+import dibd.storage.GroupsProvider.Group;
 import dibd.storage.Headers;
 import dibd.storage.StorageBackendException;
 import dibd.storage.StorageManager;
@@ -68,6 +69,7 @@ public class Article { //extends ArticleHead
 		public String groupName = null; //for images
 		public String fileName = null; // attachment
 		public String fileFormat = null; // attachment
+		public int status = 0;  //0 - ok, 1 - file too large
 	}
 
 	protected Art a; // visible to subclasses and self only
@@ -91,9 +93,10 @@ public class Article { //extends ArticleHead
 	 * @param date_raw 7
 	 * @param path_header 8
 	 * @param groupName 9
+	 * @param status 10
 	 * @throws ParseException 
 	 */
-	public Article(Integer thread_id, String messageId, String msgID_host, String a_name, String subject, String message, String date_raw, String path_header, String groupName, int groupId) throws ParseException{
+	public Article(Integer thread_id, String messageId, String msgID_host, String a_name, String subject, String message, String date_raw, String path_header, String groupName, int groupId, int status) throws ParseException{
 		super();
 		
 		a = new Art();
@@ -108,6 +111,8 @@ public class Article { //extends ArticleHead
 		a.path_header = path_header;
 		a.groupName = groupName;
 		a.groupId = groupId;
+		a.status = status; //null nothing, 1 - file too large
+		
 		generateHash();
 	}
 
@@ -198,15 +203,13 @@ public class Article { //extends ArticleHead
 	 * @param groupName
 	 * @param short_ref_messageId
 	 */
-	public Article(Integer thread_id, String a_name, String subject, String message, 
-			int groupId, String groupName){//, Map <String, String> short_ref_messageId) {
+	public Article(Integer thread_id, String a_name, String subject, String message, Group group){//, Map <String, String> short_ref_messageId) {
 		super();
 		
 		a = new Art();
 
 		//TODO:assert
-		assert(StorageManager.groups.getName(groupId).equals(groupName));
-		assert(groupName != null);
+		assert(group != null);
 		
 		if (a_name != null)
 			if (a_name.isEmpty())
@@ -230,8 +233,8 @@ public class Article { //extends ArticleHead
 		
 		a.thread_id = thread_id;
 		a.message = message;
-		a.groupId = groupId; //for input
-		a.groupName = groupName;
+		a.groupId = group.getInternalID(); //for input
+		a.groupName = group.getName();
 		Instant nowEpoch = Instant.now();        
 		a.post_time = nowEpoch.getEpochSecond();	
 		generateHash();
@@ -380,10 +383,11 @@ public class Article { //extends ArticleHead
 	 * @return {@literal <}random{@literal @}host{@literal >}
 	 */
 	public String getMessageId() {
-		//if (a.msgID_random == null || a.msgID_origin == null)
-			//throw new NullPointerException();
-		//return "<"+ a.msgID_random + "@" + a.msgID_origin +">";
 		return a.messageId;
+	}
+	
+	public Integer getStatus() {
+		return a.status;
 	}
 	
 	//NNTP output

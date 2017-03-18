@@ -23,8 +23,10 @@ import java.net.Proxy;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Map.Entry;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
@@ -54,16 +56,16 @@ public class PullDaemon extends DaemonThread {
 	
 	private static class MissingThread{
 		Group g; //groupt to query to
-		long t;	//post time
+		String messageId;
 		String string_for_log;
 		/**
 		 * @param g
 		 * @param t
 		 * @param host_with_path for log output
 		 */
-		MissingThread(Group g, long t, String string_for_log){
+		MissingThread(Group g, String messageId, String string_for_log){
 			this.g = g;
-			this.t = t;
+			this.messageId = messageId;
 			this.string_for_log = string_for_log;
 		}
 	}
@@ -73,33 +75,23 @@ public class PullDaemon extends DaemonThread {
 	
 	private static volatile boolean running = false;
 
-	public static void queueForPush(Group group, long post_time, String string_for_log) {
+	public static void queueForPush(Group group, String message_id_thread, String string_for_log) {
 		assert(group != null);
 		if (running){
 			try {
 				//If queue is full, this call blocks until the queue has free space;
 				// This is probably a bottleneck for article posting
-				groupQueue.put(new MissingThread(group, post_time, string_for_log));
+				groupQueue.put(new MissingThread(group, message_id_thread, string_for_log));
 			} catch (InterruptedException ex) {
 				Log.get().log(Level.WARNING, null, ex);
 			}
 		}
 	}
 	
-    /**
-     * Share function to pull at start or pull one thread.
-     * 
-     * @param groupsTime group and last post_time
-     * @param proxy
-     * @param host
-     * @param port
-     * @param added_day to retrieve.
-     * @param retries
-     * @param sleep starting value of sleep between retries
-     * @throws StorageBackendException
-     * @return -1 if error or articles pulled
-     */
-    static int pull(Map<Group, Long> groupsTime, Proxy proxy, String host, int port, int added_days, int retries, int sleep) throws StorageBackendException {
+	
+	
+	private int pull(MissingThread mthread, Proxy proxy, String host, int port, int retries, int sleep) throws StorageBackendException {
+		String gname = mthread.g.getName();
     	for(int retry =1; retry<retries;retry++){
     		ArticlePuller ap = null;
     		try {
@@ -113,18 +105,11 @@ public class PullDaemon extends DaemonThread {
 					break;
 				}
     			Log.get().log(
-    					Level.INFO, "{0}: pulling from {1} groups:{2}", //his groups {1}",
-    					new Object[]{Thread.currentThread().getName(), host, groupsTime.size()});
-    					//new Object[]{host, "["+groupsTime.keySet().stream().map(g -> g.getName()).collect(Collectors.joining(","))+"]"});
+    					Level.INFO, "Pull missing thread  {0}  from {1} group {2}", //his groups {1}",
+    					new Object[]{mthread.messageId, host, gname});
 
-    			//Scrap message-ids
-    			Map<String, List<String>> mIDs = ap.check(groupsTime, added_days);
-    			if (mIDs.isEmpty()){
-    				Log.get().log(Level.FINE,"{0}: no new articles found at host:{1}:{2}",
-    						new Object[]{Thread.currentThread().getName(), host, port});
-    				return 0;
-    			}else
-    				return ap.toItself(mIDs); //return received number
+    			
+    			ap.getThread(mthread.messageId, gname);
     			
 
     		}catch (IOException ex) {
@@ -147,6 +132,8 @@ public class PullDaemon extends DaemonThread {
     	}
     	return -1;
     }
+	
+    
 
     
     /////////    Getting missing thread    /////////
@@ -177,14 +164,10 @@ public class PullDaemon extends DaemonThread {
     					return;
     				}
     				
-    				// one group and post_time
-    				Map<Group, Long> gr = new HashMap<>();
-    				gr.put(mthr.g, mthr.t); 
-    				
     				try {
-    					int r = pull(gr, proxy, sub.getHost(), sub.getPort(), 0, 5, 30*1000); //0 add days, 5 retries, 30 sec. 
+    					int r = pull(mthr, proxy, sub.getHost(), sub.getPort(), 5, 30*1000); //0 add days, 5 retries, 30 sec. 
     					if (r != -1)
-    						res += r;  
+    						res += r;
 							
 					} catch (StorageBackendException e) {
 						Log.get().log(Level.WARNING, e.getLocalizedMessage(), e);

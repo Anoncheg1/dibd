@@ -37,7 +37,7 @@ public class Config extends AbstractConfig {
      * BackendConfig key constant. Value is the maximum article size in
      * megabytes.
      */
-    public static final String ARTICLE_MAXSIZE = "dibd.article.maxsize";
+    public static final String ARTICLE_MAXSIZE = "dibd.article.maxsize"; //MB. attachment size for web, article size for article
     /**
      * BackendConfig key constant. Value: Amount of news that are feeded per
      * run.
@@ -47,7 +47,6 @@ public class Config extends AbstractConfig {
     public static final String PEERING = "dibd.feed";
     public static final String FEED_NEWSPERRUN = "dibd.feed.newsperrun";//notused
     public static final String FEED_PULLINTERVAL = "dibd.feed.pullinterval";//notused
-    public static final String PULLDAYS = "dibd.peering.pulldays";
     //TODO:configurable for every peer
     public static final String PROXYHTTP = "dibd.feed.proxy.http";
     public static final String PROXYSOCKS = "dibd.feed.proxy.socks";
@@ -59,6 +58,7 @@ public class Config extends AbstractConfig {
     public static final String LOGLEVEL = "dibd.loglevel";
     //It can be increased or decreased without lose. VALUES 1-7
     public static final String ID_F_COUNT = "dibd.id_f_count"; //count of F symbol in hex internal article Id
+    public static final String MAXFILE = "dibd.max_attachment_size"; 
 
     /*
     public static final String MLPOLL_DELETEUNKNOWN = "dibd.mlpoll.deleteunknown";

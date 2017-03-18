@@ -55,7 +55,7 @@ import dibd.util.io.Resource;
 public final class App {
 
     /** Version information of the dibd daemon */
-    public static final String VERSION = "dibd/1.0.1 testing";
+    public static final String VERSION = "dibd/1.0.2 testing";
 
     /** The server's startup date */
     public static final Date STARTDATE = new Date();
@@ -90,12 +90,12 @@ public final class App {
                     }
                     return;
                 }
-                case "-pulldays": {//how many days since last pull request?
+                /*case "-pulldays": {//how many days since last pull request?
                 	Config.inst().set(Config.PULLDAYS,
                             args[++n]);
                 	System.out.println("Using pull for " + args[n]+" days");
                     break;
-                }
+                }*/
                 case "-h":
                 case "-help": {
                     printArguments();
