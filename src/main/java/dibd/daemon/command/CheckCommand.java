@@ -72,7 +72,7 @@ public class CheckCommand implements Command {
     			if(Headers.matchMsgId(messageId)){
     				//Message-Id
     				//TODO:may be better search in cache only?
-    				Article art = StorageManager.current().getArticle(messageId, null);
+    				Article art = StorageManager.current().getArticle(messageId, null, 1);
     				if (art != null){
     					conn.println("438 "+messageId+" Article already exist");
     					return;

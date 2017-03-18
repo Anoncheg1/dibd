@@ -22,10 +22,12 @@ public interface StorageWeb {
      * Get article for message_id:{@literal <}random{@literal @}host{@literal >} OR for internal id
      * Used to replace short-reference with message-Id 
      * 
-     * @return Article or null
-     * @throws StorageBackendException
-     */
-	Article getArticle(String message_id, Integer id) throws StorageBackendException;
+	 * @param message_id
+	 * @param id
+	 * @return Article or null
+	 * @throws StorageBackendException
+	 */
+	Article getArticleWeb(String message_id, Integer id) throws StorageBackendException;
 	
 	/**
 	 * Get threads count(*) for groupId. Navigation bar. BoardService.

@@ -103,7 +103,7 @@ public class ArticleCommand implements Command {
             }
         // Message-ID
         } else if (Headers.matchMsgId(command[1])) {
-			article = StorageManager.current().getArticle(command[1], null);
+			article = StorageManager.current().getArticle(command[1], null, 0);
             if (article == null) {
                 conn.println("430 no such article found");
                 return;
@@ -114,7 +114,7 @@ public class ArticleCommand implements Command {
             try {
                 int id = Integer.parseInt(command[1]);
                 //1) number as internal number
-                article = StorageManager.current().getArticle(null, id);
+                article = StorageManager.current().getArticle(null, id, 0);
                 //2) number as old format for current group
                 if (article == null){
                 	Group currentGroup = conn.getCurrentGroup();
@@ -129,7 +129,7 @@ public class ArticleCommand implements Command {
                     		conn.println("420 no article found in current group");
                     		return;
                     	}
-                    	article = StorageManager.current().getArticle(null, id);
+                    	article = StorageManager.current().getArticle(null, id, 0);
                     	if (article == null){
                     		conn.println("500 no article found in current group");
                     		return;

@@ -112,7 +112,7 @@ public class IhaveCommand implements Command{
 						if(Headers.matchMsgId(CMessageId)){
 							//Message-Id
 							//TODO:may be better search in cache only?
-							Article art = StorageManager.current().getArticle(CMessageId, null);
+							Article art = StorageManager.current().getArticle(CMessageId, null, 1);
 							if (art != null){
 								conn.println("435 Article already exist");
 								state = PostState.Finished;

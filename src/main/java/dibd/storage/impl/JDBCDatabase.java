@@ -195,7 +195,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 						this.pstmtGetArticle = conn.prepareStatement("SELECT id, article.thread_id, message_id, message_id_host, a_name, subject, message, post_time, path_header, group_id, file_path, media_type "
 							+ "FROM thread, article "
 							+"LEFT JOIN attachment ON article.id = attachment.article_id "
-							+"WHERE (( article.message_id = ? ) OR article.id = ?) AND thread.thread_id = article.thread_id AND article.status = 0;");
+							+"WHERE (( article.message_id = ? ) OR article.id = ?) AND thread.thread_id = article.thread_id AND article.status <= ?;");
 			// Prepare simple statements for method GetMessageId
 						this.pstmtGetMessageId = conn.prepareStatement("SELECT message_id FROM article WHERE id = ?;"); 
 			// Prepare simple statements for method getNewArticleIDs
@@ -891,10 +891,14 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 		}
 		return ret;
 	}
-
 	
 	@Override
-	public Article getArticle(String messageId, Integer id) throws StorageBackendException {
+	public Article getArticleWeb(String messageId, Integer id) throws StorageBackendException{
+		return getArticle(messageId, id, 1);
+	};
+	
+	@Override
+	public Article getArticle(String messageId, Integer id, int status) throws StorageBackendException {
 		assert(messageId != null || id != null);
 		ResultSet rs = null;
 		Article art = null;
@@ -905,6 +909,9 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 				pstmtGetArticle.setInt(2, id);
 			else
 				pstmtGetArticle.setNull(2, java.sql.Types.INTEGER);
+			
+			pstmtGetArticle.setInt(3, status);
+			
 			rs = pstmtGetArticle.executeQuery();
 			//1id, 2thread_id, 3message_id, 4message_id_host, 5a_name, 6subject, 7message, 8post_time, 9path_header, 10group_id, 11file_path, 12media_type
 			if (rs.next()){
@@ -920,7 +927,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			}
 		} catch (SQLException ex) {
 			restartConnection(ex);
-			return getArticle(messageId, id);
+			return getArticle(messageId, id, status);
 		} finally {
 			closeResultSet(rs);
 			this.restarts = 0; // Reset error count

@@ -35,12 +35,14 @@ public interface StorageNNTP {
 
     /**
      * Get article for message_id:{@literal <}random{@literal @}host{@literal >} OR for internal id
-     * articles with status = 1 rejected;
+     * articles with <= status;
+     * 
+     * status everywhere 1 except ArticleCommand = status-0
      * 
      * @return Article or null
      * @throws StorageBackendException
      */
-    Article getArticle(String message_id, Integer id) throws StorageBackendException;
+    Article getArticle(String message_id, Integer id, int status) throws StorageBackendException;
     
     /**
      * Simple id to message_id

@@ -334,7 +334,7 @@ class ReceivingService{
 		//if ref equal mId we assume it is thread
 		if (ref != null && !ref[0].isEmpty() && ! ref[0].equals(messageId)){ 
 
-			Article art = StorageManager.current().getArticle(ref[0], null); //get thread
+			Article art = StorageManager.current().getArticle(ref[0], null, 1); //get thread
 
 			if (art != null){
 				if (art.getId().intValue() == art.getThread_id().intValue()){ //check that ref is a thread

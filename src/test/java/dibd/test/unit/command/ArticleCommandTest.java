@@ -45,7 +45,7 @@ public class ArticleCommandTest {
 		verify(conn, atLeastOnce()).println(startsWith("420")); //Current article is invalid
 		
 		Article art0 = Mockito.mock(Article.class);//mock article
-		when(storage.getArticle("<messageid@foo.bar>", null)).thenReturn(art0);
+		when(storage.getArticle("<messageid@foo.bar>", null, 0)).thenReturn(art0);
 		when(art0.getMsgID_host()).thenReturn("foo.bar");
 		
 		a.processLine(conn, "article <messageid@foo.bar>", "article <messageid@foo.bar>".getBytes("UTF-8"));
@@ -60,7 +60,7 @@ public class ArticleCommandTest {
 		verify(conn, atLeastOnce()).println(startsWith("221")); 
 		verify(conn, atLeastOnce()).println(".");
 		
-		when(storage.getArticle(null, 2)).thenReturn(art0);
+		when(storage.getArticle(null, 2, 0)).thenReturn(art0);
 		a.processLine(conn, "article 2", "article 2".getBytes("UTF-8"));
 		verify(conn, atLeastOnce()).println(startsWith("220")); 
 		verify(conn, atLeastOnce()).println(".");

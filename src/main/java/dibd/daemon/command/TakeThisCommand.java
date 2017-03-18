@@ -98,7 +98,7 @@ public class TakeThisCommand implements Command {
 					if (command[0].equalsIgnoreCase("TAKETHIS")) {
 						CMessageId = command[1];
 						if(Headers.matchMsgId(CMessageId)){
-							Article art = StorageManager.current().getArticle(CMessageId, null);
+							Article art = StorageManager.current().getArticle(CMessageId, null, 1);
 							if (art != null){
 								conn.println("439 " + CMessageId+" already have");
 								isHeadersOK = false;

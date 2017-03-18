@@ -110,7 +110,7 @@ public class IHAVEandTAKETHISTest {
 	public void IhaveReplayTest() throws StorageBackendException, IOException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, ParseException{
 		Config.inst().set(Config.HOSTNAME, "not-in-path.com"); //added to path
 		Article art0 = Mockito.mock(Article.class);//empty
-		when(storage.getArticle("<refmessageid@foo.bar>", null)).thenReturn(art0);
+		when(storage.getArticle("<refmessageid@foo.bar>", null, 1)).thenReturn(art0);
 		when(art0.getId()).thenReturn( 105 );
 		when(art0.getThread_id()).thenReturn( 105 );
 		
@@ -138,7 +138,7 @@ public class IHAVEandTAKETHISTest {
 		
 		IhaveCommand c = new IhaveCommand();
 		c.processLine(conn, send1, send1.getBytes("UTF-8")); //send ihave
-		verify(this.storage).getArticle("<23456@host.com>", null); //ReceivingService there is no such article yet
+		verify(this.storage).getArticle("<23456@host.com>", null, 1); //ReceivingService there is no such article yet
 		verify(conn, atLeastOnce()).println(startsWith("335")); //Send article
 		for(int i = 0; i < send2.length; i++)
 			c.processLine(conn, send2[i], send2[i].getBytes("UTF-8")); //headers
@@ -193,7 +193,7 @@ public class IHAVEandTAKETHISTest {
 		IhaveCommand c = new IhaveCommand();
 		
 		c.processLine(conn, send1, send1.getBytes("UTF-8")); //send ihave
-		verify(this.storage).getArticle("<23456@host.com>", null); //ReceivingService there is no such article yet
+		verify(this.storage).getArticle("<23456@host.com>", null, 1); //ReceivingService there is no such article yet
 		verify(conn, atLeastOnce()).println(startsWith("335")); //Send article
 		for(int i = 0; i < send2.length; i++){
 			c.processLine(conn, send2[i], send2[i].getBytes("UTF-8"));
@@ -645,7 +645,7 @@ public class IHAVEandTAKETHISTest {
 		IhaveCommand c = new IhaveCommand();
 		
 		c.processLine(conn, send1, send1.getBytes("UTF-8")); //send ihave
-		verify(this.storage).getArticle("<23456@host.com>", null); //ReceivingService there is no such article yet
+		verify(this.storage).getArticle("<23456@host.com>", null, 1); //ReceivingService there is no such article yet
 		verify(conn, atLeastOnce()).println(startsWith("335")); //Send article
 		for(int i = 0; i < send2.length; i++){
 			c.processLine(conn, send2[i], send2[i].getBytes("UTF-8"));
@@ -666,7 +666,7 @@ public class IHAVEandTAKETHISTest {
 		Config.inst().set(Config.HOSTNAME, "not-in-path.com"); //added to path
 		Article art0 = Mockito.mock(Article.class);//empty
 		//when(storage.getArticle("<23456@host.com>", null)).thenReturn(art0);//ref
-		when(storage.getArticle("<refmessageid@foo.bar>", null)).thenReturn(art0);//ref
+		when(storage.getArticle("<refmessageid@foo.bar>", null, 1)).thenReturn(art0);//ref
 		when(art0.getId()).thenReturn( 105 );
 		when(art0.getThread_id()).thenReturn( 105 );
 		
@@ -693,7 +693,7 @@ public class IHAVEandTAKETHISTest {
 		
 		TakeThisCommand c = new TakeThisCommand();
 		c.processLine(conn, send1, send1.getBytes("UTF-8")); //send ihave
-		verify(this.storage).getArticle("<23456@host.com>", null); //ReceivingService there is no such article yet
+		verify(this.storage).getArticle("<23456@host.com>", null, 1); //ReceivingService there is no such article yet
 		
 		for(int i = 0; i < send2.length; i++)
 			c.processLine(conn, send2[i], send2[i].getBytes("UTF-8")); //headers

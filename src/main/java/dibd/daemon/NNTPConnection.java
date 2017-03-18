@@ -246,6 +246,8 @@ public class NNTPConnection implements NNTPInterface{
         Log.get().log(Level.FINER, "<< {0}", line);
 
         if (command == null) {
+        	if(line.startsWith("5")) //any 500 response. TODO:add other codes
+        		return;
             command = parseCommandLine(line);
             assert command != null;
         }

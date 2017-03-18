@@ -43,7 +43,7 @@ public class ShortRefParser {
 			while (matcher.find()) {
 				int id = Integer.parseInt(matcher.group(2),16);
 
-				Article art = db.getArticle(null, id);
+				Article art = db.getArticleWeb(null, id);
 
 				if (art != null)
 					//short_ref_messageId.put(matcher.group(1), art.getMessageId());
@@ -78,7 +78,7 @@ public class ShortRefParser {
 				
 				Article art;
 				try {
-					art = db.getArticle(matcher.group(), null);  //diff
+					art = db.getArticleWeb(matcher.group(), null);  //diff
 				} catch (StorageBackendException e) {
 					art = null;
 				}
