@@ -41,7 +41,7 @@ public class ListCommand implements Command {
 
     @Override
     public String[] getSupportedCommandStrings() {
-        return new String[] { "LIST", "NEWSGROUPS" };
+        return new String[] { "LIST"};
     }
 
     @Override

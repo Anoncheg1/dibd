@@ -80,7 +80,7 @@ public class PostTest {
 	
 	
 	@Test
-	public void PostThreadTest() throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, UnsupportedEncodingException, IOException, StorageBackendException, ParseException {
+	public void postThreadTest() throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, UnsupportedEncodingException, IOException, StorageBackendException, ParseException {
 
 		Set<String> host = new HashSet<String>(Arrays.asList("hschan.ano","host.com"));
 		//name id flags hosts
@@ -127,7 +127,7 @@ public class PostTest {
 	}
 	
 	@Test
-	public void Postmultipart() throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, UnsupportedEncodingException, IOException, StorageBackendException, ParseException {
+	public void postmultipart() throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, UnsupportedEncodingException, IOException, StorageBackendException, ParseException {
 
 		Set<String> host = new HashSet<String>(Arrays.asList("hschan.ano","host.com"));
 		//name id flags hosts

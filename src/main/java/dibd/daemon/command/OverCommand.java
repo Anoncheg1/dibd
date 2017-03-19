@@ -19,9 +19,12 @@
 package dibd.daemon.command;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+
+import javax.mail.internet.MimeUtility;
 
 import dibd.config.Config;
 import dibd.daemon.NNTPInterface;
@@ -142,6 +145,7 @@ public class OverCommand implements Command {
         if (group == null) {
             conn.println("412 no newsgroup selected");
         } else {
+        	conn.println("224 Overview information follows (multi-line)");
         	//int allThreads = Config.inst().get(Config.THREADS_PER_PAGE, 5) * Config.inst().get(Config.PAGE_COUNT, 6);
         	Map<Integer, String> th_ids = StorageManager.current().scrapThreadIds(group, Integer.MAX_VALUE);//no limit
         	if ( ! th_ids.isEmpty()){
@@ -151,7 +155,7 @@ public class OverCommand implements Command {
         				List<Article> thread = StorageManager.current().getOneThread(tIdAndMid.getKey(), group.getName(), 0);
         				if ( ! thread.isEmpty()){
         					for( Article art: thread)
-        						buildOverview(art, i++, tIdAndMid.getValue());
+        						conn.println(buildOverview(art, i++, tIdAndMid.getValue()));
         				}
         			}catch(StorageBackendException ex){	/*no thread, skip*/ }
         		}
@@ -160,7 +164,7 @@ public class OverCommand implements Command {
         }
     }
 
-    private String buildOverview(Article art, long nr, String threadMid) throws StorageBackendException {
+    private String buildOverview(Article art, long nr, String threadMId) throws StorageBackendException, UnsupportedEncodingException {
         StringBuilder overview = new StringBuilder();
         //1) number
         overview.append(nr)
@@ -168,22 +172,20 @@ public class OverCommand implements Command {
         //2) Subject
         String subject = art.getSubject();
         if (subject != null)
-        	overview.append(escapeString(subject))
-        .append('\t');
+        	overview.append(MimeUtility.encodeWord(escapeString(subject)));
+        overview.append('\t');
         //3) from
         String name = art.getA_name();
         if (name != null)
-        	overview.append(escapeString(name))
-        .append('\t');
+        	overview.append(escapeString(MimeUtility.encodeWord(name)));
+        overview.append('\t');
         //4)date
-        overview.append(escapeString(art.getDate()))
-        .append('\t');
+        overview.append(escapeString(art.getDate())).append('\t');
         //5)message-Id
-        overview.append(escapeString(art.getMessageId()))
-        .append('\t');
+        overview.append(escapeString(art.getMessageId())).append('\t');
         //6) thread-Id
-        if( ! art.getMessageId().equals(threadMid)) //if replay
-        	overview.append(threadMid);
+        if( ! art.getId().equals(art.getThread_id())) //if replay
+        	overview.append(threadMId);
         //overview.append('\t');
 
         //String bytes = art.getHeader(Headers.BYTES)[0];

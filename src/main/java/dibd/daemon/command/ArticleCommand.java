@@ -122,7 +122,7 @@ public class ArticleCommand implements Command {
                         conn.println("412 no group selected");
                         return;
                     }else{
-                    	List<Integer> li= StorageManager.current().getArticleNumbers(currentGroup.getInternalID(), id);
+                    	List<Integer> li= StorageManager.current().getArticleNumbers(currentGroup.getInternalID(), id-1);
                     	try{
                     		id = li.get(0);
                     	}catch(IndexOutOfBoundsException ex){

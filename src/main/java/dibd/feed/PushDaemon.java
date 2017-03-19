@@ -127,21 +127,21 @@ public class PushDaemon extends DaemonThread {
 							
 							try {
 								ap.writeArticle(article);
-								Log.get().log(Level.INFO, "PushFeed secess: {0},{1},{2}", new Object[] { sub.getHost(), article.getMessageId(),group.getName() } );
+								Log.get().log(Level.INFO, "PushDaemon secess: {0},{1},{2}", new Object[] { sub.getHost(), article.getMessageId(),group.getName() } );
 							} catch (IOException ex) {
 								if (ex.getMessage().startsWith("436"))
 									PushDaemon.articleQueue.put(article);//we put article to query again, Possible infinity loop!!
 								else if (ex.getMessage().startsWith("437"))
 									continue;
 								else
-									Log.get().log(Level.WARNING, "PushFeeder I/O Exception: {0}", ex);
+									Log.get().log(Level.WARNING, "PushDaemon I/O Exception: {0}", ex);
 								continue;
 							}finally{
 								ap.close();
 							}
 						}
 			} catch (InterruptedException ex) {
-				Log.get().log(Level.FINEST, "PushFeeder interrupted: {0}", ex.getLocalizedMessage());
+				Log.get().log(Level.FINEST, "PushDaemon interrupted: {0}", ex.getLocalizedMessage());
 				return;
 			}catch (Exception e) {
 	    		Log.get().log(Level.SEVERE, e.getLocalizedMessage(), e);

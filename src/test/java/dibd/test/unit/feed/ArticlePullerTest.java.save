@@ -373,6 +373,7 @@ public class ArticlePullerTest {
 		//boolean res = ap.transferToItself(ihcom, mId);//IhaveCommand can't be reused.
         int res = (int) transferToItselfS.invoke(ap, ihcom, mId);
 		assertEquals(rIn.readLine(), "ARTICLE " + mId);
+		System.out.println(res);
 		assertTrue(res == 0);
 		//######## ap.close() ########
 		rOut.println("qua");

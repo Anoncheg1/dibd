@@ -156,7 +156,9 @@ public class NNTPConnection implements NNTPInterface{
             // will be received and a timeout can be triggered.
             //this.channel.socket().shutdownInput(); // this will close whole socket.
         	Selector readSelector = ChannelReader.getInstance().getSelector();
-        	this.channel.keyFor(readSelector).cancel();
+        	SelectionKey sk = this.channel.keyFor(readSelector);
+        	if(sk != null)
+        		sk.cancel();
         /*} catch (IOException ex) {
             Log.get().log(Level.WARNING,
                     "Exception in NNTPConnection.shutdownInput(): {0}", ex);
@@ -238,19 +240,21 @@ public class NNTPConnection implements NNTPInterface{
 
         // There might be a trailing \r, but trim() is a bad idea
         // as it removes also leading spaces from long header lines.
-        if (line.endsWith("\r")) { //collaboration with ChannelLineBuffer.nextInputLine
+        if (line.charAt(line.length()-1) == '\r') { //collaboration with ChannelLineBuffer.nextInputLine
             line = line.substring(0, line.length() - 1);
             raw = Arrays.copyOf(raw, raw.length - 1);
         }
 
-        Log.get().log(Level.FINER, "<< {0}", line);
+        Log.get().log(Level.FINEST, "<< {0}", line);
 
         if (command == null) {
-        	if(line.startsWith("5")) //any 500 response. TODO:add other codes
+        	if(line.charAt(0) == '5') //mistaking 5xx responses. TODO:add other codes
         		return;
+        	Log.get().log(Level.FINEST, "<< {0}", line);
             command = parseCommandLine(line);
             assert command != null;
-        }
+        }else
+        	Log.get().log(Level.FINER, "<< {0}", line);
 
         try {
             // The command object will process the line we just received
@@ -362,7 +366,7 @@ public class NNTPConnection implements NNTPInterface{
         // Update last activity timestamp
         this.lastActivity = System.currentTimeMillis();
         if (debugLine != null) {
-            Log.get().log(Level.FINER, ">> {0}", debugLine);
+            Log.get().log(Level.FINEST, ">> {0}", debugLine);
         }
     }
 

@@ -48,7 +48,7 @@ class ShutdownHook implements Runnable {
     			/*if((thread.getName().equals("PushDaemon") || thread.getName().equals("PullDaemon"))
     					&& thread.isAlive()){
     				((DaemonThread) thread).requestShutdown();*/
-    			if ((thread.getName().equals("PullFeeder") || thread.getName().equals("PushDaemon") || thread.getName().equals("PullDaemon"))
+    			if ((thread.getName().equals("PullDaemon") || thread.getName().equals("PushDaemon") || thread.getName().equals("PullAtStart"))
     					&& thread.isAlive()){
     				thread.interrupt();
     			}

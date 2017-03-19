@@ -25,7 +25,9 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
+import java.net.Proxy;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.nio.charset.Charset;
 import java.security.cert.X509Certificate;
 import java.text.ParseException;
@@ -70,17 +72,18 @@ import dibd.util.Log;
  */
 public class ArticlePuller {
 
-	private final Socket socket;
+	private Socket socket;
 	private PrintWriter out;
 	private BufferedReader in;
 	private static final String NL = NNTPConnection.NEWLINE;
 	private final Charset charset = Charset.forName("UTF-8");
+	
+	
+	
+	private Proxy proxy;
 	private final String host; //for log messages
+	private int port;
 	private final boolean TLSEnabled; //for private class Response
-	
-	private ChannelLineBuffers lineBuffers;
-	
-	
 	/**
 	 * Check connection to remote peer.
 	 * host name required for log messages.
@@ -90,12 +93,20 @@ public class ArticlePuller {
 	 * @param host
 	 * @throws IOException
 	 */
-	public ArticlePuller(Socket socket, boolean TLSEnabled, String host) throws SSLPeerUnverifiedException, IOException{
+	public ArticlePuller(Proxy proxy, String host, int port, boolean TLSEnabled) throws SSLPeerUnverifiedException, IOException{
+		this.proxy = proxy;
 		this.host = host;
+		this.port = port;
 		this.TLSEnabled = TLSEnabled;
+		connect();
+	
+		
+	}
+	
+	void connect() throws IOException{
+		this.socket = FeedManager.createSocket(proxy, host, port);
 		
 		this.socket = FeedManager.getHelloFromServer(socket, TLSEnabled, host, charset);
-		
 		if (TLSEnabled){
 			
 			SSLSocket sslsocket = (SSLSocket) this.socket;
@@ -108,8 +119,6 @@ public class ArticlePuller {
 			this.in = new BufferedReader(new InputStreamReader(this.socket.getInputStream(), this.charset));
 	
 		}
-		
-		lineBuffers = new ChannelLineBuffers();
 	}
 
 	//Hook for command connection
@@ -215,44 +224,82 @@ public class ArticlePuller {
 		try {
 			ihavec.processLine(conn, s, s.getBytes("UTF-8"));
 		
-	
 		String line = conn.readLine();
 		if (line == null || !line.startsWith("335")) {
 			if (line != null && line.startsWith("435")){
-			//	Log.get().log(Level.FINE, "IHAVE-loopback {0} we already have this or don't want it", messageId);
 				return 2;
 			}else
-				Log.get().log(Level.WARNING, "transferToItself from {0} {1} we ihave:{2}", new Object[]{this.host, messageId, line} );
+				Log.get().log(Level.WARNING, "From {0} {1} we ihave:{2}", new Object[]{this.host, messageId, line} );
 			return 1; //some error
 		}
 
+		//ARTICLE
 		this.out.print("ARTICLE " + messageId + NL);
 		this.out.flush();
-		
 		/**	220 0|n message-id    Article follows (multi-line)
 	    *	430                   No article with that message-id
 	    */
+		line = this.in.readLine();
+		if (line == null) {
+            Log.get().warning("Unexpected null reply from remote host");
+            return 1;
+        }
+		if (line.startsWith("430 ")) {
+            Log.get().log(Level.WARNING, "Message {0} not available at {1}",
+                    new Object[]{messageId, this.host});
+            return 1;
+        }
+        if (!line.startsWith("220 ")) {
+            throw new IOException("Unexpected reply to ARTICLE "+messageId);
+        }
 		
+        
+        //OK Lets rock!
 		Log.get().log(Level.FINE, "Pulling article {0} from {1} ", new Object[]{messageId, this.host} );
 		
-		do{ //read from ARTICLE response and write to loopback IHAVE
-			
-			line = this.in.readLine();
-			if (line == null) {
-				Log.get().log(Level.WARNING, "Article from {0} {1} null line resived during reading", new Object[]{this.host, messageId} );
-				return 1;
-			}
+				
+		read_article:{
+			do{ //read from ARTICLE response and write to loopback IHAVE
 
-			byte[] raw = line.getBytes(charset);
-			if (raw.length >= ChannelLineBuffers.BUFFER_SIZE){ //ReceivingService.readingBody() will not add \r\n for big line
-				ihavec.processLine(conn, line, raw); //send ihave
-				ihavec.processLine(conn, "", new byte[]{}); //ReceivingService will add \r\n
-			}else
-				ihavec.processLine(conn, line, raw); //send ihave
 
-		}while(!".".equals(line));
+				line = this.in.readLine();
+				if (line == null) {
+					Log.get().log(Level.WARNING, "Article from {0} {1} null line resived during reading", new Object[]{this.host, messageId} );
+					return 1;
+				}
 
-		
+				//System.out.println("READ FILE " + messageId+ " readed:"+line.length());
+				String ihaveline = conn.readLine();
+				if ( ihaveline != null){//error
+					conn.println(ihaveline);
+
+					if (!ihaveline.startsWith("235")){
+
+						for(int i = 0; i<20 ; i++){
+							line = this.in.readLine();
+							if(line.equals("."))
+								break read_article;
+						} //wait for 20 lines
+						Log.get().log(Level.FINER, "{0} rejected, reconnecting.", messageId);
+						close();
+						connect();
+						
+						break;
+					}
+				}
+
+				byte[] raw = line.getBytes(charset);
+				if (raw.length >= ChannelLineBuffers.BUFFER_SIZE){ //ReceivingService.readingBody() will not add \r\n for big line
+					ihavec.processLine(conn, line, raw); //send ihave
+					ihavec.processLine(conn, "", new byte[]{}); //ReceivingService will add \r\n
+				}else
+					ihavec.processLine(conn, line, raw); //send ihave
+
+			}while(!".".equals(line));
+		}
+
+
+	
 		line = conn.readLine();//IHAVE response
 		if (line != null)
 			if(line.startsWith("235")) {
@@ -542,7 +589,7 @@ public class ArticlePuller {
 
 				//this.lastActivity = System.currentTimeMillis();
 				this.in.readLine(); //we are polite
-				lineBuffers.recycleBuffers();
+		//		lineBuffers.recycleBuffers();
 				in.close();
 				out.close();
 			}

@@ -189,6 +189,12 @@ class ReceivingService{
 			}
 			
 			
+			//deep headers analysis
+			
+			
+			
+			
+			
 
 		}
 		if (lineHeadCount > 20)
@@ -233,6 +239,8 @@ class ReceivingService{
 			if(bodySize == 0) //no body
 				return 2;
 			else if (command.equals("POST") && bodySize > maxBodySize) 
+				return 3;
+			else if (bodySize > maxBodySize*Config.inst().get(Config.MAXSIZEMULTIPLIER, 10)) 
 				return 3;
 			
 		}

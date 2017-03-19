@@ -98,7 +98,7 @@ public class PullDaemon extends DaemonThread {
     			boolean TLSenabled = Config.inst().get(Config.TLSENABLED, false);
     			//Connecting
     			try {
-					ap = new ArticlePuller(FeedManager.createSocket(proxy, host, port), TLSenabled, host);
+					ap = new ArticlePuller(proxy, host, port, TLSenabled);
 				} catch (SSLPeerUnverifiedException e) {
 					Log.get().log(Level.WARNING, "For host {0} TLS did not present a valid certificate",
 		        			host);
@@ -178,7 +178,7 @@ public class PullDaemon extends DaemonThread {
     				Log.get().log(Level.WARNING, "No thread was found for missing thread: {0} at {1} peers", new Object[] {mthr.string_for_log, subs.size()});
     		
     		} catch (InterruptedException e1) {
-    			Log.get().log(Level.FINEST, "PullFeeder interrupted: {0}", e1.getLocalizedMessage());
+    			Log.get().log(Level.FINEST, "PullDaemon interrupted: {0}", e1.getLocalizedMessage());
     			return;
 			}catch (Exception e) {
 	    		Log.get().log(Level.SEVERE, e.getLocalizedMessage(), e);

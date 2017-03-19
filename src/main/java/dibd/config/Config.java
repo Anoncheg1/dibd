@@ -38,6 +38,7 @@ public class Config extends AbstractConfig {
      * megabytes.
      */
     public static final String ARTICLE_MAXSIZE = "dibd.article.maxsize"; //MB. attachment size for web, article size for article
+    public static final String MAXSIZEMULTIPLIER = "dibd.maxsize_multiplier"; //limit = dibd.article.maxsize*dibd.maxsize_multiplier
     /**
      * BackendConfig key constant. Value: Amount of news that are feeded per
      * run.
@@ -58,7 +59,7 @@ public class Config extends AbstractConfig {
     public static final String LOGLEVEL = "dibd.loglevel";
     //It can be increased or decreased without lose. VALUES 1-7
     public static final String ID_F_COUNT = "dibd.id_f_count"; //count of F symbol in hex internal article Id
-    public static final String MAXFILE = "dibd.max_attachment_size"; 
+     
 
     /*
     public static final String MLPOLL_DELETEUNKNOWN = "dibd.mlpoll.deleteunknown";

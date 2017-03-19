@@ -107,6 +107,8 @@ public class NNTPCacheProvider {
 	 * We cache with "\r\n" at the end".
 	 * Do not forget to close FileInputStream,
 	 * 
+	 * Used in Article to check if cache exist even if article seems ours(maybe returned missing thread)
+	 * 
 	 * @param article
 	 * @return null if not exist
 	 */
@@ -115,7 +117,6 @@ public class NNTPCacheProvider {
 		try {
 			return new FileInputStream(f);
 		} catch (FileNotFoundException e) {
-			Log.get().log(Level.WARNING, "NNTPCacheProvider.readFile(): {0}", e);
 			return null;
 		}		
 	}

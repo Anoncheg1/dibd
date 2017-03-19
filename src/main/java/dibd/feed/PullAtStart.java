@@ -75,7 +75,7 @@ public class PullAtStart extends Thread {
     			boolean TLSenabled = Config.inst().get(Config.TLSENABLED, false);
     			//Connecting
     			try {
-					ap = new ArticlePuller(FeedManager.createSocket(proxy, host, port), TLSenabled, host);
+					ap = new ArticlePuller(proxy, host, port, TLSenabled);
 				} catch (SSLPeerUnverifiedException e) {
 					Log.get().log(Level.WARNING, "For host {0} TLS did not present a valid certificate",
 		        			host);
@@ -122,10 +122,12 @@ public class PullAtStart extends Thread {
     public void run() {
     	String host = sub.getHost();
     	int port = sub.getPort();
-    	Set<Group> groups = new HashSet<Group>();
-    	groups.addAll(StorageManager.groups.groupsPerPeer(sub));
-    	if (groups.isEmpty())
+    	
+    	Set<Group> set = StorageManager.groups.groupsPerPeer(sub);
+    	if (set== null || set.isEmpty())
     		return;
+    	
+    	Set<Group> groups = new HashSet<Group>(set); //modifiable
     	//Map<Group, Long> groupsTime = new HashMap<Group, Long>();//groups with last post time (not ordered)
     	 
     	try {

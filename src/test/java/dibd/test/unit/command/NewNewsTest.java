@@ -40,7 +40,7 @@ public class NewNewsTest {
 	}
 
 	@Test
-	public void NewNewsCommandTest() throws UnsupportedEncodingException, IOException, StorageBackendException, ParseException, NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, InstantiationException{
+	public void newNewsCommandTest() throws UnsupportedEncodingException, IOException, StorageBackendException, ParseException, NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, InstantiationException{
 		Class<?> nnc = NewNewsCommand.class;
 		NewNewsCommand co = (NewNewsCommand) nnc.newInstance();
 		Method parseDate = nnc.getDeclaredMethod("parseDate", new Class[]{String.class, String.class});

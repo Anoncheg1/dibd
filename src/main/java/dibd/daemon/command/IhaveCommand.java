@@ -197,7 +197,7 @@ public class IhaveCommand implements Command{
 					state = PostState.Finished;
 					postArticle(conn);
 				}else if (r == 2 || r == 3){
-					conn.println("437 No body or body is empty");
+					conn.println("437 No body or body is too big");
 					state = PostState.Finished;
 				}
 			}else if (".".equals(line))
