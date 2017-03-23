@@ -148,9 +148,9 @@ public class PullAtStart extends Thread {
         	}
     		*/
     		int res = pull(groups, host, port, 21, 60*1000);
-    		
     		Log.get().log(Level.INFO, "Pull {0} from {1} sucessfully completed, {2} articles reseived.",
-    				new Object[]{groups.stream().map(g->getName()).collect(Collectors.toList()).toString(), host, res});
+    				new Object[]{
+    						groups.stream().map(e -> e.getName()).reduce( (e1, e2) -> e1+", "+e2).get(), host, res});
     	}catch (StorageBackendException e) {
     		Log.get().log(Level.WARNING, e.getLocalizedMessage(), e);
     	}catch (Exception e) {
