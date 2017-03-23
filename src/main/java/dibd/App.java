@@ -199,8 +199,8 @@ public final class App {
         final NNTPDaemon daemon = NNTPDaemon.createInstance(port);
         
         //Pull new articles. Just before the final start.
-        FeedManager.startPull();//we must get groups last_post time BEFORE daemon.start
-        //Thread.sleep(500);//0.5 sec time window to get last post time unchanged.
+        (new FeedManager()).start();
+
         
         FeedManager.startPushDaemons();
         

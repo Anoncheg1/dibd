@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLPeerUnverifiedException;
 
@@ -148,8 +149,8 @@ public class PullAtStart extends Thread {
     		*/
     		int res = pull(groups, host, port, 21, 60*1000);
     		
-    		Log.get().log(Level.INFO, "Pull from {0} sucessfully completed, {1} articles reseived.",new Object[]{host, res});
-
+    		Log.get().log(Level.INFO, "Pull {0} from {1} sucessfully completed, {2} articles reseived.",
+    				new Object[]{groups.stream().map(g->getName()).collect(Collectors.toList()).toString(), host, res});
     	}catch (StorageBackendException e) {
     		Log.get().log(Level.WARNING, e.getLocalizedMessage(), e);
     	}catch (Exception e) {

@@ -570,7 +570,7 @@ public class ArticlePuller {
 				messageIDs2.put(mid, val);
 		}
 		
-		Log.get().log(Level.INFO, "Threads to PULL {0} from {1} host", new Object[]{messageIDs2.size(), gname, host});
+		Log.get().log(Level.INFO, "Threads {0} in {1} to PULL from {2} ", new Object[]{messageIDs2.size(), gname, this.host});
 		return messageIDs2;
 	}
 

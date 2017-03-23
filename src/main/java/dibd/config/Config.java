@@ -149,7 +149,7 @@ public class Config extends AbstractConfig {
         String val = CommandLineConfig.getInstance().get(key, null);
 
         if (val == null)
-            val = FileConfig.getInstance().get(key, def);
+            val = FileConfig.getInstance().get(key, def);//TODO:check with null def and no test for optimization
         
         if (val == null) 
         	Log.get().log(Level.WARNING, "Returning default value for {0}, {1}", new Object[]{key, val});

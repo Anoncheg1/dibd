@@ -34,11 +34,7 @@ import dibd.storage.SubscriptionsProvider.FeedType;
 import dibd.storage.SubscriptionsProvider.Subscription;
 import dibd.util.Log;
 
-public class FeedManager {
-	
-	private FeedManager() {
-		// TODO Auto-generated constructor stub
-	}
+public class FeedManager extends Thread{
 	
 	//TODO:create separate for every peer
 	public static Proxy getProxy(Subscription sub) throws NumberFormatException, UnknownHostException{
@@ -67,7 +63,8 @@ public class FeedManager {
 	 * Start pulling
 	 * 
 	 */
-	public static void startPull(){
+	public //public static void startPull(){
+	void run(){
 		if (Config.inst().get(Config.PEERING, true)) {
 			//1) Pull daemon which pulling threads for rLeft without ones 
 			final int pullThreadsAmount = 10; //TODO:make configurable
@@ -100,6 +97,11 @@ public class FeedManager {
 					}
         			
         			pf.start(); //thread per subscription
+        			try {
+						pf.join();
+					} catch (InterruptedException e) {
+						break;
+					}
         		}
         	}
         }
