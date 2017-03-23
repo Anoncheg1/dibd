@@ -775,5 +775,64 @@ public class IHAVEandTAKETHISTest {
 	}
 	
 	
+	@Test
+	public void IhaveThreadMultiattachTest() throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, UnsupportedEncodingException, IOException, StorageBackendException, ParseException {
+
+		Set<String> host = new HashSet<String>(Arrays.asList("hschan.ano","host.com"));
+		//name id flags hosts
+		when(StorageManager.groups.get("local.test")).thenReturn(
+				(Group) groupC.newInstance("local.test",23,0,host));
+				
+		String send1 = "ihave <23456@host.com>";
+		String[] send2 = {
+				"Mime-Version: 1.0",
+				"Date: Thu, 02 May 2013 12:16:44 +0000",
+				"Message-ID: <23456@host.com>",
+				"Newsgroups: local.test",
+				"Subject: subj",
+				//"references: <23456@host.com>",
+				"Path: hschan.ano",
+				"Content-Type: multipart/mixed;",
+				"    boundary=\"=-=-=__O8KsN2iGKO4xUESptbCjDG14G__=-=-=\"",
+				"",
+				"--=-=-=__O8KsN2iGKO4xUESptbCjDG14G__=-=-=",
+				"Content-type: text/plain; charset=utf-8",
+				"Content-Transfer-Encoding: base64",
+				"",
+				"bWVzc2FnZQ==",
+				"--=-=-=__O8KsN2iGKO4xUESptbCjDG14G__=-=-=",
+				"Content-Type: image/gif",
+				"Content-Disposition: attachment; filename=\"Blank.gif\"",
+				"Content-Transfer-Encoding: base64",
+				"",
+				"R0lGODlhAQABAIAAAP///wAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw==",
+				"--=-=-=__O8KsN2iGKO4xUESptbCjDG14G__=-=-=",
+				"Content-Type: image/jpg",
+				"Content-Disposition: attachment; filename=\"Blank2.jpg\"",
+				"Content-Transfer-Encoding: base64",
+				"",
+				"R0lGODlhAQA",
+				"--=-=-=__O8KsN2iGKO4xUESptbCjDG14G__=-=-=--",
+				"."
+		};
+		
+		IhaveCommand c = new IhaveCommand();
+		
+		c.processLine(conn, send1, send1.getBytes("UTF-8")); //send ihave
+		verify(this.storage).getArticle("<23456@host.com>", null, 1); //ReceivingService there is no such article yet
+		verify(conn, atLeastOnce()).println(startsWith("335")); //Send article
+		for(int i = 0; i < send2.length; i++){
+			c.processLine(conn, send2[i], send2[i].getBytes("UTF-8"));
+		}
+		
+		//Article art = new Article(thread_id, mId[0], mId[1], from, subjectT, message,
+		//date[0], path[0], groupHeader[0], group.getInternalID());
+		Article art = new Article(null, "<23456@host.com>", "host.com", null, "subj", "message",
+				"Thu, 02 May 2013 12:16:44 +0000", "hschan.ano", "local.test", 23, 0);
+		verify(this.storage, atLeastOnce()).createThread(
+				art, Base64.getDecoder().decode("R0lGODlhAQABAIAAAP///wAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw=="),"image/gif", "Blank.gif"); //ReceivingService here
+		verify(conn, atLeastOnce()).println(startsWith("235")); //article is accepted
+	}
+	
 
 }

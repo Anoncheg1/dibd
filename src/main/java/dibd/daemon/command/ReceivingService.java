@@ -205,7 +205,7 @@ class ReceivingService{
 	private int lineHeadCount = 0;
 	private long bodySize = 0;
 	
-	private enum Multipart { Comment, MessagePart, AttachmentPart};
+	private enum Multipart { Comment, MessagePart, AttachmentPart, AttachmentReaded};
 	private Multipart mPart = Multipart.Comment;
 	
 	private enum MessagePts { Headers, Message};
@@ -289,7 +289,7 @@ class ReceivingService{
 					//We don't need more attachments for now.
 					//That is why is it final part or not no matter.
 					if(line.startsWith("--") && line.startsWith("--"+boundary)){ //+"--" 
-						mPart = null; //other parts ignored.
+						mPart = Multipart.AttachmentReaded; //other parts ignored.
 						break;
 					}
 					
@@ -305,6 +305,7 @@ class ReceivingService{
 						
 					break;
 				}
+				case AttachmentReaded:break;
 				default: {
 					// Should never happen
 					Log.get().severe(command+" "+cMessageId+":"+host+":readingBody(): already finished...");
@@ -314,7 +315,7 @@ class ReceivingService{
 				//multipart
 				//check size of messageB
 				if (bodySize > maxArticleSize)
-					if (mPart == Multipart.AttachmentPart || mPart == null)
+					if (mPart == Multipart.AttachmentPart || mPart == Multipart.AttachmentReaded)
 						return 2;
 					else
 						return 3;//fail
@@ -336,8 +337,8 @@ class ReceivingService{
 		} else { //"." was reach
 			bodySize -= 1;
 
-			if ((boundary != null && mPart != null) || bodySize == 0) //==0 if every line is was empty line 
-				return 4;//not all parts was read. Other checks later.
+			if ((boundary != null && mPart != Multipart.AttachmentReaded) || bodySize == 0) //==0 if every line is was empty line 
+				return 4;//It is the end but it doesn't look like the end.
 			
 
 			return 1;

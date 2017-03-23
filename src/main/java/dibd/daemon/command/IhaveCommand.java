@@ -79,8 +79,6 @@ public class IhaveCommand implements Command{
 	
 	public final String noRef = "437 no such thread for replay.";
 	
-	private long bodySize = 0;
-	
 	//For ArticlePuller
 	public boolean pullMode = false;
 	

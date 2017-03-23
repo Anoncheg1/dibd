@@ -21,15 +21,12 @@ package dibd.feed;
 import java.io.IOException;
 import java.net.Proxy;
 import java.net.UnknownHostException;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
-
 import javax.net.ssl.SSLPeerUnverifiedException;
 
 import dibd.storage.StorageBackendException;
