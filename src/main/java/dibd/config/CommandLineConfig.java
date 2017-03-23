@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.HashMap;
 
 /**
- * TODO: why we need two classes FileConfig and this shit?
+ * We need two config classes: for command-line parameters - first priority, for file confing parameters - second priority.
  * @author Christian Lins
  */
 class CommandLineConfig extends AbstractConfig {

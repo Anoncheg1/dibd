@@ -18,7 +18,6 @@
 
 package dibd.util;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
@@ -45,7 +44,7 @@ public class Log extends Logger {
         SimpleFormatter formatter = new SimpleFormatter();
         
         ///// create log to file if possible ////
-        String logfile = Config.inst().get(Config.LOGFILE, null);
+        String logfile = Config.inst().getSilent(Config.LOGFILE, null);
         if (logfile != null){
         	try {
         		FileHandler fh = new FileHandler(logfile);

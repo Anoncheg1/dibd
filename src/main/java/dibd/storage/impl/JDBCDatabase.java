@@ -54,7 +54,6 @@ import dibd.util.Log;
  */
 public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Storage
 	public static final int MAX_RESTARTS = 2;
-	public static final int maxBodySize = Config.inst().get(Config.ARTICLE_MAXSIZE, 1) * 1024 * 1024;
 
 	protected Connection conn = null;
 
@@ -296,7 +295,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 	 * 
 	 * @param id
 	 * @param groupName
-	 * @param bfile
+	 * @param bfile if null we assume status = 0;
 	 * @param content_type we can not trust it
 	 * @param file_name may be absent for nntp. we will use .xxx if exist.
 	 * @throws SQLException
@@ -304,11 +303,10 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 	 * @throws IOException 
 	 */
 	private void attachmentSaving(final int id, final String groupName, byte[] bfile, final String content_type,  final String file_name) throws SQLException, StorageBackendException, IOException{
-		if (content_type != null && content_type.length() > 256)
+		if (content_type.length() > 256)
 			throw new StorageBackendException("Too long media-type");
-		
 		String fileNameForSave;
-		if (bfile.length <= maxBodySize)
+		if (bfile != null)
 			fileNameForSave = String.valueOf(id);
 		else
 			fileNameForSave = "No File(was too large)";
@@ -319,7 +317,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 				fileNameForSave = fileNameForSave + "." + nameparts[nameparts.length-1];
 		}
 		
-		if( bfile.length <= maxBodySize)
+		if (bfile != null)
 			StorageManager.attachments.saveFile(groupName, fileNameForSave, bfile);
 		//save database record
 		this.pstmtAttachmentSaving.setInt(1, id);
@@ -327,7 +325,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 		this.pstmtAttachmentSaving.setString(3, content_type);
 		this.pstmtAttachmentSaving.execute();
 		//create thumbbnail (not critical)
-		if (content_type != null && bfile.length <= maxBodySize)
+		if (bfile != null)
 			StorageManager.attachments.createThumbnail(groupName, fileNameForSave, content_type);
 
 	} 
@@ -448,6 +446,8 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 	public Article createThreadWeb(Article article,
 			byte[] bfile, final String file_ct, final String file_name)
 					throws StorageBackendException {
+		assert((bfile == null && file_ct == null) ||
+				(bfile != null && file_ct != null));
 		if (repeatCheck(article.getHash(), article.getPost_time()))
 			return null;
 		else
@@ -501,6 +501,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 				String mId_random = Integer.toHexString(id) + article.getPost_time();
 				messageId = "<"+ mId_random + "@" + article.getMsgID_host() +">";
 			}
+			
 			// insert article
 			pstmtCreateThread1.setInt(1, id);
 			//thread_id = null for referential cycle insert
@@ -525,11 +526,11 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			pstmtCreateThread3.execute();
 			// transaction end
 			
-
+			
 			// attachment saving (part of transaction)
-			//if (bfile != null && media_type != null)
-			if (bfile != null)
+			if (file_ct != null)  //if bfile == null we use status = 1
 				attachmentSaving(id, groupName, bfile, file_ct, file_name);
+			
 			
 			this.conn.commit();
 			this.conn.setAutoCommit(true);
@@ -569,6 +570,8 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 	public Article createReplayWeb(Article article,
 			byte[] bfile, final String file_ct, final String file_name)
 					throws StorageBackendException {
+		assert((bfile == null && file_ct == null) ||
+				(bfile != null && file_ct != null));
 		if (repeatCheck(article.getHash(), article.getPost_time()))
 			return null;
 		else
@@ -594,6 +597,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 				String mId_random = Integer.toHexString(id) + article.getPost_time();
 				messageId = "<"+ mId_random + "@" + article.getMsgID_host() +">";
 			}
+			
 			// insert article
 			pstmtCreateReplay1.setInt(1, id);
 			pstmtCreateReplay1.setInt(2, article.getThread_id());
@@ -612,9 +616,9 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			pstmtCreateReplay2.setInt(2, article.getThread_id());
 			pstmtCreateReplay2.execute();
 			// transaction end
-			
+
 			// attachment saving (part of transaction)
-			if (bfile != null && file_ct != null)
+			if (file_ct != null)  //if bfile == null we use status = 1
 				attachmentSaving(id, groupName, bfile, file_ct, file_name);
 
 			this.conn.commit();

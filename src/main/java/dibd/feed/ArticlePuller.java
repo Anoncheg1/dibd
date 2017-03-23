@@ -217,8 +217,9 @@ public class ArticlePuller {
 	 */
 	public int transferToItself(IhaveCommand ihavec, String messageId)
 			throws StorageBackendException {
-		
-		ihavec.blockPush(); //we do not need to push pulled articles. we will push pushed articles.
+		//we do not need to push pulled articles. we will push pushed articles.
+		//and we don't need log messages.
+		ihavec.setPullMode(); 
 		
 		String s = "IHAVE "+ messageId;
 		try {
@@ -261,31 +262,28 @@ public class ArticlePuller {
 		read_article:{
 			do{ //read from ARTICLE response and write to loopback IHAVE
 
-
-				line = this.in.readLine();
-				if (line == null) {
-					Log.get().log(Level.WARNING, "Article from {0} {1} null line resived during reading", new Object[]{this.host, messageId} );
-					return 1;
-				}
-
 				//System.out.println("READ FILE " + messageId+ " readed:"+line.length());
 				String ihaveline = conn.readLine();
 				if ( ihaveline != null){//error
 					conn.println(ihaveline);
 
-					if (!ihaveline.startsWith("235")){
+					//any message in the middle of transfer is error or success that required to finish
+					for(int i = 0; i<20 ; i++){
+						line = this.in.readLine();
+						if(line == null || line.equals("."))
+							break read_article;
+					} //wait for 20 lines
+					Log.get().log(Level.FINER, "{0} rejected, reconnecting.", messageId);
+					close();
+					connect();
 
-						for(int i = 0; i<20 ; i++){
-							line = this.in.readLine();
-							if(line.equals("."))
-								break read_article;
-						} //wait for 20 lines
-						Log.get().log(Level.FINER, "{0} rejected, reconnecting.", messageId);
-						close();
-						connect();
-						
-						break;
-					}
+					break;
+				}
+				
+				line = this.in.readLine();
+				if (line == null) {
+					Log.get().log(Level.WARNING, "{0} null line resived during reading from {1} ", new Object[]{messageId, this.host} );
+					return 1;
 				}
 
 				byte[] raw = line.getBytes(charset);
@@ -303,7 +301,7 @@ public class ArticlePuller {
 		line = conn.readLine();//IHAVE response
 		if (line != null)
 			if(line.startsWith("235")) {
-				Log.get().log(Level.INFO, "Message {0} successfully transmitted", messageId);
+				Log.get().log(Level.INFO, "{0} successfully transmitted", messageId);
 				return 0;
 			} else if (line.equals(ihavec.noRef)){//must never happen
 				Log.get().log(Level.SEVERE, "PULL from {0} {1} NO SUCH THREAD", new Object[]{this.host, messageId} );
@@ -572,7 +570,7 @@ public class ArticlePuller {
 				messageIDs2.put(mid, val);
 		}
 		
-		Log.get().log(Level.INFO, "Threads to PULL: {0} ", messageIDs2.size());
+		Log.get().log(Level.INFO, "Threads to PULL {0} from {1} host", new Object[]{messageIDs2.size(), gname, host});
 		return messageIDs2;
 	}
 

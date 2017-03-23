@@ -709,5 +709,71 @@ public class IHAVEandTAKETHISTest {
 
 	}
 	
+	
+	@Test
+	@Ignore
+	public void IHAVEThreadTooLargeAttTest() throws StorageBackendException, IOException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, ParseException{
+
+		Set<String> host = new HashSet<String>(Arrays.asList("chan","host.com"));
+		//name id flags hosts
+		when(StorageManager.groups.get("overchan.random")).thenReturn(
+				(Group) groupC.newInstance("overchan.random",23,0,host));
+				
+		String send1 = "ihave <f282b1489970884@chan>";
+		String[] send2 = {
+				"Mime-Version: 1.0",
+				"Content-Type: multipart/mixed; boundary=77e56317873f7fdd1e53fdac",
+				"Newsgroups: overchan.random",
+				"Subject: None",
+				"From: Anonymous <poster@chan>",
+				"Message-ID: <f282b1489970884@chan>",
+				"Date: Mon, 20 Mar 2017 00:48:04 +0000",
+				"Path: chan",
+				"",
+				"--77e56317873f7fdd1e53fdac",
+				"Content-Transfer-Encoding: base64",
+				"Content-Transfer-Encoding: base64",
+				"Content-Type: text/plain; charset=UTF-8",
+				"",
+				"--77e56317873f7fdd1e53fdac",
+				"Content-Disposition: form-data; name=\"attachment_uploaded\"; filename=\"asd.png\"",
+				"Content-Transfer-Encoding: base64",
+				"Content-Type: image/png",
+				"",
+		};
+
+		String send3="GkXfowEAAAAAAAAjQoaBAUL3gQFC8oEEQvOBCEKCiG1hdHJ";
+		
+		String[] send4 = {
+				"--77e56317873f7fdd1e53fdac--",
+				"."
+				};
+		
+		IhaveCommand c = new IhaveCommand();
+		
+		c.processLine(conn, send1, send1.getBytes("UTF-8")); //send ihave
+		verify(this.storage).getArticle("<f282b1489970884@chan>", null, 1); //ReceivingService there is no such article yet
+		verify(conn, atLeastOnce()).println(startsWith("335")); //Send article
+		
+		for(int i = 0; i < send2.length; i++){
+			c.processLine(conn, send2[i], send2[i].getBytes("UTF-8"));
+		}
+		for(int i = 0; i < 999000; i++){
+			c.processLine(conn, send3, send3.getBytes("UTF-8"));
+		}
+		for(int i = 0; i < send4.length; i++){
+			c.processLine(conn, send4[i], send4[i].getBytes("UTF-8"));
+		}
+		
+		//Article art = new Article(thread_id, mId[0], mId[1], from, subjectT, message,
+		//date[0], path[0], groupHeader[0], group.getInternalID());
+		Article art = new Article(null, "<f282b1489970884@chan>", "host.com", "Anonymous <poster@chan>", "None", "should look like this",
+				"Mon, 20 Mar 2017 00:48:04 +0000", "chan", "overchan.random", 23, 0);
+		verify(this.storage, atLeastOnce()).createThread(
+				art, Base64.getDecoder().decode("R0lGODlhAQABAIAAAP///wAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw=="),"image/gif", "asd.png"); //ReceivingService here
+		verify(conn, atLeastOnce()).println(startsWith("235")); //article is accepted
+	}
+	
+	
 
 }

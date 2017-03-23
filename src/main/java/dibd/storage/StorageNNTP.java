@@ -37,7 +37,7 @@ public interface StorageNNTP {
      * Get article for message_id:{@literal <}random{@literal @}host{@literal >} OR for internal id
      * articles with <= status;
      * 
-     * status everywhere 1 except ArticleCommand = status-0
+     * status we get <= status. 1 = 0 and 1. 0 = for 0 only 
      * 
      * @return Article or null
      * @throws StorageBackendException
@@ -76,7 +76,8 @@ public interface StorageNNTP {
 	 * Without repeat check.
 	 * 
 	 * @param article
-	 * @param bfile
+	 * @param bfile if bfile == null we assume that file was too large 
+	 * and we save it partially with status = 1. file_ct and file_name should not be null then. 
 	 * @param file_ct   - content-type
 	 * @param file_name
 	 * @throws StorageBackendException
@@ -93,8 +94,8 @@ public interface StorageNNTP {
 	 * 
 	 * @param groupName
 	 * @param article
-	 * @param bfile
-	 * @param file_ct
+	 * @param bfile if bfile == null we assume that file was too large 
+	 * and we save it partially with status = 1. file_ct and file_name should not be null then.
 	 * @param file_name
 	 * @throws StorageBackendException
 	 * @return article never null

@@ -47,7 +47,7 @@ public interface StorageWeb {
 	 * and time for last 180 sec.
 	 * 
 	 * @param article
-	 * @param bfile
+	 * @param bfile if null file_ct should also be null
 	 * @param file_ct   -content-type
 	 * @param file_name
 	 * @throws internal Id
@@ -64,8 +64,8 @@ public interface StorageWeb {
 	 * 
 	 * @param groupName
 	 * @param article
-	 * @param bfile
-	 * @param file_ct
+	 * @param bfile if null file_ct should also be null
+	 * @param file_ct   -content-type
 	 * @param file_name
 	 * @throws internal Id
 	 * @throws StorageBackendException

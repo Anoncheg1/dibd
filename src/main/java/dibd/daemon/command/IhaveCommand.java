@@ -71,19 +71,21 @@ public class IhaveCommand implements Command{
 	
 	private ReceivingService rs = null;
 	
-	private String CMessageId = null;
+	private String cMessageId = null;
 	
-	private boolean isHeadersOK = true;
+	private boolean error = false;
 	
 	private String host; //for log ONLY
 	
 	public final String noRef = "437 no such thread for replay.";
 	
-	//For ArticlePuller
-	public boolean allowPush = true;
+	private long bodySize = 0;
 	
-	public void blockPush(){
-		this.allowPush = false;
+	//For ArticlePuller
+	public boolean pullMode = false;
+	
+	public void setPullMode(){
+		this.pullMode = true;
 	}
 	
 	/**
@@ -108,11 +110,10 @@ public class IhaveCommand implements Command{
 						//335    Send article to be transferred
 						//435    Article not wanted
 						//436    Transfer not possible; try again later
-						CMessageId = command[1];
-						if(Headers.matchMsgId(CMessageId)){
+						cMessageId = command[1];
+						if(Headers.matchMsgId(cMessageId)){
 							//Message-Id
-							//TODO:may be better search in cache only?
-							Article art = StorageManager.current().getArticle(CMessageId, null, 1);
+							Article art = StorageManager.current().getArticle(cMessageId, null, 1);
 							if (art != null){
 								conn.println("435 Article already exist");
 								state = PostState.Finished;
@@ -122,7 +123,7 @@ public class IhaveCommand implements Command{
 								
 								conn.println("335 send article");
 
-								rs = new ReceivingService("IHAVE", conn, this.allowPush);
+								rs = new ReceivingService("IHAVE", conn, this.pullMode, cMessageId);
 								state = PostState.ReadingHeaders;
 								return;
 							}
@@ -137,76 +138,87 @@ public class IhaveCommand implements Command{
 			break;
 		}
 		case ReadingHeaders: {
-			int r = rs.readingHeaders(line, raw);
-			switch (r) {
-			case 0: return;//continue
-			case 1:
-				Log.get().log(Level.WARNING, "{0} No date or path or messageId in headers from {1}", new Object[]{CMessageId, host});
-				isHeadersOK = false;
-				conn.println("437 No date or path or messageId in headers");
-				break;
-			case 2: { //ok
+			String res = rs.readingHeaders(line, raw);
+			if (res == null)
+				return; //continue
+			else if(res.equals("ok")){//ok, reseived
+				//checks after headers readed
 				if (!rs.circleCheck()){
 					conn.println("437 Circle detected");
-					isHeadersOK = false;
+					error = true;
 				}else
-				if(!rs.getMessageId().equals(CMessageId)){ //message-id check to be sure
+				if(!cMessageId.equals(rs.getMessageId())){ //message-id check to be sure
 					conn.println("437 message-id in command not equal one in headers");
-					isHeadersOK = false;
+					error = true;
 				}else
-				if(!rs.checkSender1()){//1) first check of sender
-					isHeadersOK = false;// no answer
+				if(!rs.checkSender1()){//1) first check of sender by the path
+					conn.println("437 Last sender in Path do not have permission for this group; do not retry");
+					error = true;// no answer
 				}else
 				if(!rs.checkSender2()){//2) second check of sender
 					//conn.println("437 Group is unknown; do not retry"); //just like fuck off.
 					conn.println("437 You do not have permission for this group; do not retry");
-					isHeadersOK = false;
+					error = true;
 				}else
-				/*if(!rs.checkSender3()){//3) third check for new senders in group
-					isHeadersOK = false;
-				}*/
+				//if(!rs.checkSender3()){//3) third check for new senders in group
+					//isHeadersOK = false;
+				//}
 				if(!rs.checkRef()){
 					conn.println(this.noRef); //437 no such thread for replay.
-					isHeadersOK = false;
+					error = true;
 				}
-				break;
-			}
-			case 3:
-				conn.println("437 No body for article.");
-				state = PostState.Finished;
-				return;
-			case 4:
-				conn.println("437 No such news group.");
-				isHeadersOK = false;
-				break;
-			case 5:
-				Log.get().severe("IHAVECommand: headers is too large for "+this.CMessageId+" from host "+host);
-				conn.println("437 headers is too large.");
-				isHeadersOK = false;
-				break;
+				
+			}else{
+				conn.println("437 "+res);
+				error = true;
 			}
 			
-			
+			//success or error
 			state = PostState.ReadingBody;
 			break;
+			
 		}
 		case ReadingBody: {
-			if(isHeadersOK){
-				int r = rs.readingBody(line, raw);
-				if (r == 1){
+			if(! error){
+				
+				int res = rs.readingBody(line, raw);
+				switch(res){
+				case 0: return;//continue
+				case 1:{ //full seccess
 					state = PostState.Finished;
-					postArticle(conn);
-				}else if (r == 2 || r == 3){
-					conn.println("437 No body or body is too big");
-					state = PostState.Finished;
+					postArticle(conn, 0);
+					break;
 				}
-			}else if (".".equals(line))
+				case 2:{//success without attachment
+					//no error to post
+					conn.println("235 Too big attachment."); //235 to signal ArticlePuller that thread accepted
+					postArticle(conn, 1);
+					error = true; //we must reach "."
+					break;
+				}
+				case 3:{
+					conn.println("437 Too big message.");
+					error = true; //we must reach "."
+					break;
+				}
+				case 4:{
+					conn.println("437 Wrong multipart format or empty body.");
+					state = PostState.Finished;
+					break;
+				}
+				default: {
+					// Should never happen
+					Log.get().severe("IHAVE:"+cMessageId+":"+host+":processLine() case ReadingBody: already finished...");
+				}
+				}
+				
+			}else if (".".equals(line)) //idling
 				state = PostState.Finished;
 			break;
 		}
 		default: {
 			// Should never happen
-			Log.get().severe("IHAVE:"+CMessageId+":"+host+":processLine(): already finished...");
+			Log.get().severe("IHAVE:"+cMessageId+":"+host+":processLine(): already finished...");
 		}
 		}
 		
@@ -219,19 +231,19 @@ public class IhaveCommand implements Command{
 	 * For command it will parse article and decide post it or not
 	 * 
 	 * @param conn
-	 * @param command
+	 * @param status 0 - normal, 1 - file was not readed (too large).
 	 * @throws IOException
 	 */
-	private void postArticle(NNTPInterface conn) throws IOException {
-		//circle check is not needed why?
+	private void postArticle(NNTPInterface conn, int status) throws IOException {
 		
-		if (isHeadersOK){
+		if (! error)
 			try{
-				String res = rs.process(conn.getCurrentCharset());//, 437, 235);
-				if (res == null)
-					conn.println("235 article posted ok");
-				else
-					conn.println("437 "+res);
+				String res = rs.process(status);
+				if (status == 0) // for 1 we work silent here
+					if (res == null)
+						conn.println("235 article posted ok");
+					else
+						conn.println("437 "+res);
 			} catch (UnsupportedEncodingException e) {
 				conn.println("437 Something wrong with message");
 			} catch (StorageBackendException ex) {
@@ -239,10 +251,8 @@ public class IhaveCommand implements Command{
 				conn.println("500 Internal server error");
 			} catch (MessagingException|ParseException e) {
 				conn.println("437 Wrong MIME headers");
-				Log.get().log(Level.INFO, "{0} IHAVE there was error in headers, from {1}", new Object[]{CMessageId, host});
+				Log.get().log(Level.INFO, "{0} IHAVE there was error in headers, from {1}", new Object[]{cMessageId, host});
 			}
-		}else
-			Log.get().log(Level.INFO, "{0} IHAVE there was error in main headers, from {1}", new Object[]{CMessageId, host});
 	}
 	
 }

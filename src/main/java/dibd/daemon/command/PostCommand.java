@@ -26,6 +26,7 @@ import javax.mail.MessagingException;
 
 import dibd.config.Config;
 import dibd.daemon.NNTPInterface;
+import dibd.daemon.command.IhaveCommand.PostState;
 import dibd.storage.StorageBackendException;
 import dibd.util.Log;
 
@@ -86,7 +87,7 @@ public class PostCommand implements Command {
 
 	private ReceivingService rs = null;
 	
-	private boolean isHeadersOK = true;
+	private boolean error = false;
 	
 	private String host; //for log ONLY
 
@@ -110,7 +111,7 @@ public class PostCommand implements Command {
 				if (line.equalsIgnoreCase("POST")) { //ok
 					host = conn.getHost();
 					conn.println("340 send article to be posted. End with <CR-LF>.<CR-LF>");
-					rs = new ReceivingService("POST", conn, true);
+					rs = new ReceivingService("POST", conn, false, null);
 					state = PostState.ReadingHeaders;
 					return;
 				} else 
@@ -121,47 +122,53 @@ public class PostCommand implements Command {
 			break;
 		}
 		case ReadingHeaders: {
-			int r = rs.readingHeaders(line, raw);
-			switch (r) {
-			case 0: return;//continue
-			case 1:
-				isHeadersOK = false;
-				conn.println("441 No date or path or messageId in headers");
-				break;
-			case 2: //ok
-				break;
-			case 3:
-				conn.println("441 No body for article.");
-				state = PostState.Finished;
-				return;
-			case 4:
-				conn.println("441 No such news group.");
-				isHeadersOK = false;
-				break;
-			case 5:
-				conn.println("441 headers is too large.");
-				isHeadersOK = false;
-				break;
+			String res = rs.readingHeaders(line, raw);
+			if (res == null)
+				return; //continue
+			else if(res.equals("ok")){//ok, reseived
+				if(!rs.checkRef()){
+					conn.println("441 no such thread for replay.");
+					error = true;
+				}
+			}else{
+				conn.println("441 "+res);
+				error = true;
 			}
 			
-			
-			/*if (r == 1){//error
-				state = PostState.Finished;
-			}else if (r == 2){
-				state = PostState.ReadingBody;
-			}else if (r == 3){
-				postArticle(conn);
-				state = PostState.Finished;
-			}*/
+			//success or error
 			state = PostState.ReadingBody;
 			break;
 		}
 		case ReadingBody: {
-			int r = rs.readingBody(line, raw); 
-			if (r == 1 || r == 2){
-				state = PostState.Finished;
-				postArticle(conn);
-			}else if (r == 3)
+			if(! error){
+				
+				int res = rs.readingBody(line, raw);
+				switch(res){
+				case 0: return;//continue
+				case 1:{ //full seccess
+					state = PostState.Finished;
+					postArticle(conn);
+					break;
+				}
+				case 2:{
+				}
+				case 3:{
+					conn.println("441 Too big message.");
+					error = true; //we must reach "."
+					break;
+				}
+				case 4:{
+					conn.println("441 Wrong multipart format or empty body.");
+					state = PostState.Finished;
+					break;
+				}
+				default: {
+					// Should never happen
+					Log.get().severe("POST:"+host+":processLine() case ReadingBody: already finished...");
+				}
+				}
+				
+			}else if (".".equals(line)) //idling
 				state = PostState.Finished;
 			break;
 		}
@@ -174,10 +181,9 @@ public class PostCommand implements Command {
 
 	
 	private void postArticle(NNTPInterface conn) throws IOException {
-		if (isHeadersOK)
+		if (! error)
 			try{
-				rs.process(conn.getCurrentCharset());
-				String res = rs.process(conn.getCurrentCharset());//, 437, 235);
+				String res = rs.process(0);
 				if (res == null)
 					conn.println("240 article posted ok");
 				else

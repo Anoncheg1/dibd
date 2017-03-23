@@ -96,18 +96,23 @@ public class ArticlePusher {
     }
 	 */
 
-	//TODO:add dont want to anc check time out
-	private void prepareIHAVE(String messageId) throws IOException {
+	//true no have
+	//false already have
+	private boolean prepareIHAVE(String messageId) throws IOException {
 		String ihave = "IHAVE "+messageId+"\r\n";
 		this.out.write(ihave.getBytes(charset));
 		this.out.flush();
 
 		//lastActivity = System.currentTimeMillis();
 		String line = this.inr.readLine();
-		if (line == null || line.startsWith("435")) {
-			return;
+		if (line == null)
+			throw new IOException(line);
+		else if (line.startsWith("435")){ 
+			return false;
 		}else if (!line.startsWith("335"))
 			throw new IOException(line);
+		else
+			return true;
 			
 	}
 	
@@ -173,10 +178,17 @@ public class ArticlePusher {
 			this.lineEncoder.encode(CharBuffer.wrap(art.buildNNTPMessage(this.charset, 1)));//(), this.charset).encode(lineBuffers);
 			writeLines();
 			
+			
+			
+			
+			//good working for diboard
 			try {Thread.sleep(2000);} catch (InterruptedException e) {} //2 sec is enough 
 			if(inr.ready()){	//(My invention)
 				checkErrors();
 			}
+			
+			
+			
 			
 			//body
 			this.lineEncoder.encode(CharBuffer.wrap(art.buildNNTPMessage(charset, 2)));

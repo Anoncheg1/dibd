@@ -26,6 +26,7 @@ import javax.mail.MessagingException;
 
 import dibd.config.Config;
 import dibd.daemon.NNTPInterface;
+import dibd.daemon.command.IhaveCommand.PostState;
 import dibd.storage.Headers;
 import dibd.storage.StorageBackendException;
 import dibd.storage.StorageManager;
@@ -72,9 +73,9 @@ public class TakeThisCommand implements Command {
     
     private ReceivingService rs = null;
 	
-	private String CMessageId = null;
+	private String cMessageId = null;
 	
-	private boolean isHeadersOK = true;
+	private boolean error = false;
 	
 	private String host; //for log ONLY
 
@@ -94,136 +95,105 @@ public class TakeThisCommand implements Command {
 			if (Config.inst().get(Config.NNTPALLOW_UNAUTORIZED, false) || conn.isTLSenabled()){
 
 				final String[] command = line.split("\\p{Space}+");
-				if (command.length != 1) {
-					if (command[0].equalsIgnoreCase("TAKETHIS")) {
-						CMessageId = command[1];
-						if(Headers.matchMsgId(CMessageId)){
-							Article art = StorageManager.current().getArticle(CMessageId, null, 1);
-							if (art != null){
-								conn.println("439 " + CMessageId+" already have");
-								isHeadersOK = false;
-								state = PostState.ReadingBody;//do nothing. we can't just halt
-								return;
-							}else{ //ok
-								host = conn.getHost();
-								rs = new ReceivingService("TAKETHIS", conn, true);
-								state = PostState.ReadingHeaders;
-								return;
-							}
-						}
-					}
-				}
-				conn.println("500 invalid command usage");
+				if (command.length == 2 && command[0].equalsIgnoreCase("TAKETHIS")) {
+					
+					cMessageId = command[1];
+					if(Headers.matchMsgId(cMessageId)){
+						Article art = StorageManager.current().getArticle(cMessageId, null, 1);
+						if (art == null){
+							host = conn.getHost();
+							rs = new ReceivingService("TAKETHIS", conn, false, cMessageId);
+							state = PostState.ReadingHeaders;
+							break;
+						}else //ok
+							conn.println("439 " + cMessageId+" already have");
+					}else
+						conn.println("439 " + cMessageId + " wrong message-id format");
+
+				}else
+					conn.println("500 " + cMessageId + " invalid command usage");
 			}else
-				conn.println("483 TLS required");
-			state = PostState.Finished;
+				conn.println("483 " + cMessageId + " TLS required");
+			conn.close();
 			break;
 		}
 		case ReadingHeaders: {
-			int r = rs.readingHeaders(line, raw);
-			switch (r) {
-			case 0: return;//continue
-			case 1:
-				conn.println("439 "+CMessageId+" posting failed - invalid header");
-				isHeadersOK = false;
-				break;
-			case 2: { //ok
+			
+			String res = rs.readingHeaders(line, raw);
+			if (res == null)
+				return; //continue
+			else if(res.equals("ok")){//ok, reseived
+				//checks after headers readed
 				if (!rs.circleCheck()){
-					conn.println("439 "+ CMessageId+" Circle detected");
-					isHeadersOK = false;
+					conn.println("439 "+cMessageId+" Circle detected");
+					error = true;
 				}else
-				if(!rs.getMessageId().equals(CMessageId)){ //message-id check to be sure
-					conn.println("439 "+CMessageId+" message-id in command not equal one in headers");
-					isHeadersOK = false;
-				}else
-				if(!rs.checkSender1()){//1) first check of sender
-					conn.println("439 "+CMessageId+" there is no such peer in supscription list.");
-					isHeadersOK = false;
-				}else
-				if(!rs.checkSender2()){//2) second check of sender
-					//conn.println("437 Group is unknown; do not retry"); //just like fuck off.
-					conn.println("439 "+CMessageId+" You do not have permission for this group; do not retry");
-					isHeadersOK = false;
-				}
-				//if(!rs.checkSender3()){//3) third check for new senders in group
-				//isHeadersOK = false;
-				//}
-				if(!rs.checkRef()){
-					conn.println("439 "+CMessageId+" no such thread for replay. Thread will be pulled");
-					isHeadersOK = false;
-				}
-				break;
-			}
-			case 3:
-				conn.println("439 "+CMessageId+" No body for article.");
-				state = PostState.Finished;
-				return;
-			case 4:
-				conn.println("439 "+CMessageId+" No such news group.");
-				isHeadersOK = false;
-				break;
-			case 5:
-				Log.get().severe("TAKETHISCommand: headers is too large for"+rs.getMessageId());
-				conn.println("439 "+CMessageId+" headers is too large.");
-				isHeadersOK = false;
-				break;
-			}
-			/*
-			if (r == 0)
-				return;//continue
-			else 
-			if (r == 1){//error to recognize headers
-				//state = PostState.Finished;
-				conn.println("500 "+CMessageId+" posting failed - invalid header");
-				isHeadersOK = false;
-			}else if (r == 2){//OK Normal
-				if (rs.circleCheck()){
-					conn.println("439 "+ CMessageId+"Circle detected");
-					isHeadersOK = false;
-				}else
-				if(!rs.getMessageId().equals(CMessageId)){ //message-id check to be sure
-					conn.println("500 "+CMessageId+" message-id in command not equal one in headers");
-					isHeadersOK = false;
+				if(!cMessageId.equals(rs.getMessageId())){ //message-id check to be sure
+					conn.println("439 "+cMessageId+" message-id in command not equal one in headers");
+					error = true;
 				}else
 				if(!rs.checkSender1()){//1) first check of sender
-					conn.println("500 "+CMessageId+" there is no suck peer in supscription list.");
-					isHeadersOK = false;
+					//answer or not?
+					conn.println("439 "+cMessageId+" Last sender in Path do not have permission for this group; do not retry");
+					error = true;// no answer
 				}else
 				if(!rs.checkSender2()){//2) second check of sender
-					//conn.println("437 Group is unknown; do not retry"); //just like fuck off.
-					conn.println("439 "+CMessageId+" You do not have permission for this group; do not retry");
-					isHeadersOK = false;
-				}
+					conn.println("439 "+cMessageId+" You do not have permission for this group; do not retry");
+					error = true;
+				}else
 				//if(!rs.checkSender3()){//3) third check for new senders in group
 					//isHeadersOK = false;
 				//}
-			}else if (r == 3){
-				conn.println("439 "+CMessageId+" No body for article.");
-				state = PostState.Finished;
-			}else if (r == 4){
-				conn.println("439 "+CMessageId+" No such news group.");
-				isHeadersOK = false;
-			}else if (r == 5){
-				Log.get().severe("TAKETHISCommand: headers is too large for"+rs.getMessageId());
-				conn.println("500 "+CMessageId+" headers is too large.");
-				isHeadersOK = false;
+				if(!rs.checkRef()){
+					conn.println(" 439 "+cMessageId+" There is no such thread for replay.");
+					error = true;
+				}
+				
+			}else{
+				conn.println("439 "+res);
+				error = true;
 			}
-			*/
+			
+			//success or error
 			state = PostState.ReadingBody;
 			break;
+			
 		}
 		case ReadingBody: {
-			if(isHeadersOK){
-				int r = rs.readingBody(line, raw);
-
-				if (r == 1){//ok
+if(! error){
+				
+				int res = rs.readingBody(line, raw);
+				switch(res){
+				case 0: return;//continue
+				case 1:{ //full seccess
 					state = PostState.Finished;
-					postArticle(conn);
-				}else if (r == 2 || r == 3){
-					conn.println("439 "+CMessageId+" No body or body is empty");
-					state = PostState.Finished;
+					postArticle(conn, 0);
+					break;
 				}
-			}else if (".".equals(line))
+				case 2:{//success without attachment
+					//not error to post
+					conn.println("439 "+cMessageId+" Too big attachment.");
+					postArticle(conn, 1);
+					error = true; //we must reach "."
+					break;
+				}
+				case 3:{
+					conn.println("439 "+cMessageId+" Too big message.");
+					error = true; //we must reach "."
+					break;
+				}
+				case 4:{
+					conn.println("439 "+cMessageId+" Wrong multipart format or empty body.");
+					state = PostState.Finished;
+					break;
+				}
+				default: {
+					// Should never happen
+					Log.get().severe("TAKETHIS:"+cMessageId+":"+host+":processLine() case ReadingBody: already finished...");
+				}
+				}
+				
+			}else if (".".equals(line)) //idling
 				state = PostState.Finished;
 			break;
 		}
@@ -242,28 +212,30 @@ public class TakeThisCommand implements Command {
 	 * For command it will parse article and decide post it or not
 	 * 
 	 * @param conn
-	 * @param command
+	 * @param status 0 - normal, 1 - file was not readed (too large).
 	 * @throws IOException
 	 */
-	private void postArticle(NNTPInterface conn) throws IOException {
-		if (isHeadersOK){
+	private void postArticle(NNTPInterface conn, int status) throws IOException {
+		if (! error)
 			try{
-				String res = rs.process(conn.getCurrentCharset());
-				if (res ==null)
-					conn.println("239 "+CMessageId+" article posted ok");
-				else
-					conn.println("439 "+ CMessageId + " "+res);
+				String res = rs.process(status);
+				if (status == 0)
+					if (res == null)
+						conn.println("239 "+cMessageId+" article posted ok");
+					else
+						conn.println("439 "+ cMessageId + " "+res);
+		
+		
 			} catch (UnsupportedEncodingException e) {
-				conn.println("439 "+CMessageId+" Something wrong with message");
+				conn.println("439 "+cMessageId+" Something wrong with message");
 			} catch (StorageBackendException ex) {
 				ex.printStackTrace();
-				conn.println("500 "+CMessageId+" Internal server error");
+				conn.println("500 "+cMessageId+" Internal server error");
 			} catch (MessagingException|ParseException e) {
-				conn.println("439 "+CMessageId+" Wrong MIME headers");
-				Log.get().log(Level.INFO, "{0} TAKETHIS there was error in headers in miltiline, from {1}", new Object[]{CMessageId, host});
+				conn.println("439 "+cMessageId+" Wrong MIME headers");
+				Log.get().log(Level.INFO, "{0} TAKETHIS there was error in headers in miltiline, from {1}", new Object[]{cMessageId, host});
 			}
-		}else
-			Log.get().log(Level.INFO, "{0} TAKETHIS there was error in main headers, from {1}", new Object[]{CMessageId, host});
+		
 	}
 	
 }

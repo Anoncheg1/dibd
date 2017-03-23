@@ -262,11 +262,11 @@ public class FeedManager {
 		}
 
 
-		//rLeft without thread
+		//replays without threads. May happen for nntpchan only
 		if (! replays.isEmpty()){
 			StringBuilder restreplays= new StringBuilder();
 			replays.entrySet().forEach(e -> restreplays.append(e).append(" "));
-			Log.get().log(Level.WARNING, "From: {0} NEWNEWS or XOVER rLeft without thread: {1}", new Object[]{host, restreplays.toString()});
+			Log.get().log(Level.FINE, "From: {0} NEWNEWS or XOVER replays without thread: {1}", new Object[]{host, restreplays.toString()});
 		}
 
 		return messageIDs;

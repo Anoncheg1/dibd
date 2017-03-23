@@ -245,16 +245,16 @@ public class NNTPConnection implements NNTPInterface{
             raw = Arrays.copyOf(raw, raw.length - 1);
         }
 
-        Log.get().log(Level.FINEST, "<< {0}", line);
-
-        if (command == null) {
+        if (command == null) { //waiting for command
         	if(line.charAt(0) == '5') //mistaking 5xx responses. TODO:add other codes
         		return;
-        	Log.get().log(Level.FINEST, "<< {0}", line);
+        	
+        	Log.get().log(Level.FINER, "<< {0}", line);
+        	
             command = parseCommandLine(line);
             assert command != null;
         }else
-        	Log.get().log(Level.FINER, "<< {0}", line);
+        	Log.get().log(Level.FINEST, "<< {0}", line);
 
         try {
             // The command object will process the line we just received

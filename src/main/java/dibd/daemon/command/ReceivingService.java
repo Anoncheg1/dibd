@@ -25,6 +25,7 @@ import dibd.config.Config;
 import dibd.daemon.ChannelLineBuffers;
 import dibd.daemon.NNTPConnection;
 import dibd.daemon.NNTPInterface;
+import dibd.daemon.command.IhaveCommand.PostState;
 import dibd.feed.PullDaemon;
 import dibd.feed.PushDaemon;
 import dibd.storage.Headers;
@@ -36,51 +37,35 @@ import dibd.util.Log;
 
 /**
  * @author user
- *TODO://make it stream like
+ *
  */
 class ReceivingService{
-
-
-	private int lineCount = 0;
-	private int lineHeadCount = 0;
-	private long bodySize = 0;
-	private InternetHeaders headers = null;
+	
 	// Size in bytes:
-	private final int maxBodySize = Config.inst().get(Config.ARTICLE_MAXSIZE, 1) * 1024 * 1024; //MB
+	private final int maxMessageSize = Config.inst().get(Config.MAX_MESSAGE_SIZE, 8192); //UTF-8 bytes
+	//Very roughly, Base64-encoded binary data is equal to 1.37 times the original data size + headers
+	private final long maxArticleSize = (long) (Config.inst().get(Config.MAX_ARTICLE_SIZE, 1) * 1024 * 1024 * 1.37); //MB
 	private final ByteArrayOutputStream bufHead = new ByteArrayOutputStream(); //raw bytes UTF-8 by default
 	private final ByteArrayOutputStream bufBody = new ByteArrayOutputStream(); //raw bytes UTF-8 by default
-	//private StringBuilder strHead = new StringBuilder();
 	
+	//constructor
 	private final String command;
 	private final NNTPInterface conn;
-
-	private boolean allowPush = false; // for ArticlePuller
+	private final Charset charset;
+	private final boolean pullMode; // for ArticlePuller
+	private final String cMessageId;
+	private final String host; //for debug ONLY
 	
-	public ReceivingService(String command, NNTPInterface conn, boolean allowPush){
+	public ReceivingService(String command, NNTPInterface conn, boolean pullMode, String cMessageId){
 		this.command = command.toUpperCase();
 		this.conn = conn;
-		this.allowPush = allowPush; 
+		charset = conn.getCurrentCharset();
+		this.pullMode = pullMode;
+		this.cMessageId = cMessageId;
+		host = conn.getHost();
 	}
 
-	//headers
-	private String[] contentType = null;//maybe null here
-	private String[] from_raw = null; //may be null
-	//groupNames[]
-	private String[] subjectArr = null; //may be null
-	private String[] ref = null; //may be null (used for checkRef)
-	Integer thread_id = null;
-	private String date = null;
-	private String path = null;
-	private String messageId = null;//null if POST
-//	private String[] groupHeader = null;
-
-
-
-	private String lastSender;
-	private Group group;
 	
-	private String host; //for debug ONLY
-
 	/**
 	 * Decode word-encoded string if it is required
 	 * 
@@ -101,34 +86,43 @@ class ReceivingService{
 	    //else
 		return s;
 	}
+
+	/////    readingHeaders    /////
+	private InternetHeaders headers = null;
+	private String boundary = null; //maybe null here
+	private ContentType contentType = null; //maybe null here
+	private String[] from_raw = null; //may be null
+	private String[] subjectArr = null; //may be null
+	private String[] ref = null; //may be null (used for checkRef)
 	
+	private String date = null;
+	private String path = null;
+	private String messageId = null;//null if POST
+	private String lastSender;
+	private Group group;
 	//SIDE EFFECT FUNCTION
-	//strHead
-	//headers
+	//bufHead
 	/**
 	 * 
 	 * Return values: 
-	 * 0 - Continue.
-	 * The end of headers reached:
-	 * 1 - error in recognition.
-	 * 2 - Success. ReadingBody now.
-	 * 3 - No body.
-	 * 4 - No such group.
-	 * 5 - lineHeadCount > 20
+	 * null			- Continue.
+	 * "ok"			- The end.
+	 * any string	- error
 	 * @param conn
 	 * @param line
 	 * @return
 	 * @throws IOException
 	 * @throws StorageBackendException
 	 */
-	int readingHeaders(String line, byte[] raw) throws IOException, StorageBackendException {
+	String readingHeaders(String line, byte[] raw) throws IOException{
 		lineHeadCount++;
 		bufHead.write(raw);
-		bufHead.write(NNTPConnection.NEWLINE.getBytes(conn.getCurrentCharset())); //UTF-8
-		//strHead.append(line);
-		//strHead.append(NNTPConnection.NEWLINE);
+		bufHead.write(NNTPConnection.NEWLINE.getBytes(charset)); //UTF-8
+	
 
-		if ("".equals(line) || ".".equals(line)) {
+		if (".".equals(line)) //end of the article
+			return "No body for article.";//No body
+		if ("".equals(line)) { //empty line headers-body separator
 			// we finally met the blank line
 			// separating headers from body
 
@@ -137,7 +131,7 @@ class ReceivingService{
 				// JavaMail API
 				
 				headers = new InternetHeaders(new ByteArrayInputStream(bufHead.toByteArray())); //we decode headers before parse.
-				contentType = headers.getHeader(Headers.CONTENT_TYPE);//maybe null here
+				String[] contentType_raw = headers.getHeader(Headers.CONTENT_TYPE);//maybe null here
 				from_raw = headers.getHeader(Headers.FROM); //may be null
 				subjectArr = headers.getHeader(Headers.SUBJECT); //may be null
 				ref = headers.getHeader(Headers.REFERENCES); //may be null
@@ -147,10 +141,12 @@ class ReceivingService{
 				String[] pathH = headers.getHeader(Headers.PATH);
 				String[] mId = headers.getHeader(Headers.MESSAGE_ID);
 				
-				//System.out.println(headers.getHeader(Headers.MESSAGE_ID));
 				if ( ! command.equals("POST")){
-					if (dateH == null || pathH == null || mId == null)
-						return 1;//error to recognize headers
+					if (dateH == null || pathH == null || mId == null){
+						if( ! this.pullMode)
+							Log.get().log(Level.WARNING, "{0} No date or path or messageId in headers from {1}", new Object[]{this.cMessageId, host});
+						return "No date or path or messageId in headers.";//error
+					}
 					
 					date = dateH[0];
 					path = pathH[0];
@@ -158,98 +154,204 @@ class ReceivingService{
 					lastSender = path.split("!")[0];
 				}
 							
-				//checks
+				//checks reference if replay
 				if(ref != null && !ref[0].isEmpty())
 					if (! Headers.matchMsgId(ref[0])){
-						Log.get().log(Level.INFO, "{0} wrong reference {1} format in {2} from {3}", new Object[] {command, ref[0], messageId, host});
-						return 1; //error in header references
+						if( ! this.pullMode)
+							Log.get().log(Level.INFO, "{0} wrong reference {1} format in {2} from {3}", new Object[] {command, ref[0], this.cMessageId, host});
+						return "Wrong format of reference in headers"; //error in header references
 					}
+					
 				
-				if (groupHeader == null)
-					return 4;//No such group.
-				else{
+				//check group
+				if (groupHeader != null)
 					group = StorageManager.groups.get(groupHeader[0].split(",")[0].trim());
-					if (group == null || group.isDeleted())//check that we have such group
-						return 4;//No such group.
-				}
 				
+				if (groupHeader == null || group == null || group.isDeleted())//check that we have such group
+						return "No such news group.";//error
+				
+				
+				
+				//deep headers analysis (no need too deep - what if another error!)
+				if (contentType_raw != null)
+					contentType = new ContentType(contentType_raw[0]);
+
+				if (contentType != null && contentType.getBaseType().equals("multipart/mixed")){ //multipart //rfc2046 MIME
+					boundary = contentType.getParameter("boundary");
+					if(boundary == null)
+						return "Wrong miltipart Content-Type, no boundary";
+				}
+
 				
 				
 			} catch (MessagingException ex) {
-				Log.get().log(Level.INFO, ex.getLocalizedMessage(), ex);
-				return 1;//error in headers
+				if( ! this.pullMode)
+					Log.get().log(Level.INFO, ex.getLocalizedMessage(), ex);
+				return "Can not parse Content-Type header.";//error in headers
 			}
 			
-			if (".".equals(line))
-				// Post an article without body
-				return 3;//No body
-			else{ //OK it is - "" empty line headers-body separator
-				host = conn.getHost();
-				return 2;//reading body now
-			}
-			
-			
-			//deep headers analysis
-			
-			
-			
-			
-			
-
+			///// end of analysis
+			return "ok";//reading body now
 		}
-		if (lineHeadCount > 20)
-			return 5;
-		return 0;//continue
+		
+		if (lineHeadCount > 20){
+			Log.get().log(Level.SEVERE, "Headers is too large for {0} from host {1}", new Object[] {this.cMessageId, host});
+			return "headers is too large.";
+		}else
+			return null;//continue
 	}
 
+	/////    readingBody    /////
+	private int lineHeadCount = 0;
+	private long bodySize = 0;
+	
+	private enum Multipart { Comment, MessagePart, AttachmentPart};
+	private Multipart mPart = Multipart.Comment;
+	
+	private enum MessagePts { Headers, Message};
+	private MessagePts messagePart = MessagePts.Headers;
+	
+	private enum Attachment { Headers, Body};
+	private Attachment attachPart = Attachment.Headers;
+	
+	
+	private String multiComment = null;
+	private InternetHeaders multiMesHeaders;
+	private StringBuilder messageB = new StringBuilder();	//for multi and not
+	private InternetHeaders multiAttachHeaders;
+	private StringBuilder attachBody;
+	
 	//SIDE EFFECT FUNCTION
-	//bodySize
-	//lineCount
-	//headers
 	//bufBody
 	/**
-	 * If return value is 1 we can post.
-	 * 2 - no body
-	 * 3 - body is too big
+	 * 
+	 * 4 - "." reached. Wrong multipart format.
+	 * 3 - too big. message was not read. multipart and not. "." not reachead.
+	 * 2 - too big. multipart, message readed. "." not reachead.
+	 * 1 - the end. success.
 	 * 0 - continue
 	 * 
-	 * @param conn
 	 * @param line
 	 * @param raw
 	 * @throws IOException
 	 * @throws StorageBackendException
 	 */
-	int readingBody(String line, byte[] raw) throws IOException, StorageBackendException {
+	int readingBody(String line, byte[] raw) throws IOException{
 		
-		if (".".equals(line)) {
-			// Set some headers needed for Over command
-			headers.setHeader(Headers.LINES, Integer.toString(lineCount));
-			headers.setHeader(Headers.BYTES, Long.toString(bodySize));
-			bodySize -= 1;
-
-			return 1;
-		} else {
-			bodySize += line.length()+1;
-			lineCount++;
-				
+		if (! ".".equals(line)) {
+			bodySize += line.length()+1; //not sure about accuracy.
+			
+			//saving raw to bufBody 
 			bufBody.write(raw); //\r\n was already removed in ChannelLineBuffers and NNTPConnection
 			if (raw.length < ChannelLineBuffers.BUFFER_SIZE)//we add new line if buffer was not full.
-				bufBody.write(NNTPConnection.NEWLINE.getBytes(conn.getCurrentCharset())); //UTF-8
+				bufBody.write(NNTPConnection.NEWLINE.getBytes(charset)); //UTF-8
 			
-			if(bodySize == 0) //no body
-				return 2;
-			else if (command.equals("POST") && bodySize > maxBodySize) 
-				return 3;
-			else if (bodySize > maxBodySize*Config.inst().get(Config.MAXSIZEMULTIPLIER, 10)) 
-				return 3;
 			
+			
+			//////////// multipart ////////////
+			if (boundary != null){ //rfc2046 MIME
+				//Log.get().log(Level.FINER, messageId+" "+mPart.name()+"<< {0}", line.substring(0, line.length()< 10? line.length(): 10));
+				
+				switch (mPart) {
+				case Comment:{
+					if(line.startsWith("--") && line.equals("--"+boundary)){
+						mPart = Multipart.MessagePart;
+						multiMesHeaders = new InternetHeaders();
+					}else
+						multiComment+=line+" ";
+					
+					break;
+				}
+				case MessagePart:{
+					if(line.startsWith("--") && line.equals("--"+boundary)){
+						mPart = Multipart.AttachmentPart;
+						multiAttachHeaders = new InternetHeaders();
+						attachBody = new StringBuilder();
+						break;
+					}
+						
+					if (messagePart == MessagePts.Headers){
+						if(line.isEmpty())
+							messagePart = MessagePts.Message;
+						else
+							multiMesHeaders.addHeaderLine(line); //no subject here //must contain only US-ASCII characters.
+					}else{ //if(messagePart == MessagePts.Message){
+						messageB.append(line).append("\n");//stringbuilder.setlength to remove last \n
+						//check message size
+						if (messageB.length() > maxMessageSize)
+							return 3;
+					}
+					
+					break;
+				}
+
+				case AttachmentPart:{
+					//We don't need more attachments for now.
+					//That is why is it final part or not no matter.
+					if(line.startsWith("--") && line.startsWith("--"+boundary)){ //+"--" 
+						mPart = null; //other parts ignored.
+						break;
+					}
+					
+					if (attachPart == Attachment.Headers){
+						if(line.isEmpty())
+							attachPart = Attachment.Body;
+						else
+							multiAttachHeaders.addHeaderLine(line); //must contain only US-ASCII characters.
+					}else{ //if(attachPart == Attachment.Body){
+						attachBody.append(line);
+					}
+					
+						
+					break;
+				}
+				default: {
+					// Should never happen
+					Log.get().severe(command+" "+cMessageId+":"+host+":readingBody(): already finished...");
+				}
+				}
+				
+				//multipart
+				//check size of messageB
+				if (bodySize > maxArticleSize)
+					if (mPart == Multipart.AttachmentPart || mPart == null)
+						return 2;
+					else
+						return 3;//fail
+					
+			
+				
+			}else{//////////// not multipart ////////////
+				
+					messageB.append(line).append("\n");//stringbuilder.setlength to remove last \n
+					//check messageB size
+					if (messageB.length() > maxMessageSize)
+						return 3;//fail
+					
+			}
+			
+			
+			return 0; //continue to read
+			
+		} else { //"." was reach
+			bodySize -= 1;
+
+			if ((boundary != null && mPart != null) || bodySize == 0) //==0 if every line is was empty line 
+				return 4;//not all parts was read. Other checks later.
+			
+
+			return 1;
 		}
-		return 0;
+		/*System.out.println("mheader:"+multiHeadMessage.getAllHeaders().hasMoreElements());
+		System.out.println("mMessage:"+multiMessage.toString());
+		if(attachBody != null)
+			System.out.println("mAttachBody:"+attachBody.toString());*/
+		
 	}
 	
 	
 	/**
-	 * If return false if circle exist, true if message is new.
+	 * If return false if circle exist, true if messageB is new.
 	 * 
 	 * @param 
 	 * @return
@@ -282,9 +384,9 @@ class ReceivingService{
 				return true;
 			}else{
 				//			Log.get().log(Level.INFO, () ->
-				//		String.format(this.command+" sender is unknewn {%s}, message-id {%s)", lastSender, headers.getHeader(Headers.MESSAGE_ID)[0]));
-				Log.get().log(Level.INFO, "{0}: sender is unknewn {1}, message-id {2}",
-						new Object[] {this.command, lastSender, messageId});
+				//		String.format(this.command+" sender is unknewn {%s}, messageB-id {%s)", lastSender, headers.getHeader(Headers.MESSAGE_ID)[0]));
+				Log.get().log(Level.INFO, "{0}: sender is unknewn {1}, message-id {2}, host {3}",
+						new Object[] {this.command, lastSender, messageId, host});
 				return false;
 			}
 		}else
@@ -310,7 +412,7 @@ class ReceivingService{
 	
 	
 	/**
-	 * We detect if this sender is not in public list "peers of this groop" if such we will not public his message
+	 * We detect if this sender is not in public list "peers of this groop" if such we will not public his messageB
 	 * AND WILL BE WATCHING!
 	 * @return true if everything is ok
 	 */
@@ -326,6 +428,8 @@ class ReceivingService{
 		}	
 	}//see at the bottom of process() method.*/
 
+	
+	private Integer thread_id = null;
 	/**
 	 * Necessarily to call for IHAVE and TAKETHIS.
 	 * 
@@ -340,44 +444,55 @@ class ReceivingService{
 	 */
 	boolean checkRef() throws StorageBackendException{
 		//if ref equal mId we assume it is thread
-		if (ref != null && !ref[0].isEmpty() && ! ref[0].equals(messageId)){ 
+		if ( ! command.equals("POST")){
+			if (ref != null && !ref[0].isEmpty() && ! ref[0].equals(messageId)){ 
 
-			Article art = StorageManager.current().getArticle(ref[0], null, 1); //get thread
+				Article art = StorageManager.current().getArticle(ref[0], null, 1); //get thread
 
-			if (art != null){
-				if (art.getId().intValue() == art.getThread_id().intValue()){ //check that ref is a thread
-					this.thread_id = art.getThread_id(); //return true
-				}else
-					return false;
-			}else{
-				//request missed thread:
-				PullDaemon.queueForPush(group, ref[0], messageId+" "+this.host+" "+path);
-				return false; //"no such REFERENCE";
+				if (art != null){
+					if (art.getId().intValue() == art.getThread_id().intValue()){ //check that ref is a thread
+						this.thread_id = art.getThread_id(); //return true
+					}else
+						return false;
+				}else{
+					//request missed thread:
+					PullDaemon.queueForPush(group, ref[0], messageId+" "+this.host+" "+path);
+					return false; //"no such REFERENCE";
+				}
+
 			}
-
+			
+			
+		}else{//POST
+			if (ref != null && !ref[0].isEmpty()){
+				Article art = StorageManager.current().getArticle(ref[0], null, 1); //get thread
+				if (art != null){
+					if (art.getId().intValue() == art.getThread_id().intValue()){ //check that ref is a thread
+						this.thread_id = art.getThread_id(); //return true
+					}else
+						return false;
+				}else
+					return false; //"no such REFERENCE";
+			}
+			
 		}
-
-
+		
 		return true;
-
 	}
 
 	/**
 	 * @return null of message-id
 	 */
 	String getMessageId(){
-		if (messageId != null)
-			return messageId;
-		else
-			return "null";
+		return messageId;
 	}
 	
 	
 	/**
 	 * If no error it parse article, save and put to transfer.
 	 * 
-	 * @param conn
-	 * @return error message or null if success
+	 * @param status 0 - ok, 1 - multifile not readed
+	 * @return error messageB or null if success
 	 * @throws StorageBackendException 
 	 * @throws MessagingException 
 	 * @throws ParseException 
@@ -385,113 +500,68 @@ class ReceivingService{
 	 * @throws ParseException
 	 * 
 	 */
-	String process(Charset charset) throws StorageBackendException, MessagingException, ParseException, IOException {
-		// headers that we need
-
+	String process(int status) throws StorageBackendException, MessagingException, ParseException, IOException{
 		String message = null; //UTF-16
 		byte[] file = null;
 		String gfileCT = null; //guess Content-type for file
-		ContentType ct = null;
+
 		ContentDisposition fCD = null;//file Content-Disposition with file name
-		if (contentType != null)
-			ct = new ContentType(contentType[0]);
 
-		//*** MIME MESSAGE PARSING ***
-		if (contentType != null && ct.getBaseType().equals("multipart/mixed")){ //multipart //rfc2046 MIME
-			String boundary = ct.getParameter("boundary"); 
+		
+		//   message, multipart or not   //
+		
+		if (messageB.length()>1){
+			//we assume content_type.getBaseType().equals("text/plain")
+			messageB.setLength(messageB.length()-1);//remove \n after loop
 
-			if(boundary == null)
-				return "Wrong Content-Type, no boundary";
+			String[] encoding;
 
-			String bodys = bufBody.toString(charset.name());
-			String[] parts = bodys.split("--"+boundary);
-			if(parts.length < 4)
-				return "MIME multipart parts is less then 3";
-
-			//parts[0]-empty [1]-headers+message [2]-headers+file [3]-empty "--"
-			///  MULTIPART MESSAGE  ///
-			String[] headers_and_message = new String[2];
-			int i = parts[1].indexOf("\r\n\r\n"); //empty line
-			
-			headers_and_message[0] = parts[1].substring(2, i);
-			if (i+4 == parts[1].length())
-				headers_and_message[1] = null;
+			if (boundary != null)
+				encoding = multiMesHeaders.getHeader(Headers.ENCODING);
 			else
-				headers_and_message[1] = parts[1].substring(i+4,parts[1].length()-2);
-
-			InternetHeaders mHeaders = new InternetHeaders(
-					new ByteArrayInputStream(headers_and_message[0].trim().getBytes()));
-			String[] encoding = mHeaders.getHeader(Headers.ENCODING);
-			if (encoding != null && encoding[0].equalsIgnoreCase("base64")){
-					try{
-						message = new String(Base64.getMimeDecoder().decode(headers_and_message[1]));
-					}catch(IllegalArgumentException e){
-						return "Base64 message in multipart can't be decoded or headers error";
-					}
-			}else
-				message = headers_and_message[1];
-
-			///  MULTIPART FILE  ///
-			String[] headers_and_file = new String [2];
-			int ind = parts[2].indexOf("\r\n\r\n"); //empty line
-
-			headers_and_file[0] = parts[2].substring(0, ind);
-			headers_and_file[1] = parts[2].substring(ind+4); //trailing \r\n left
-			
-			InternetHeaders fHeaders = new InternetHeaders(
-					new ByteArrayInputStream(headers_and_file[0].trim().getBytes())); //must contain only US-ASCII characters.
-			String[] tmpct = fHeaders.getHeader(Headers.CONTENT_TYPE);
-			String[] tmpcd =  fHeaders.getHeader(Headers.CONTENT_DISP);
-			
-			if (tmpct == null) return "Multipart file Content-Type is not defined";
-			
-			ContentType fCT = new ContentType(tmpct[0]); //file attachment Content-Type header
-			if (tmpcd != null)
-				fCD = new ContentDisposition(tmpcd[0]); //file attachment Content-Disposition header
-			if(fHeaders.getHeader(Headers.ENCODING)[0].equalsIgnoreCase("base64")){ //base64
-				//System.out.println(messageId[0]+" file size:"+ " fCT START"+fCT.getPrimaryType()+"END"+fCT.getPrimaryType().equalsIgnoreCase("image"));
-				//if(fCT.getPrimaryType().equalsIgnoreCase("image")){ //image support only
-					byte[] fileB64 = headers_and_file[1].replaceAll("\r?\n", "").getBytes();
-					file = Base64.getDecoder().decode(fileB64);
-					gfileCT = fCT.getBaseType();
-
-					/*InputStream is = new BufferedInputStream(new ByteArrayInputStream(file));
-					gfileCT = URLConnection.guessContentTypeFromStream(is);
-					
-					if( ! fCT.getBaseType().equals(gfileCT)){//Detected Content-Type != Content-Type in header
-						file = null;
-						gfileCT = null;
-						Log.get().log(Level.INFO, "{0}: {1} Unknewn file type {2} or {3} from {4}",
-								 new Object[] {command, messageId, fCT.getBaseType(), gfileCT, lastSender});
-					}*/
-					
-				//}else
-					//Log.get().log(Level.INFO, "{0}: {1} Not image file type {2} or {3} from {4}",
-						//	 new Object[] {command, messageId, fCT.getBaseType(), gfileCT, lastSender});
-				
-			}else
-				return "Wrong Content-Transfer-Encoding header of body";
-
-		}else{ //non-multipart,  we don't care about Content-Type anymore
-			//if( ct.getBaseType().equals("text/plain"))
-
-			String[] encoding = headers.getHeader(Headers.ENCODING);
+				encoding = headers.getHeader(Headers.ENCODING);
 			if (encoding != null && encoding[0].equalsIgnoreCase("base64")){
 				try{
-					message = new String(Base64.getMimeDecoder().decode(bufBody.toByteArray()), charset);
+					message = new String(Base64.getMimeDecoder().decode(this.messageB.toString()));
 				}catch(IllegalArgumentException e){
-					return "Base64 message non-multipart can't be decoded or headers error";
+					return "Base64 message in multipart can't be decoded or headers error";
 				}
-			}else{ //Content-Transfer-Encoding = null or anything else
-				message = bufBody.toString(charset.name());
-				if (message.isEmpty())
-					message= null;
-				else
-					message = message.substring(0,message.length()-2);//removeing last \r\n
-			}
+			}else
+				message = messageB.toString();
 
+			if (message.isEmpty())
+				message = null;
+		}//else message = null;
+		
+		
+		///  MULTIPART FILE  ///
+		
+		if (boundary != null){ //multipart //rfc2046 MIME
+			
+			//headers
+			String[] ct = multiAttachHeaders.getHeader(Headers.CONTENT_TYPE);
+			String[] cd = multiAttachHeaders.getHeader(Headers.CONTENT_DISP); //may be null
+			String[] enc = multiAttachHeaders.getHeader(Headers.ENCODING);
+			
+			//ContentType
+			if (ct == null) return "Multipart file Content-Type is not defined";
+			ContentType fCT = new ContentType(ct[0]); //file attachment Content-Type header
+			gfileCT = fCT.getBaseType();
+			//Content-Disposition (may be null)
+			if (cd != null)
+				fCD = new ContentDisposition(cd[0]); //file attachment Content-Disposition header
+			
+			//file
+			if (status == 0){ //if was read
+				//Encoding
+				if (enc == null) return "Multipart file Content-Transfer-Encoding is not defined";
+				if(enc[0].equalsIgnoreCase("base64")) //base64
+					file = Base64.getDecoder().decode(attachBody.toString());
+				else
+					return "Wrong Content-Transfer-Encoding header in attachment";
+			}
+			
 		}
-		bufBody.close();
 
 
 		//*** SAVING MESSAGE ***
@@ -506,8 +576,8 @@ class ReceivingService{
 		//from = from_raw[0].replaceAll("<.*>", "");
 
 		// Create Replay or Thread
-		Article art;
-		Article article;
+		Article art; //to save
+		Article article; //to transfer
 		
 		String[] mId = null; //message-id two parts 0-id 1-sender
 		byte[] rawArticle = null; //never null actually
@@ -517,16 +587,16 @@ class ReceivingService{
 			if (mId[0].isEmpty() || mId[1].isEmpty())
 				return "No message-id in headers"; //empty message-id. it is peer bug
 			else if (mId[1].equals(ourhost)){ //message-id is mine
-				//my old message
+				//our old message of missing thread
 				//we must check that this message is not a fake
 				assert(path != null);
 				String paths[] = path.split("!");
 				//our host name may be only at the end of path
 				for (int i = 0; i < paths.length-1; i++)
 					if(paths[i].equalsIgnoreCase(ourhost)){
-						Log.get().log(Level.SEVERE, "{0}: sender {1} FAKE MY MESSAGE {2} in group {3} with path {4}",
+						Log.get().log(Level.SEVERE, "{0}: sender {1} FAKE MY ARTICLE {2} in group {3} with path {4}",
 								new Object[]{this.command, host, messageId, group.getName(), path});
-						return "Faking message detected. Path:"+path;
+						return "Faking article detected. Path:"+path;
 					}
 			}
 			
@@ -539,6 +609,8 @@ class ReceivingService{
 			//System.out.println("rawArticle "+rawArticle.length);
 			System.arraycopy(bufHead.toByteArray(), 0, rawArticle, 0, bufHead.size()); //remove trailing \r\n
 			System.arraycopy(bufBody.toByteArray(), 0, rawArticle, bufHead.size(), bufBody.size()); //we have \r\n at the end in cache
+			bufHead.close();
+			bufBody.close();
 		}
 
 
@@ -549,6 +621,7 @@ class ReceivingService{
 		//4. save thumbnail - Not critical.
 		//5. article to database
 		if (command.equals("POST")){
+			assert(status == 0);
 			if(thread_id != null){ //replay
 				art = new Article(thread_id, from, subject, message, group);
 				article = StorageManager.current().createReplay(art, file, gfileCT, file_name);
@@ -560,8 +633,7 @@ class ReceivingService{
 		}else{
 			
 			////   IHAVE, TAKETHIS    //////
-			
-			int status = rawArticle.length > maxBodySize ? 1 : 0; //0 - ok
+			//status  1 - file was not readed.  0 - normal
 
 			if(thread_id != null){ //replay
 				art = new Article(thread_id, messageId, mId[1], from, subject, message,
@@ -577,8 +649,10 @@ class ReceivingService{
 						throw new StorageBackendException(e);
 					}
 					
-				}else //if (status == 1)//no need cache if status =1
+				}else{ //if (status == 1)//no need cache if status =1
+					assert(file == null); // that is how we understand that statys = 1
 					article = StorageManager.current().createReplay(art, file, gfileCT, file_name);
+				}
 				
 			}else{ //thread
 				art = new Article(null, messageId, mId[1], from, subject, message,
@@ -592,8 +666,10 @@ class ReceivingService{
 						StorageManager.nntpcache.delFile(fl);
 						throw new StorageBackendException(e);
 					}
-				}else //if (status == 1)//no need cache if status =1
+				}else{ //if (status == 1)//no need cache if status =1
+					assert(file == null); // that is how we understand that statys = 1
 					article = StorageManager.current().createThread(art, file, gfileCT, file_name);
+				}
 				
 			}
 			
@@ -604,7 +680,7 @@ class ReceivingService{
 						new Object[]{this.command, host, mId[1], group.getName()});
 				//FeedManager.lazyQueueForPush(art);
 				
-			}else if (allowPush && status == 0){
+			}else if ( ! pullMode && status == 0){
 				assert(article != null);
 				article.setRaw(rawArticle);
 				PushDaemon.queueForPush(article); //send to peers

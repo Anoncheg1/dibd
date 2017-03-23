@@ -35,7 +35,7 @@ public class ShortRefParser {
 		public static String getShortRefs(StorageWeb db, String message) throws StorageBackendException{
 			if (message == null || message.isEmpty())
 				return null;
-			int fc = Config.inst().get(Config.ID_F_COUNT, 7);
+			int fc = Config.inst().get(Config.ID_F_COUNT, 5);
 			Matcher matcher = 
 	        		Pattern.compile("(>>(([0-9a-fA-F]){2,"+fc+"}))").matcher(message);
 			

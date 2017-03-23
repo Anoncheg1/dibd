@@ -37,8 +37,8 @@ public class Config extends AbstractConfig {
      * BackendConfig key constant. Value is the maximum article size in
      * megabytes.
      */
-    public static final String ARTICLE_MAXSIZE = "dibd.article.maxsize"; //MB. attachment size for web, article size for article
-    public static final String MAXSIZEMULTIPLIER = "dibd.maxsize_multiplier"; //limit = dibd.article.maxsize*dibd.maxsize_multiplier
+    public static final String MAX_ARTICLE_SIZE = "dibd.article.maxsize"; //MB. attachment size for web, article size for article
+    public static final String MAX_MESSAGE_SIZE = "dibd.article.maxmessagesize"; //limit = dibd.article.maxsize*dibd.maxsize_multiplier
     /**
      * BackendConfig key constant. Value: Amount of news that are feeded per
      * run.
@@ -128,18 +128,32 @@ public class Config extends AbstractConfig {
     private Config() {
     }
 
+    /**
+     * For log initialization only in Log.class
+     * 
+     * @param key
+     * @param def
+     * @return
+     */
+    public String getSilent(final String key, final String def) {
+    	String val = CommandLineConfig.getInstance().get(key, null);
+
+        if (val == null)
+            val = FileConfig.getInstance().get(key, def);
+        
+        return val;
+    }
+    
     @Override
     public String get(final String key, final String def) {
         String val = CommandLineConfig.getInstance().get(key, null);
 
-        if (val == null) {
+        if (val == null)
             val = FileConfig.getInstance().get(key, def);
-        }
-
-        /* too many warnings. interfere in log creation from LOGFILE
-         * if (val == null) {
-            Log.get().log(Level.WARNING, "Returning default value for {0}", key);
-        }*/
+        
+        if (val == null) 
+        	Log.get().log(Level.WARNING, "Returning default value for {0}, {1}", new Object[]{key, val});
+        	
         return val;
     }
 

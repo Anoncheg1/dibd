@@ -153,6 +153,7 @@ public class AttachmentProvider {
 			FileOutputStream fos = new FileOutputStream(ofile);
 			try{
 				fos.write(data);
+				fos.flush();
 			}finally{
 				fos.close();
 			}
@@ -161,7 +162,6 @@ public class AttachmentProvider {
 	}
 	
 	public byte[] readFile (String groupName, String fileName) throws IOException{
-		System.out.println(groupName+fileName);
 		Path path = Paths.get(this.getAPath(groupName, fileName));
 		return Files.readAllBytes(path);
 	}
