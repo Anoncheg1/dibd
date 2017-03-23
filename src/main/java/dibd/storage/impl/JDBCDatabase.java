@@ -300,9 +300,10 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 	 * @param file_name may be absent for nntp. we will use .xxx if exist.
 	 * @throws SQLException
 	 * @throws StorageBackendException 
-	 * @throws IOException 
+	 * @throws IOException
+	 * @return new filename 
 	 */
-	private void attachmentSaving(final int id, final String groupName, byte[] bfile, final String content_type,  final String file_name) throws SQLException, StorageBackendException, IOException{
+	private String attachmentSaving(final int id, final String groupName, byte[] bfile, final String content_type,  final String file_name) throws SQLException, StorageBackendException, IOException{
 		if (content_type.length() > 256)
 			throw new StorageBackendException("Too long media-type");
 		String fileNameForSave;
@@ -327,6 +328,8 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 		//create thumbbnail (not critical)
 		if (bfile != null)
 			StorageManager.attachments.createThumbnail(groupName, fileNameForSave, content_type);
+		
+		return fileNameForSave;
 
 	} 
 	
@@ -457,7 +460,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 	
 	
 	public Article createThread(final Article article,
-			final byte[] bfile, final String file_ct, final String file_name)
+			final byte[] bfile, final String file_ct, String file_name)
 					throws StorageBackendException {
 		ResultSet rs = null;
 		int id = 0;
@@ -528,14 +531,15 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			
 			
 			// attachment saving (part of transaction)
-			if (file_ct != null)  //if bfile == null we use status = 1
-				attachmentSaving(id, groupName, bfile, file_ct, file_name);
+			if (file_ct != null){  //if bfile == null we use status = 1
+				file_name = attachmentSaving(id, groupName, bfile, file_ct, file_name);
+			}
 			
 			
 			this.conn.commit();
 			this.conn.setAutoCommit(true);
 
-			return new Article(article, id, messageId, file_ct);
+			return new Article(article, id, messageId, file_name, file_ct);
 		} catch (IOException e) {
 			
 			try {
@@ -580,7 +584,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 	}
 	
 	public Article createReplay(Article article, byte[] bfile,
-			final String file_ct, final String file_name)
+			final String file_ct, String file_name)
 					throws StorageBackendException {
 		//TODO: Get replays count  in thread and throw Exception if count > replays max  
 		int id = 0;
@@ -619,12 +623,12 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 
 			// attachment saving (part of transaction)
 			if (file_ct != null)  //if bfile == null we use status = 1
-				attachmentSaving(id, groupName, bfile, file_ct, file_name);
+				file_name = attachmentSaving(id, groupName, bfile, file_ct, file_name);
 
 			this.conn.commit();
 			this.conn.setAutoCommit(true);
 			
-			return new Article(article, id, messageId, file_ct);
+			return new Article(article, id, messageId, file_name, file_ct);
 		} catch (IOException e) {
 			Log.get().log(Level.SEVERE, "Can't save attachment: {0}", e);
 			throw new StorageBackendException("Can not save attachment");

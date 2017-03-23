@@ -126,8 +126,10 @@ public class PushDaemon extends DaemonThread {
 							}
 							
 							try {
-								ap.writeArticle(article);
-								Log.get().log(Level.INFO, "PushDaemon secess: {0},{1},{2}", new Object[] { sub.getHost(), article.getMessageId(),group.getName() } );
+								if(ap.writeArticle(article))
+									Log.get().log(Level.INFO, "PushDaemon secess: {0},{1},{2}", new Object[] { sub.getHost(), article.getMessageId(),group.getName() } );
+								else
+									Log.get().log(Level.INFO, "PushDaemon already have: {0},{1},{2}", new Object[] { sub.getHost(), article.getMessageId(),group.getName() } );
 							} catch (IOException ex) {
 								if (ex.getMessage().startsWith("436"))
 									PushDaemon.articleQueue.put(article);//we put article to query again, Possible infinity loop!!

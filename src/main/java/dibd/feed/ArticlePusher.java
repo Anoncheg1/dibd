@@ -165,10 +165,11 @@ public class ArticlePusher {
 	 * 
 	 * @param art
 	 * @throws IOException
+	 * @return false already have true success
 	 */
-	public void writeArticle(Article art) throws IOException {
-		
-		prepareIHAVE(art.getMessageId());
+	public boolean writeArticle(Article art) throws IOException {
+		if (! prepareIHAVE(art.getMessageId()))
+			return false;
 		
 		
 		byte[] rawArticle = art.getRaw();
@@ -186,9 +187,6 @@ public class ArticlePusher {
 			if(inr.ready()){	//(My invention)
 				checkErrors();
 			}
-			
-			
-			
 			
 			//body
 			this.lineEncoder.encode(CharBuffer.wrap(art.buildNNTPMessage(charset, 2)));
@@ -217,6 +215,7 @@ public class ArticlePusher {
 		this.out.flush();
 		
 		checkErrors();
+		return true;
 	}
 /*
 	public Socket getSocket() {

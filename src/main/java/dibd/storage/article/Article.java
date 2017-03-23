@@ -161,7 +161,7 @@ public class Article { //extends ArticleHead
 	 * @param messageId
 	 * @param mediaType can be null
 	 */
-	public Article(Article article, Integer id, String messageId, String mediaType) {
+	public Article(Article article, Integer id, String messageId, String filename, String contentType) {
 		super();
 		
 		a = article.a;
@@ -172,10 +172,9 @@ public class Article { //extends ArticleHead
 			a.messageId = messageId; 
 			a.id = id;
 		
-		if (mediaType != null){
-			String fName = String.valueOf(id) + "." + mediaType.split("/")[1].split("[+]")[0];
-			a.fileName = fName;
-			a.fileFormat = mediaType;
+		if (contentType != null){
+			a.fileName = filename;
+			a.fileFormat = contentType;
 		}
 	}
 	
