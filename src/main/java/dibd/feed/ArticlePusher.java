@@ -75,26 +75,6 @@ public class ArticlePusher {
 			this.socket.close();
 		} catch (IOException e) {} 
 	}
-	/*
-    protected void preparePOST() throws IOException {
-        this.out.write("POST\r\n".getBytes(charset));
-        this.out.flush();
-
-        String line = this.inr.readLine();
-        if (line == null || !line.startsWith("340 ")) {
-            throw new IOException(line);
-        }
-    }
-
-    protected void finishPOST() throws IOException {
-        this.out.write("\r\n.\r\n".getBytes(charset));
-        this.out.flush();
-        String line = inr.readLine();
-        if (line == null || (!line.startsWith("240 ") && !line.startsWith("441 "))) {
-            throw new IOException(line);
-        }
-    }
-	 */
 
 	//true no have
 	//false already have

@@ -49,8 +49,8 @@ public class WebShortRefsTest {
 		
 		WebRef wr = a.get("<aaa@hos.com>");
 		assertTrue(wr != null);
-		assertTrue(wr.getThread_id() == 17);
-		assertTrue(wr.getReplay_id() == 16);
+		assertTrue(wr.getThread_id() == 16);
+		assertTrue(wr.getReplay_id() == 17);
 	}
 
 	@Test

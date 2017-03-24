@@ -22,12 +22,7 @@ import java.io.IOException;
 import java.net.Proxy;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Map.Entry;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
 
@@ -35,7 +30,6 @@ import javax.net.ssl.SSLPeerUnverifiedException;
 
 import dibd.config.Config;
 import dibd.daemon.DaemonThread;
-import dibd.daemon.command.IhaveCommand;
 import dibd.storage.StorageBackendException;
 import dibd.storage.StorageManager;
 import dibd.storage.GroupsProvider.Group;

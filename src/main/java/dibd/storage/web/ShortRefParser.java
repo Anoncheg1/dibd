@@ -76,16 +76,17 @@ public class ShortRefParser {
 
 			while (matcher.find()) {
 				
+				String mIdmatch = matcher.group();
 				Article art;
 				try {
-					art = db.getArticleWeb(matcher.group(), null);  //diff
+					art = db.getArticleWeb(mIdmatch, null);  //diff
 				} catch (StorageBackendException e) {
 					art = null;
 				}
 				
 				if (art != null)
-					short_ref_messageId.put(matcher.group(),
-							new WebRef(art.getId(), art.getThread_id()));  //diff
+					short_ref_messageId.put(mIdmatch,
+							new WebRef(art.getThread_id(), art.getId()));  //diff
 			}
 
 			return short_ref_messageId;

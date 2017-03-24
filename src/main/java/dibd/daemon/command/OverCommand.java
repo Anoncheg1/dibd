@@ -26,13 +26,11 @@ import java.util.Map.Entry;
 
 import javax.mail.internet.MimeUtility;
 
-import dibd.config.Config;
 import dibd.daemon.NNTPInterface;
 import dibd.storage.GroupsProvider.Group;
 import dibd.storage.StorageBackendException;
 import dibd.storage.StorageManager;
 import dibd.storage.article.Article;
-import dibd.util.Log;
 
 /**
  * Class handling the OVER/XOVER command.

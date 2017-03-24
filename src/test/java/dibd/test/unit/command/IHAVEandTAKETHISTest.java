@@ -21,9 +21,6 @@ import javax.mail.internet.MimeUtility;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
-
 import dibd.config.Config;
 import dibd.daemon.NNTPInterface;
 import dibd.daemon.TLS;

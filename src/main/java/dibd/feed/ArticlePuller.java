@@ -27,7 +27,6 @@ import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.Proxy;
 import java.net.Socket;
-import java.net.SocketTimeoutException;
 import java.nio.charset.Charset;
 import java.security.cert.X509Certificate;
 import java.text.ParseException;

@@ -26,7 +26,6 @@ import javax.mail.MessagingException;
 
 import dibd.config.Config;
 import dibd.daemon.NNTPInterface;
-import dibd.daemon.command.IhaveCommand.PostState;
 import dibd.storage.StorageBackendException;
 import dibd.util.Log;
 

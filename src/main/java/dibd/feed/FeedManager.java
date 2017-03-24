@@ -218,7 +218,7 @@ public class FeedManager extends Thread{
 			
 			SSLSession session = sslsocket.getSession(); //handshake
 			//throw exception:
-			X509Certificate cert = (X509Certificate) session.getPeerCertificates()[0]; //I am not sure how to check that it is right cert
+			X509Certificate cert = (X509Certificate) session.getPeerCertificates()[0]; //I am not sure how to check that it is right cert. TrustManager must do it.
 	        
 			//ready for encrypted communication
 			

@@ -25,7 +25,6 @@ import dibd.config.Config;
 import dibd.daemon.ChannelLineBuffers;
 import dibd.daemon.NNTPConnection;
 import dibd.daemon.NNTPInterface;
-import dibd.daemon.command.IhaveCommand.PostState;
 import dibd.feed.PullDaemon;
 import dibd.feed.PushDaemon;
 import dibd.storage.Headers;
@@ -215,7 +214,7 @@ class ReceivingService{
 	private Attachment attachPart = Attachment.Headers;
 	
 	
-	private String multiComment = null;
+	//private String multiComment = null;
 	private InternetHeaders multiMesHeaders;
 	private StringBuilder messageB = new StringBuilder();	//for multi and not
 	private InternetHeaders multiAttachHeaders;
@@ -234,7 +233,6 @@ class ReceivingService{
 	 * @param line
 	 * @param raw
 	 * @throws IOException
-	 * @throws StorageBackendException
 	 */
 	int readingBody(String line, byte[] raw) throws IOException{
 		
@@ -250,15 +248,14 @@ class ReceivingService{
 			
 			//////////// multipart ////////////
 			if (boundary != null){ //rfc2046 MIME
-				//Log.get().log(Level.FINER, messageId+" "+mPart.name()+"<< {0}", line.substring(0, line.length()< 10? line.length(): 10));
 				
 				switch (mPart) {
 				case Comment:{
 					if(line.startsWith("--") && line.equals("--"+boundary)){
 						mPart = Multipart.MessagePart;
 						multiMesHeaders = new InternetHeaders();
-					}else
-						multiComment+=line+" ";
+					}//else
+						//multiComment+=line+" ";
 					
 					break;
 				}
