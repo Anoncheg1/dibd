@@ -25,6 +25,7 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.TimeZone;
 
 import dibd.daemon.NNTPInterface;
@@ -130,13 +131,15 @@ public class NewNewsCommand implements Command {
 					if(!g.isDeleted()){
 						Map<String, String> ids = StorageManager.current().getNewArticleIDs(g, date);
 						
-						for(String k : ids.keySet()){
-							String v = ids.get(k);
+						for(Entry<String, String> aId : ids.entrySet()){
+							String v = aId.getValue();
+							String k = aId.getKey();
 							if( v != null)
 								conn.println(k+"\t"+v); //replay
 							else
 								conn.println(k); //thread
 						}
+						
 					}
 			}
 			conn.println(".");

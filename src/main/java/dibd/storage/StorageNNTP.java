@@ -107,6 +107,9 @@ public interface StorageNNTP {
 	 * Get ordered new articles with full threads for NEWNEWS command for "pulling".
 	 * May be empty
 	 * 
+	 * mId, null - thread
+	 * mId, mId_above - replay
+	 * 
 	 * @param group
 	 * @param date
 	 * @return article-message_id

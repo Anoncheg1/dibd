@@ -157,6 +157,7 @@ public class ArticlePuller {
 				} catch (SSLPeerUnverifiedException e) {// should never happen
 					// TODO Auto-generated catch block
 					e.printStackTrace();
+					return null;
 				}
 				Matcher m = Pattern.compile("CN=([^,]+)").matcher(cert.getSubjectX500Principal().getName());
 				if(m.find()){host = m.group(1);}
@@ -298,7 +299,7 @@ public class ArticlePuller {
 			if(line.startsWith("235")) {
 				Log.get().log(Level.INFO, "{0} successfully transmitted", messageId);
 				return 0;
-			} else if (line.equals(ihavec.noRef)){//must never happen
+			} else if (line.equals(IhaveCommand.noRef)){//must never happen
 				Log.get().log(Level.SEVERE, "PULL from {0} {1} NO SUCH THREAD", new Object[]{this.host, messageId} );
 				System.err.println("PULL from "+this.host+" "+messageId+" NO SUCH THREAD");
 				System.exit(1);

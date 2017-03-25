@@ -124,7 +124,7 @@ public class FeedManager extends Thread{
 				boolean subGood = false;
 				Set<Group> groups = StorageManager.groups.groupsPerPeer(sub);
 				if (groups != null)
-					for (Group gr : StorageManager.groups.groupsPerPeer(sub))
+					for (Group gr : groups)
 						if (! gr.isDeleted()){ //if subscription have not deleted groups
 							subGood = true;
 							break;
@@ -180,7 +180,6 @@ public class FeedManager extends Thread{
 					}
 
 				}
-
 		}
 	}
 

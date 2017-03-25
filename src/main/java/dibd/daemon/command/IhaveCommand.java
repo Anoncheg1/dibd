@@ -77,7 +77,7 @@ public class IhaveCommand implements Command{
 	
 	private String host; //for log ONLY
 	
-	public final String noRef = "437 no such thread for replay.";
+	public final static String noRef = "437 no such thread for replay.";
 	
 	//For ArticlePuller
 	public boolean pullMode = false;

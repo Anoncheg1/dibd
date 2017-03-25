@@ -396,6 +396,7 @@ public class TLS{
 				//synchronized (gate) {}
 			}
 		}finally{
+			if (selector != null)
 			selector.close();
 		}
 		/*if (engine.getHandshakeStatus() == HandshakeStatus.NOT_HANDSHAKING)

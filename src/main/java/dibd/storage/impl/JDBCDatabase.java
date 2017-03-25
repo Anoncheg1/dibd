@@ -568,7 +568,9 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 		}finally{
 			this.restarts = 0; // Reset error count
 		}
-		return null; //Never happen. restartConnection() will throw exception or recursion.
+		Log.get().log(Level.SEVERE, "createThread() base failded, exit ");
+		System.exit(1); //Never happen. restartConnection() will throw exception or recursion.
+		return null;
 	}
 	
 	public Article createReplayWeb(Article article,
@@ -650,6 +652,8 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 		}finally{
 			this.restarts = 0; // Reset error count
 		}
+		Log.get().log(Level.SEVERE, "createReplay() database faild, exit.");
+		System.exit(1);
 		return null;//Never happen. restartConnection() will throw exception or recursion.
 	}
 
