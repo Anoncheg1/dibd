@@ -72,14 +72,13 @@ public class FeedManager extends Thread{
 	
 	// TODO Make configurable
 	public static final int QUEUE_SIZE = 64;
-private final LinkedBlockingQueue<Article> articleQueue = new LinkedBlockingQueue<>(QUEUE_SIZE);
 
 	public //public static void startPull(){
 	void run(){
 		if (Config.inst().get(Config.PEERING, true)) {
 			
 			//1) Pull daemon for getting missing threads 
-			final int pullThreadsAmount = 10; //TODO:make configurable
+			final int pullThreadsAmount = 5; //TODO:make configurable
 			for(int i = 0; i < pullThreadsAmount; i++){
         		(new PullDaemon()).start();
         	}
@@ -106,6 +105,9 @@ private final LinkedBlockingQueue<Article> articleQueue = new LinkedBlockingQueu
         }
 	}
 
+	/**
+	 * Fixed running push daemons list per subscription with shared queue.
+	 */
 	private static Map<String, List<PushDaemon>> pushDaemons= new HashMap<>();
 	
 	
@@ -136,23 +138,19 @@ private final LinkedBlockingQueue<Article> articleQueue = new LinkedBlockingQueu
 					pds.forEach( (e) -> e.start() );
 					//Log.get().info("pushDaemons for " +sub.getHost()+" started");
 				}
-				
-				
 			}
 			
-			
-			/*
-        	//final int pushThreadsAmount = Math.max(4, 2 *
-              //      Runtime.getRuntime().availableProcessors());
-        	final int pushThreadsAmount = 10; //TODO:make configurable
-        	for(int i = 0; i < pushThreadsAmount; i++){
-        		(new PushDaemon()).start();
-        	}*/
         }
 	}
 
 	
-	//POST, IHAVE, TAKETHIS, WEB input
+	/**
+	 * Push to subscription.
+	 * 
+	 * POST, IHAVE, TAKETHIS, WEB input 
+	 * 
+	 * @param article
+	 */
 	public static void queueForPush(Article article) {
 		if (Config.inst().get(Config.PEERING, false)){
 			String newsgroup = article.getGroupName();
@@ -184,16 +182,6 @@ private final LinkedBlockingQueue<Article> articleQueue = new LinkedBlockingQueu
 				}
 
 		}
-		/*
-		if (running){
-			try {
-				// If queue is full, this call blocks until the queue has free space;
-				// This is probably a bottleneck for article posting
-				articleQueue.put(article);
-			} catch (InterruptedException ex) {
-				Log.get().log(Level.WARNING, null, ex);
-			}
-		}*/
 	}
 
 	/**
@@ -348,39 +336,4 @@ private final LinkedBlockingQueue<Article> articleQueue = new LinkedBlockingQueu
 		return messageIDs;
 	}
 	
-	/* old
-	public static Map<String, Boolean> sortThreadsReplays(List<String> threads, Map<String, String> rLeft, String host){
-		//500 initial capacity may be anything. 500 is rough min posts count.(just more than default 10)
-		Map<String, Boolean> messageIDs = new LinkedHashMap<String, Boolean>(500);
-		
-		 
-		
-		for( String th: threads){
-			messageIDs.put(th, true);
-		
-			Iterator<Entry<String, String>> rit = rLeft.entrySet().iterator();
-			
-			//search rLeft for this threads
-			while(rit.hasNext()){
-				Map.Entry<String, String> rep = rit.next();
-				
-				if(rep.getValue().equals(th)){ //replay for this thread?
-					messageIDs.put(rep.getKey(), false);
-					rit.remove();
-				}
-			}
-		}
-		
-
-		//rLeft without thread
-		if (! rLeft.isEmpty()){
-			StringBuilder restreplays= new StringBuilder();
-			rLeft.entrySet().forEach(e -> restreplays.append(e).append(" "));
-			Log.get().log(Level.WARNING, "From: {0} NEWNEWS or XOVER rLeft without thread: {1}", new Object[]{host, restreplays.toString()});
-		}
-		
-		return messageIDs;
-	}*/
-	
-
 }

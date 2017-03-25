@@ -21,15 +21,11 @@ package dibd.feed;
 import java.io.IOException;
 import java.net.Proxy;
 import java.net.UnknownHostException;
-import java.util.Arrays;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
 
 import dibd.config.Config;
 import dibd.daemon.DaemonThread;
-import dibd.storage.StorageManager;
-import dibd.storage.GroupsProvider.Group;
-import dibd.storage.SubscriptionsProvider.FeedType;
 import dibd.storage.SubscriptionsProvider.Subscription;
 import dibd.storage.article.Article;
 import dibd.util.Log;
@@ -44,20 +40,28 @@ import dibd.util.Log;
 
 
 public class PushDaemon extends DaemonThread {
-
-	
-	
 	
 	//shared between PushDaemon of the same subscription 
 	private final LinkedBlockingQueue<Article> articleQueue;
 	
 	private Subscription sub;
 	
+	/**
+	 * Constructor for push daemon. 
+	 * 
+	 * @param sub
+	 * @param articleQueue shared per sub
+	 */
 	PushDaemon(Subscription sub, LinkedBlockingQueue<Article> articleQueue){
 		this.sub = sub;
 		this.articleQueue = articleQueue;
 	}
 
+	/**
+	 * Add article to shared FIFO queue.
+	 * 
+	 * @param article
+	 */
 	void queueForPush(Article article) {
 		try {
 			// If queue is full, this call blocks until the queue has free space;
@@ -112,13 +116,13 @@ public class PushDaemon extends DaemonThread {
 					}
 
 					//write article
-					
-						if(ap.writeArticle(article))
-							Log.get().log(Level.FINE, "PushDaemon seccess: {0},{1},{2}", new Object[] { sub.getHost(), article.getMessageId(), article.getGroupName() } );
-						else
-							Log.get().log(Level.FINER, "PushDaemon {0} already have: {1}, {2}", new Object[] { sub.getHost(), article.getMessageId(), article.getGroupName() } );
-						
-						break;
+
+					if(ap.writeArticle(article))
+						Log.get().log(Level.FINE, "PushDaemon seccess: {0},{1},{2}", new Object[] { sub.getHost(), article.getMessageId(), article.getGroupName() } );
+					else
+						Log.get().log(Level.FINER, "PushDaemon {0} already have: {1}, {2}", new Object[] { sub.getHost(), article.getMessageId(), article.getGroupName() } );
+
+					break;
 				} catch (IOException ex) {
 					Log.get().log(Level.INFO, "PushDaemon {0} {1} {2} , retry {3} I/O Exception: {4}", 
 							new Object[] { sub.getHost(), article.getMessageId(), article.getGroupName(), retry, ex.getLocalizedMessage()});//contitune
@@ -138,6 +142,5 @@ public class PushDaemon extends DaemonThread {
 			}
 		}
 	}
-
 	
 }
