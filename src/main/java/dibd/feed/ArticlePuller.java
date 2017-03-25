@@ -170,10 +170,6 @@ public class ArticlePuller {
 	private Response conn = new Response(); //hook for loopback
 	
 	
-
-	
-	
-	
 	/**
 	 * Pull articles from carefully sorted list of threads and rLeft message-ids. 
 	 * 

@@ -27,6 +27,7 @@ import dibd.storage.StorageManager;
 import dibd.storage.StorageNNTP;
 import dibd.storage.SubscriptionsProvider;
 import dibd.storage.GroupsProvider.Group;
+import dibd.storage.article.Article;
 
 /**
  * RecievingService class test too.
@@ -70,7 +71,9 @@ public class PostTest {
 		//Log.get().setLevel(java.util.logging.Level.WARNING);
 		//message-id: ???@sender - sender must be in group peers to receive the message
 		
-		
+/*		Article artforpush = Mockito.mock(Article.class);
+		when(artforpush.getGroupName()).thenReturn()
+		when(storage.createReplay(Mockito.any(),Mockito.any(), Mockito.any(), Mockito.any())).thenReturn(artforpush);*/
 	}
 
 	
@@ -155,7 +158,7 @@ public class PostTest {
 		
 		c.processLine(conn, "POST", "POST".getBytes("UTF-8"));
 		verify(conn, atLeastOnce()).println(startsWith("340"));//OK
-		for(int i = 1; i < send2.length; i++)
+		for(int i = 0; i < send2.length; i++)
 			c.processLine(conn, send2[i], send2[i].getBytes("UTF-8"));
 		
 		verify(conn, atLeastOnce()).println(startsWith("240")); //article is accepted

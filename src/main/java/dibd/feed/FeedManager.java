@@ -16,11 +16,15 @@ import java.nio.charset.Charset;
 import java.security.cert.X509Certificate;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.Set;
 import java.util.logging.Level;
 
 import javax.net.ssl.SSLPeerUnverifiedException;
@@ -29,9 +33,11 @@ import javax.net.ssl.SSLSocket;
 import dibd.config.Config;
 import dibd.daemon.NNTPConnection;
 import dibd.daemon.TLS;
+import dibd.storage.GroupsProvider.Group;
 import dibd.storage.StorageManager;
 import dibd.storage.SubscriptionsProvider.FeedType;
 import dibd.storage.SubscriptionsProvider.Subscription;
+import dibd.storage.article.Article;
 import dibd.util.Log;
 
 public class FeedManager extends Thread{
@@ -58,47 +64,40 @@ public class FeedManager extends Thread{
     	}
 		return proxy;
 	}
-	
+
 	/**
 	 * Start pulling
 	 * 
 	 */
+	
+	// TODO Make configurable
+	public static final int QUEUE_SIZE = 64;
+private final LinkedBlockingQueue<Article> articleQueue = new LinkedBlockingQueue<>(QUEUE_SIZE);
+
 	public //public static void startPull(){
 	void run(){
 		if (Config.inst().get(Config.PEERING, true)) {
-			//1) Pull daemon which pulling threads for rLeft without ones 
+			
+			//1) Pull daemon for getting missing threads 
 			final int pullThreadsAmount = 10; //TODO:make configurable
 			for(int i = 0; i < pullThreadsAmount; i++){
         		(new PullDaemon()).start();
         	}
-			
-			
-			//List<Group> groups = StorageManager.groups.getAll();
-			/*List<Group> gr = new ArrayList<Group>();
-			for (Group g : StorageManager.groups.getAll())
-				if (g.getHosts().size() != 0)
-					PullDaemon.queueForPush(g, StorageManager.current().getLastPostOfGroup(g));
-			*/
-			
-			
-			
-			//Set<Subscription> subs= StorageManager.peers.getAll();
-			//Set<Group> groupsp = StorageManager.groups.groupsPerPeer(sub);
+
 			
 			//1) Pull new articles at startup
         	for (Subscription sub : StorageManager.peers.getAll()) {
         		if (sub.getFeedtype() != FeedType.PUSH){
         			PullAtStart pf;
         			try {
-						pf = new PullAtStart(sub);
-					} catch (UnknownHostException | NumberFormatException e) {
+        				pf = new PullAtStart(sub);
+
+        				pf.start(); //thread per subscription
+
+        				pf.join();
+        			} catch (UnknownHostException | NumberFormatException e) {
 						Log.get().log(Level.SEVERE, "Wrong proxy configuration: {0}", e);
 						break;
-					}
-        			
-        			pf.start(); //thread per subscription
-        			try {
-						pf.join();
 					} catch (InterruptedException e) {
 						break;
 					}
@@ -106,6 +105,9 @@ public class FeedManager extends Thread{
         	}
         }
 	}
+
+	private static Map<String, List<PushDaemon>> pushDaemons= new HashMap<>();
+	
 	
 	/**
 	 * Start pushing
@@ -113,15 +115,87 @@ public class FeedManager extends Thread{
 	 */
 	public static void startPushDaemons(){
 		if (Config.inst().get(Config.PEERING, true)) {
+			for (Subscription sub : StorageManager.peers.getAll()) {
+				if (sub.getFeedtype() == FeedType.PULL) //It is PUSH and BOTH
+					continue;
+				
+				boolean subGood = false;
+				Set<Group> groups = StorageManager.groups.groupsPerPeer(sub);
+				if (groups != null)
+					for (Group gr : StorageManager.groups.groupsPerPeer(sub))
+						if (! gr.isDeleted()){ //if subscription have not deleted groups
+							subGood = true;
+							break;
+						}
+				if(subGood){
+					//two threads her subscription. with shared LinkedBlockingQueue
+					LinkedBlockingQueue<Article> articleQueue = new LinkedBlockingQueue<>(QUEUE_SIZE);
+					List<PushDaemon> pds= Arrays.asList(new PushDaemon[]{
+							new PushDaemon(sub, articleQueue), new PushDaemon(sub, articleQueue)});
+					pushDaemons.put(sub.getHost(), pds);
+					pds.forEach( (e) -> e.start() );
+					//Log.get().info("pushDaemons for " +sub.getHost()+" started");
+				}
+				
+				
+			}
+			
+			
+			/*
         	//final int pushThreadsAmount = Math.max(4, 2 *
               //      Runtime.getRuntime().availableProcessors());
         	final int pushThreadsAmount = 10; //TODO:make configurable
         	for(int i = 0; i < pushThreadsAmount; i++){
         		(new PushDaemon()).start();
-        	}
+        	}*/
         }
 	}
+
 	
+	//POST, IHAVE, TAKETHIS, WEB input
+	public static void queueForPush(Article article) {
+		if (Config.inst().get(Config.PEERING, false)){
+			String newsgroup = article.getGroupName();
+			assert(newsgroup != null);
+			Group group = StorageManager.groups.get(newsgroup);
+			assert( ! group.isDeleted());
+
+			Set<String> grhosts = group.getHosts();
+
+			if ( ! grhosts.isEmpty())
+				for(String s : group.getHosts()){
+					List<PushDaemon> plist = pushDaemons.get(s);
+					if (plist != null){
+						// Circle check: if subscribers in path, then they already have message.
+						boolean check = false;
+						String path = article.getPath_header();
+						if (path != null)
+							for(String ps : Arrays.asList(path.split("!")))
+								if (ps.equalsIgnoreCase(s))
+									check = true;
+						if (check || article.getMsgID_host().equalsIgnoreCase(s))
+							continue;
+
+						Log.get().info("pushquery " +s+" started");
+						plist.get(0).queueForPush(article);
+						//plist.forEach( (e) -> e.queueForPush(article));
+					}
+
+				}
+
+		}
+		/*
+		if (running){
+			try {
+				// If queue is full, this call blocks until the queue has free space;
+				// This is probably a bottleneck for article posting
+				articleQueue.put(article);
+			} catch (InterruptedException ex) {
+				Log.get().log(Level.WARNING, null, ex);
+			}
+		}*/
+	}
+
 	/**
 	 * Create socket for pull or push.
 	 * DLS leak for http proxy.

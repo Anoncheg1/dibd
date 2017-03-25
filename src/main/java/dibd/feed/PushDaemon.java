@@ -45,109 +45,97 @@ import dibd.util.Log;
 
 public class PushDaemon extends DaemonThread {
 
-	// TODO Make configurable
-	public static final int QUEUE_SIZE = 256;
-
-	//POST, IHAVE, TAKETHIS, WEB input
-	private final static LinkedBlockingQueue<Article> articleQueue = new LinkedBlockingQueue<>(QUEUE_SIZE);
 	
-	private static volatile boolean running = false;
+	
+	
+	//shared between PushDaemon of the same subscription 
+	private final LinkedBlockingQueue<Article> articleQueue;
+	
+	private Subscription sub;
+	
+	PushDaemon(Subscription sub, LinkedBlockingQueue<Article> articleQueue){
+		this.sub = sub;
+		this.articleQueue = articleQueue;
+	}
 
-	public static void queueForPush(Article article) {
-		if (running){
-			try {
-				// If queue is full, this call blocks until the queue has free space;
-				// This is probably a bottleneck for article posting
-				articleQueue.put(article);
-			} catch (InterruptedException ex) {
-				Log.get().log(Level.WARNING, null, ex);
-			}
+	void queueForPush(Article article) {
+		try {
+			// If queue is full, this call blocks until the queue has free space;
+			// This is probably a bottleneck for article posting
+			articleQueue.put(article);
+		} catch (InterruptedException ex) {
+			Log.get().log(Level.WARNING, null, ex);
 		}
 	}
 	
 	
 	@Override
 	public void run() {
-		PushDaemon.running = isRunning(); 
 		while (isRunning()) {
-			try {
+			int retries = 20;
+			for(int retry =1; retry<retries;retry++){
 				
-				Article article = PushDaemon.articleQueue.take();
+				Article article;
+				try {
+					article = articleQueue.take();
+				} catch (InterruptedException ex) {
+					Log.get().log(Level.FINEST, "PushDaemon interrupted: {0}", ex.getLocalizedMessage());
+					return;
+				}
 				
-				String newsgroup = article.getGroupName();
-				assert(newsgroup != null);
-				
-				Group group = StorageManager.groups.get(newsgroup);
-				if(group.isDeleted())
-					continue;
-				//кроме источника, отправителя и пройденных
-				if (!group.getHosts().isEmpty())
-					for(String s : group.getHosts())
-						for (Subscription sub : StorageManager.peers.getAll()) {
-							
-							if (!sub.getHost().equals(s))//subscription must be in list of group
-								continue;
-							if (sub.getFeedtype() == FeedType.PULL) //It is PUSH and BOTH
-								continue;
-							
-							
-							// Circle check: if subscribers in path, then they already have message.
-							boolean check = false;
-							String path = article.getPath_header();
-							if (path != null)
-								for(String ps : Arrays.asList(path.split("!")))
-									if (ps.equalsIgnoreCase(sub.getHost()))
-										check = true;
-							if (check || article.getMsgID_host().equalsIgnoreCase(sub.getHost()))
-								continue;
+				ArticlePusher ap = null;
+				try{
+					//for(int retry =1; retry<retries;retry++){
+					//TODO: make proxy configurable for every peer
+					Proxy proxy;
+					try {
+						proxy = FeedManager.getProxy(sub);
+					} catch (NumberFormatException | UnknownHostException e) {
+						Log.get().log(Level.SEVERE, "Wrong proxy configuration: {0}", e);
+						return;
+					}
 
-							//TODO: make proxy configurable for every peer
-				    		Proxy proxy;
-							try {
-								proxy = FeedManager.getProxy(sub);
-							} catch (NumberFormatException | UnknownHostException e) {
-								Log.get().log(Level.SEVERE, "Wrong proxy configuration: {0}", e);
-								return;
-							}
-							
-							// POST the message to remote server
-							
-							ArticlePusher ap = null;
-							boolean TLSenabled = Config.inst().get(Config.TLSENABLED, false);
-							try { // two times we will try to connect
-								ap = new ArticlePusher(FeedManager.createSocket(proxy, sub.getHost(), sub.getPort()), TLSenabled, sub.getHost());
-							} catch (IOException ex) { //second try
-								try {
-									ap = new ArticlePusher(FeedManager.createSocket(proxy, sub.getHost(), sub.getPort()), TLSenabled, sub.getHost());
-								} catch (IOException ex1) { //second try
-									Log.get().info(ex1.toString()+" to host "+sub.getHost());
-									continue; //fail to connect
-								}
-							}
-							
-							try {
-								if(ap.writeArticle(article))
-									Log.get().log(Level.INFO, "PushDaemon secess: {0},{1},{2}", new Object[] { sub.getHost(), article.getMessageId(),group.getName() } );
-								else
-									Log.get().log(Level.INFO, "PushDaemon already have: {0},{1},{2}", new Object[] { sub.getHost(), article.getMessageId(),group.getName() } );
-							} catch (IOException ex) {
-								if (ex.getMessage().startsWith("436"))
-									PushDaemon.articleQueue.put(article);//we put article to query again, Possible infinity loop!!
-								else if (ex.getMessage().startsWith("437"))
-									continue;
-								else
-									Log.get().log(Level.WARNING, "PushDaemon I/O Exception: {0}", ex);
-								continue;
-							}finally{
-								ap.close();
-							}
+					// POST the message to remote server
+
+					// Connect
+					
+					boolean TLSenabled = Config.inst().get(Config.TLSENABLED, false);
+					try { // two times we will try to connect
+						ap = new ArticlePusher(FeedManager.createSocket(proxy, sub.getHost(), sub.getPort()), TLSenabled, sub.getHost());
+					} catch (IOException ex) { //second try
+						try {
+							ap = new ArticlePusher(FeedManager.createSocket(proxy, sub.getHost(), sub.getPort()), TLSenabled, sub.getHost());
+						} catch (IOException ex1) { //second try
+							Log.get().info(ex1.toString()+" to host "+sub.getHost());
+							continue; //fail to connect
 						}
-			} catch (InterruptedException ex) {
-				Log.get().log(Level.FINEST, "PushDaemon interrupted: {0}", ex.getLocalizedMessage());
-				return;
-			}catch (Exception e) {
-	    		Log.get().log(Level.SEVERE, e.getLocalizedMessage(), e);
-	    	}
+					}
+
+					//write article
+					
+						if(ap.writeArticle(article))
+							Log.get().log(Level.FINE, "PushDaemon seccess: {0},{1},{2}", new Object[] { sub.getHost(), article.getMessageId(), article.getGroupName() } );
+						else
+							Log.get().log(Level.FINER, "PushDaemon {0} already have: {1}, {2}", new Object[] { sub.getHost(), article.getMessageId(), article.getGroupName() } );
+						
+						break;
+				} catch (IOException ex) {
+					Log.get().log(Level.INFO, "PushDaemon {0} {1} {2} , retry {3} I/O Exception: {4}", 
+							new Object[] { sub.getHost(), article.getMessageId(), article.getGroupName(), retry, ex.getLocalizedMessage()});//contitune
+				}catch (Exception e) {
+					Log.get().log(Level.SEVERE, e.getLocalizedMessage(), e);
+					return;
+				}finally{
+					if (ap != null)
+						ap.close();
+				}
+				
+				try {
+	    			Thread.sleep(5*1000*retry*retry);//geometric progression from 5 sec to 33 min 
+	    		} catch (InterruptedException e) {
+	    			break;
+	    		}
+			}
 		}
 	}
 

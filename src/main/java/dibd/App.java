@@ -198,11 +198,12 @@ public final class App {
         	Config.inst().set(Config.PORT, String.valueOf(port));
         final NNTPDaemon daemon = NNTPDaemon.createInstance(port);
         
-        //Pull new articles. Just before the final start.
-        (new FeedManager()).start();
+        if (Config.inst().get(Config.PEERING, false)){
+        	//Pull new articles. Just before the final start.
+        	(new FeedManager()).start();
 
-        
-        FeedManager.startPushDaemons();
+        	FeedManager.startPushDaemons();
+        }
         
         daemon.start();
         // Start Connections purger thread...

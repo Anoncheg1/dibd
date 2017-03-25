@@ -25,8 +25,8 @@ import dibd.config.Config;
 import dibd.daemon.ChannelLineBuffers;
 import dibd.daemon.NNTPConnection;
 import dibd.daemon.NNTPInterface;
+import dibd.feed.FeedManager;
 import dibd.feed.PullDaemon;
-import dibd.feed.PushDaemon;
 import dibd.storage.Headers;
 import dibd.storage.StorageBackendException;
 import dibd.storage.StorageManager;
@@ -202,7 +202,7 @@ class ReceivingService{
 
 	/////    readingBody    /////
 	private int lineHeadCount = 0;
-	private long bodySize = 0;
+	private long bodySize = 0; //approximate
 	
 	private enum Multipart { Comment, MessagePart, AttachmentPart, AttachmentReaded};
 	private Multipart mPart = Multipart.Comment;
@@ -223,7 +223,6 @@ class ReceivingService{
 	//SIDE EFFECT FUNCTION
 	//bufBody
 	/**
-	 * 
 	 * 4 - "." reached. Wrong multipart format.
 	 * 3 - too big. message was not read. multipart and not. "." not reachead.
 	 * 2 - too big. multipart, message readed. "." not reachead.
@@ -237,7 +236,7 @@ class ReceivingService{
 	int readingBody(String line, byte[] raw) throws IOException{
 		
 		if (! ".".equals(line)) {
-			bodySize += line.length()+1; //not sure about accuracy.
+			bodySize += raw.length; //approximate value
 			
 			//saving raw to bufBody 
 			bufBody.write(raw); //\r\n was already removed in ChannelLineBuffers and NNTPConnection
@@ -302,11 +301,9 @@ class ReceivingService{
 						
 					break;
 				}
-				case AttachmentReaded:break;
-				default: {
-					// Should never happen
-					Log.get().severe(command+" "+cMessageId+":"+host+":readingBody(): already finished...");
-				}
+				default:
+					break;
+				
 				}
 				
 				//multipart
@@ -332,8 +329,7 @@ class ReceivingService{
 			return 0; //continue to read
 			
 		} else { //"." was reach
-			bodySize -= 1;
-
+			
 			if ((boundary != null && mPart != Multipart.AttachmentReaded) || bodySize == 0) //==0 if every line is was empty line 
 				return 4;//It is the end but it doesn't look like the end.
 			
@@ -627,7 +623,7 @@ class ReceivingService{
 				art = new Article(null, from, subject, message, group);
 				article = StorageManager.current().createThread(art, file, gfileCT, file_name);
 			}
-			PushDaemon.queueForPush(article); //send to peers
+			FeedManager.queueForPush(article); //send to peers
 		}else{
 			
 			////   IHAVE, TAKETHIS    //////
@@ -681,7 +677,7 @@ class ReceivingService{
 			}else if ( ! pullMode && status == 0){
 				assert(article != null);
 				article.setRaw(rawArticle);
-				PushDaemon.queueForPush(article); //send to peers
+				FeedManager.queueForPush(article); //send to peers
 				Log.get().log(Level.FINE, "{0}: article {1} received and it is {2} that we can send it to another hosts",
 						new Object[]{this.command, messageId, group.getHosts().contains(mId[1])});
 			}
