@@ -512,11 +512,11 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			pstmtCreateThread1.setString(2, messageId);
 			pstmtCreateThread1.setString(3, article.getMsgID_host());
 			pstmtCreateThread1.setInt(4, article.getHash());
-			pstmtCreateThread1.setString(5, article.getA_name().trim());
-			pstmtCreateThread1.setString(6, article.getSubject().trim());
-			pstmtCreateThread1.setString(7, article.getMessage().trim());
+			pstmtCreateThread1.setString(5, article.getA_name());
+			pstmtCreateThread1.setString(6, article.getSubject());
+			pstmtCreateThread1.setString(7, article.getMessage());
 			pstmtCreateThread1.setLong(8, article.getPost_time());
-			pstmtCreateThread1.setString(9, article.getPath_header().trim());
+			pstmtCreateThread1.setString(9, article.getPath_header());
 			pstmtCreateThread1.setInt(10, article.getStatus());
 			pstmtCreateThread1.execute();
 			// insert thread
