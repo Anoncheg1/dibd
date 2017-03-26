@@ -126,4 +126,18 @@ public class NNTPCacheProvider {
 			return null;
 		}		
 	}
+	
+	public FileOutputStream createTMPfile(String messageId) {
+		File ofile = new File(this.cachePath+"/"+messageId);
+		try {
+			ofile.createNewFile();
+			return new FileOutputStream(ofile);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return null;
+				
+	}
+	
 }

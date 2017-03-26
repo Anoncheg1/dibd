@@ -6,6 +6,8 @@ package dibd.daemon.command;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
@@ -219,7 +221,7 @@ class ReceivingService{
 	private StringBuilder messageB = new StringBuilder();	//for multi and not
 	private InternetHeaders multiAttachHeaders;
 	private StringBuilder attachBody;
-	
+	FileOutputStream attachStream;
 	//SIDE EFFECT FUNCTION
 	//bufBody
 	/**
@@ -261,6 +263,7 @@ class ReceivingService{
 				case MessagePart:{
 					if(line.startsWith("--") && line.equals("--"+boundary)){
 						mPart = Multipart.AttachmentPart;
+						//attachStream = StorageManager.nntpcache.createTMPfile(cMessageId);
 						multiAttachHeaders = new InternetHeaders();
 						attachBody = new StringBuilder();
 						break;
@@ -272,7 +275,9 @@ class ReceivingService{
 						else
 							multiMesHeaders.addHeaderLine(line); //no subject here //must contain only US-ASCII characters.
 					}else{ //if(messagePart == MessagePts.Message){
-						messageB.append(line).append("\n");//stringbuilder.setlength to remove last \n
+						messageB.append(line);
+						if(raw.length < ChannelLineBuffers.BUFFER_SIZE)
+							messageB.append("\n");//stringbuilder.setlength to remove last \n
 						//check message size
 						if (messageB.length() > maxMessageSize)
 							return 3;
@@ -295,6 +300,7 @@ class ReceivingService{
 						else
 							multiAttachHeaders.addHeaderLine(line); //must contain only US-ASCII characters.
 					}else{ //if(attachPart == Attachment.Body){
+						//attachStream.write(raw);
 						attachBody.append(line);
 					}
 					
@@ -631,7 +637,7 @@ class ReceivingService{
 
 			if(thread_id != null){ //replay
 				art = new Article(thread_id, messageId, mId[1], from, subject, message,
-						date, path, group.getName(), group.getInternalID(), status);
+						date, path.trim(), group.getName(), group.getInternalID(), status);
 				
 				if(status == 0){
 					
@@ -650,7 +656,7 @@ class ReceivingService{
 				
 			}else{ //thread
 				art = new Article(null, messageId, mId[1], from, subject, message,
-						date, path, group.getName(), group.getInternalID(), status);
+						date, path.trim(), group.getName(), group.getInternalID(), status);
 
 				if(status == 0){
 					File fl = StorageManager.nntpcache.saveFile(group.getName(), messageId, rawArticle);	

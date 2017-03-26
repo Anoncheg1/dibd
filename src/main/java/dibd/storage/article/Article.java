@@ -214,17 +214,19 @@ public class Article { //extends ArticleHead
 			if (a_name.isEmpty())
 				a_name = null;
 			else
-				a.a_name = escapeString(a_name);
+				a.a_name = escapeString(a_name).trim();
 		
 		if (subject != null)
 			if (subject.isEmpty())
 				subject = null;
 			else
-				a.subject = escapeString(subject);
+				a.subject = escapeString(subject).trim();
 		
 		
 		if (message != null && message.isEmpty())
 			message = null;
+		else
+			message.trim();
 		/*else
 			for(Entry<String, String> ref : short_ref_messageId.entrySet())
 				message.replace(ref.getKey(), ref.getValue());*/

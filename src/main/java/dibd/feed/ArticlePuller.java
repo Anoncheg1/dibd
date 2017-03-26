@@ -36,6 +36,7 @@ import java.security.cert.X509Certificate;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -334,7 +335,11 @@ public class ArticlePuller {
 						close();
 						lineBuffers.getInputBuffer().clear();
 						//lineBuffers = new ChannelLineBuffers();
-						lines.forEach((e) -> ChannelLineBuffers.recycleBuffer(e));
+						Iterator<ByteBuffer> it = lines.iterator();
+						while (it.hasNext()){
+							ChannelLineBuffers.recycleBuffer(it.next());
+							it.remove();
+						}
 						connect();
 
 						break;

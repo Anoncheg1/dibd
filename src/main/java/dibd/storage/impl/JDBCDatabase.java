@@ -612,11 +612,11 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			pstmtCreateReplay1.setString(3, messageId);
 			pstmtCreateReplay1.setString(4, article.getMsgID_host());
 			pstmtCreateReplay1.setInt(5, article.getHash());
-			pstmtCreateReplay1.setString(6, article.getA_name().trim());
-			pstmtCreateReplay1.setString(7, article.getSubject().trim());
-			pstmtCreateReplay1.setString(8, article.getMessage().trim());
+			pstmtCreateReplay1.setString(6, article.getA_name());
+			pstmtCreateReplay1.setString(7, article.getSubject());
+			pstmtCreateReplay1.setString(8, article.getMessage());
 			pstmtCreateReplay1.setLong(9, article.getPost_time());
-			pstmtCreateReplay1.setString(10, article.getPath_header().trim());
+			pstmtCreateReplay1.setString(10, article.getPath_header());
 			pstmtCreateReplay1.setInt(11, article.getStatus());
 			pstmtCreateReplay1.execute();
 			//update thread (post time, thread_id)
