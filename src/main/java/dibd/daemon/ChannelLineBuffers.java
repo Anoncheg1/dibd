@@ -225,6 +225,10 @@ public class ChannelLineBuffers {
     				byte b = inputBuffer.get();
     				if (b == 10) //='\n' (UTF-8) need CRLF \r\n  -'\r' left at the end. NNTPConnection.lineReceived(line) deal with it.
     				{
+    					
+    					if (lineBuffer.get(lineBuffer.position()-1) == 13 )//removing \r
+    						lineBuffer.position(lineBuffer.position()-1);
+    					
     					lineBuffer.flip(); // limit to position, position to 0
     					lines.add(lineBuffer);
     					lineBuffer = newLineBuffer();

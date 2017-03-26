@@ -238,12 +238,7 @@ public class NNTPConnection implements NNTPInterface{
 
         String line = new String(raw, this.charset);
 
-        // There might be a trailing \r, but trim() is a bad idea
-        // as it removes also leading spaces from long header lines.
-        if (line.charAt(line.length()-1) == '\r') { //collaboration with ChannelLineBuffer.nextInputLine
-            line = line.substring(0, line.length() - 1);
-            raw = Arrays.copyOf(raw, raw.length - 1);
-        }
+        // No trailing \r anymore
 
         if (command == null) { //waiting for command
         	if(line.charAt(0) == '5') //mistaking 5xx responses. TODO:add other codes

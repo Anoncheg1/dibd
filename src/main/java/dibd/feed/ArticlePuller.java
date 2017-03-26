@@ -18,15 +18,19 @@
 
 package dibd.feed;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.Proxy;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
+import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.security.cert.X509Certificate;
 import java.text.ParseException;
@@ -73,7 +77,7 @@ public class ArticlePuller {
 
 	private Socket socket;
 	private PrintWriter out;
-	private BufferedReader in;
+	//private BufferedReader in;
 	private static final String NL = NNTPConnection.NEWLINE;
 	private final Charset charset = Charset.forName("UTF-8");
 	
@@ -104,22 +108,78 @@ public class ArticlePuller {
 	
 	void connect() throws IOException{
 		this.socket = FeedManager.createSocket(proxy, host, port);
-		
+		socket.setSoTimeout(3000);
 		this.socket = FeedManager.getHelloFromServer(socket, TLSEnabled, host, charset);
 		if (TLSEnabled){
 			
 			SSLSocket sslsocket = (SSLSocket) this.socket;
 			//new encrypted streams
 			this.out = new PrintWriter(new OutputStreamWriter(sslsocket.getOutputStream(), this.charset));
-			this.in = new BufferedReader(new InputStreamReader(sslsocket.getInputStream(), this.charset));
+			//this.in = new BufferedReader(new InputStreamReader(sslsocket.getInputStream(), this.charset));
+			
+			this.instream = sslsocket.getInputStream();
 			
 		}else{
 			this.out = new PrintWriter(new OutputStreamWriter(this.socket.getOutputStream(), this.charset));
-			this.in = new BufferedReader(new InputStreamReader(this.socket.getInputStream(), this.charset));
+			//this.in = new BufferedReader(new InputStreamReader(this.socket.getInputStream(), this.charset));
+			
+			this.instream = socket.getInputStream();
 	
 		}
 	}
 
+	private InputStream instream;
+	private ChannelLineBuffers lineBuffers = new ChannelLineBuffers();
+	List<ByteBuffer> lines = new ArrayList<>();
+
+	
+	//BufferedReader replacer. Buffered reader may be DoSed it can't stop.
+	String getIS() throws IOException {
+	//	return this.in.readLine();
+		//fuck this, not working
+		
+		lines.addAll(lineBuffers.getInputLines());
+		if(!lines.isEmpty()){
+			ByteBuffer buf = this.lines.remove(0);
+			final byte[] rawline = new byte[buf.limit()];
+			buf.get(rawline);
+			ChannelLineBuffers.recycleBuffer(buf);
+			String line2 = new String(rawline, this.charset);
+			//System.out.println("return line:"+line2);
+			return line2;
+		}else{
+			ByteBuffer buf1 = this.lineBuffers.getInputBuffer();
+			int i = 0;
+			while (buf1.hasRemaining()) {
+
+				int b;
+				try{
+					b = this.instream.read();
+				}catch(SocketTimeoutException e)
+				{
+					System.out.println("timeout"+lines.isEmpty());
+					if (i++ > 5)
+						return null;
+					lines.addAll(lineBuffers.getInputLines());
+					if (lines.isEmpty())
+						continue;
+					else
+						break;
+				}
+
+				//if (b == -1) {
+					//break;
+				//}
+
+				buf1.put( (byte) b);
+			}
+			
+			return getIS();
+		}
+
+	}
+	
+	
 	//Hook for command connection
 	private class Response implements NNTPInterface{
 
@@ -236,7 +296,7 @@ public class ArticlePuller {
 			/**	220 0|n message-id    Article follows (multi-line)
 			 *	430                   No article with that message-id
 			 */
-			line = this.in.readLine();
+			line = getIS();//this.in.readLine();
 			if (line == null) {
 				Log.get().warning("Unexpected null reply from remote host");
 				return 1;
@@ -265,18 +325,22 @@ public class ArticlePuller {
 
 						//any message in the middle of transfer is error or success that required to finish
 						for(int i = 0; i<15 ; i++){ //wait 15 lines for end then interrupt.
-							line = this.in.readLine();
+							line = getIS();//this.in.readLine();
 							if(line == null || line.equals("."))
 								break read_article;
 						} //wait for 20 lines
-						Log.get().log(Level.FINER, "{0} rejected, reconnecting.", messageId);
+						
+						Log.get().log(Level.INFO, "{0} Recconnect clear buffers", messageId);
 						close();
+						lineBuffers.getInputBuffer().clear();
+						//lineBuffers = new ChannelLineBuffers();
+						lines.forEach((e) -> ChannelLineBuffers.recycleBuffer(e));
 						connect();
 
 						break;
 					}
 
-					line = this.in.readLine();
+					line = getIS();//this.in.readLine();
 					if (line == null) {
 						Log.get().log(Level.WARNING, "{0} null line resived during reading from {1} ", new Object[]{messageId, this.host} );
 						return 1;
@@ -320,7 +384,7 @@ public class ArticlePuller {
 		this.out.print("CAPABILITIES"+NL);
 		this.out.flush();
 
-		String line = this.in.readLine();
+		String line = getIS();//this.in.readLine();
 		if (line == null || !line.startsWith("101")) { //230 List of new articles follows (multi-line)
 			Log.get().log(Level.WARNING, "From host: {0} CAPABILITIES response: {1}", new Object[]{this.host, line});
 			throw new IOException();
@@ -328,9 +392,8 @@ public class ArticlePuller {
 		List<String> capabilties = new ArrayList<>();
 		while (line != null && !(".".equals(line))) {
 			capabilties.add(line);
-			line = this.in.readLine();
+			line = getIS();
 		}
-		
 		return capabilties; 
 	}
 	
@@ -348,7 +411,6 @@ public class ArticlePuller {
 	 */
 	public Map<String, List<String>> scrap(final Set<Group> groups) throws StorageBackendException, IOException{
 		List<String> capabilties = getCapabilities();
-		
 		if ( ! capabilties.contains("READER")){ //case sensitive!
 			Log.get().log(Level.WARNING, "From host: {0} CAPABILITIES do not contain: READER", this.host);
 			throw new IOException(); //this is too strange we will not skip
@@ -381,7 +443,7 @@ public class ArticlePuller {
 		
 		this.out.print("GROUP "+gname+NL);
 		this.out.flush();
-		String line = this.in.readLine();
+		String line = getIS();//this.in.readLine();
 		if (line == null || !line.startsWith("211")) { //Group selected
 			Log.get().log(Level.WARNING, "From host: {0} GROUP {1} request, response: {2}", new Object[]{this.host, gname, line});
 			throw new IOException(); //we will retry
@@ -389,7 +451,7 @@ public class ArticlePuller {
 
 		this.out.print("XOVER 0"+NL);
 		this.out.flush();
-		line = this.in.readLine();
+		line = getIS();//this.in.readLine();
 		if (line == null || !line.startsWith("224")) { //overview follows
 			Log.get().log(Level.WARNING, "From host: {0} XOVER 0 for group {1}, response: {2}", new Object[]{this.host, gname, line});
 			throw new IOException(); //we will retry
@@ -398,7 +460,7 @@ public class ArticlePuller {
 		List<String> replays = null;
 		boolean found = false;
 		
-		line = this.in.readLine();
+		line = getIS();//this.in.readLine();
 		while (line != null && !(".".equals(line.trim()))) {
 			String[] part = line.split("\t");
 			if (part.length < 5){
@@ -467,7 +529,8 @@ public class ArticlePuller {
 		String gname = group.getName();
 		this.out.print("GROUP "+gname+NL);
 		this.out.flush();
-		String line = this.in.readLine();
+		
+		String line = getIS();
 		if (line == null || !line.startsWith("211")) { //Group selected
 			Log.get().log(Level.WARNING, "From host: {0} GROUP {1} request, response: {2}", new Object[]{this.host, gname, line});
 			return new LinkedHashMap<>();//we will skip this group
@@ -475,7 +538,7 @@ public class ArticlePuller {
 
 		this.out.print("XOVER 0"+NL);
 		this.out.flush();
-		line = this.in.readLine();
+		line = getIS();
 		if (line == null || !line.startsWith("224")) { //overview follows
 			Log.get().log(Level.WARNING, "From host: {0} XOVER 0 for group {1}, response: {2}", new Object[]{this.host, gname, line});
 			return new LinkedHashMap<>();//we will skip this group
@@ -488,7 +551,7 @@ public class ArticlePuller {
 		Map<String, String> aReplTime = new HashMap<>();
 		Map<String, String> aThreads = new HashMap<>();
 		
-		line = this.in.readLine();
+		line = getIS();
 		while (line != null && !(".".equals(line.trim()))) {
 			String[] part = line.split("\t");
 			if (part.length < 5){
@@ -521,7 +584,7 @@ public class ArticlePuller {
 				throw new IOException();
 			}
 
-			line = this.in.readLine();
+			line = getIS();
 		}
 		
 		//500 initial capacity may be anything. 500 is rough min posts count.(just more than default 10)
@@ -577,14 +640,14 @@ public class ArticlePuller {
 	 */
 	public void close(){
 		try{
-			if (out != null && this.in != null){
+			if (out != null && this.instream != null){
 				this.out.print("QUIT\r\n");
 				this.out.flush();
 
 				//this.lastActivity = System.currentTimeMillis();
-				this.in.readLine(); //we are polite
+				getIS();//this.in.readLine(); //we are polite
 		//		lineBuffers.recycleBuffers();
-				in.close();
+				instream.close();
 				out.close();
 			}
 		}catch(IOException ex){}

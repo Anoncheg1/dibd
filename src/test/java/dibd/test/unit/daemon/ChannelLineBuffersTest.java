@@ -18,6 +18,7 @@ import java.util.List;
 
 import org.junit.BeforeClass;
 import org.junit.FixMethodOrder;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
 import dibd.daemon.ChannelLineBuffers;
@@ -98,9 +99,9 @@ public class ChannelLineBuffersTest {
             	part1processed = false;
             }else{
             	if (ts[i].length() > 990){
-            		assertEquals(ts[i].substring(ChannelLineBuffers.BUFFER_SIZE, ts[i++].length())+"\r",new String(line, "UTF-8")); //"\r" removed in lineReceived, but here we leave it as is
+            		assertEquals(ts[i].substring(ChannelLineBuffers.BUFFER_SIZE, ts[i++].length()),new String(line, "UTF-8"));
             	}else{
-            		assertEquals(ts[i++]+"\r",new String(line, "UTF-8")); //"\r" removed in lineReceived, but here we leave it as is
+            		assertEquals(ts[i++],new String(line, "UTF-8"));
             	}
             }
         
@@ -139,7 +140,7 @@ public class ChannelLineBuffersTest {
 		buf.get(line);
 		ChannelLineBuffers.recycleBuffer(buf); //recycle is done outside
 
-		assertEquals("hello\r",new String(line, "UTF-8")); //"\r" removed in lineReceived, but here we leave it as is
+		assertEquals("hello",new String(line, "UTF-8"));
 
         
         //System.out.println(this.size+" "+ChannelLineBuffersTest.freeSmallBuffers.size());
