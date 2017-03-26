@@ -110,7 +110,8 @@ public final class Headers {
 	 */
 	public static boolean matchMsgId(final String messageId){
 		//String mId = messageId.replaceAll("[^\\w^<^>^@^.^-]", "");//clear message id from unsupported characters
-		return messageId.matches(NNTPConnection.MESSAGE_ID_PATTERN);
+		//messageId.trim().equals(messageId) - for possible not UTF-8 0x00 characters. 
+		return messageId.matches(NNTPConnection.MESSAGE_ID_PATTERN) && messageId.trim().equals(messageId);
 	}
 
     private Headers() {

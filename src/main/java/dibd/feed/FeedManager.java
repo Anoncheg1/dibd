@@ -64,17 +64,18 @@ public class FeedManager extends Thread{
     	}
 		return proxy;
 	}
-
-	/**
-	 * Start pulling
-	 * 
-	 */
 	
 	// TODO Make configurable
-	public static final int QUEUE_SIZE = 64;
+	public static final int QUEUE_SIZE = 64; //queue length for every sub
 
-	public //public static void startPull(){
-	void run(){
+	/**
+	 * Fixed running push daemons list per subscription with shared queue.
+	 */
+	private static Map<String, List<PushDaemon>> pushDaemons= new HashMap<>();
+	
+	
+	//Pull At Start and starting Pull daemons for missing threads
+	public void run(){
 		if (Config.inst().get(Config.PEERING, true)) {
 			
 			//1) Pull daemon for getting missing threads 
@@ -105,10 +106,7 @@ public class FeedManager extends Thread{
         }
 	}
 
-	/**
-	 * Fixed running push daemons list per subscription with shared queue.
-	 */
-	private static Map<String, List<PushDaemon>> pushDaemons= new HashMap<>();
+	
 	
 	
 	/**
@@ -174,8 +172,8 @@ public class FeedManager extends Thread{
 						if (check || article.getMsgID_host().equalsIgnoreCase(s))
 							continue;
 
-						Log.get().info("pushquery " +s+" started");
-						plist.get(0).queueForPush(article);
+						//Log.get().info("pushquery " +s+" started");
+						plist.get(0).queueForPush(article); //queue shared we can use any of thread to put.
 						//plist.forEach( (e) -> e.queueForPush(article));
 					}
 

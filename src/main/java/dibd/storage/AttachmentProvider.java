@@ -176,9 +176,9 @@ public class AttachmentProvider {
 		File fileImg = new File(getAPath(groupName, fileName)); //img
 		File fileThm = new File(this.getTnPath(groupName, fileName)); //thm
 		if(!fileImg.delete())
-			Log.get().warning("Can not detete image");
+			Log.get().warning("Can not detete image "+groupName+" "+fileName);
 		if(fileThm.exists())
 			if(!fileThm.delete())
-				Log.get().warning("Can not detete image");
+				Log.get().warning("Can not detete thumbnail "+groupName+" "+fileName);
 	}
 }

@@ -72,38 +72,42 @@ public class PullAtStart extends Thread {
     		try {
     			boolean TLSenabled = Config.inst().get(Config.TLSENABLED, false);
     			//Connecting
-    			try {
-					ap = new ArticlePuller(proxy, host, port, TLSenabled);
-				} catch (SSLPeerUnverifiedException e) {
-					Log.get().log(Level.WARNING, "For host {0} TLS did not present a valid certificate",
-		        			host);
-					break;
-				}
-    			Log.get().log(
-    					Level.INFO, "{0}: pulling from {1} groups:{2}", //his groups {1}",
-    					new Object[]{Thread.currentThread().getName(), host, groups.size()});
-    					//new Object[]{host, "["+groupsTime.keySet().stream().map(g -> g.getName()).collect(Collectors.joining(","))+"]"});
+    			try{
+    				try{
+    					ap = new ArticlePuller(proxy, host, port, TLSenabled);
+    				} catch (SSLPeerUnverifiedException e) {
+    					Log.get().log(Level.WARNING, "For host {0} TLS did not present a valid certificate",
+    							host);
+    					break;
+    				}
+    				Log.get().log(
+    						Level.INFO, "{0}: pulling from {1} groups:{2}", //his groups {1}",
+    						new Object[]{Thread.currentThread().getName(), host, groups.size()});
+    				//new Object[]{host, "["+groupsTime.keySet().stream().map(g -> g.getName()).collect(Collectors.joining(","))+"]"});
 
-    			//Scrap message-ids
-    			Map<String, List<String>> mIDs = ap.scrap(groups);
-    			if (mIDs.isEmpty()){
-    				Log.get().log(Level.FINE,"{0}: no new articles found at host:{1}:{2}",
-    						new Object[]{Thread.currentThread().getName(), host, port});
-    				return 0;
-    			}else
-    				return ap.toItself(mIDs); //return received number
-    			
+    				//Scrap message-ids
+    				Map<String, List<String>> mIDs = ap.scrap(groups);
+    				if (mIDs.isEmpty()){
+    					Log.get().log(Level.FINE,"{0}: no new articles found at host:{1}:{2}",
+    							new Object[]{Thread.currentThread().getName(), host, port});
+    					return 0;
+    				}else
+    					return ap.toItself(mIDs); //return received number
 
-    		}catch (IOException ex) {
-    			Log.get().log(Level.INFO,"{0}: try {1} for host:{2}:{3} {4}",
-    					new Object[]{Thread.currentThread().getName(), retry, host, port, ex.toString()});
-    		}catch (NullPointerException e) {
-    			Log.get().log(Level.WARNING,"No error if it is shutdown {0}", e);
-    			return -1;
-    		}finally{
-    			//Log.get().log(Level.WARNING, "Finally host: {0}:{1} can not pull from.", new Object[]{host, port});
-    			if (ap != null)
-    				ap.close();
+
+    			}catch (IOException ex) {
+    				Log.get().log(Level.INFO,"{0}: try {1} for host:{2}:{3} {4}",
+    						new Object[]{Thread.currentThread().getName(), retry, host, port, ex.toString()});
+    			}catch (NullPointerException e) {
+    				Log.get().log(Level.WARNING,"No error if it is shutdown {0}", e);
+    				return -1;
+    			}finally{
+    				//Log.get().log(Level.WARNING, "Finally host: {0}:{1} can not pull from.", new Object[]{host, port});
+    				if (ap != null)
+    					ap.close();
+    			}
+    		}catch (OutOfMemoryError e) { //let's retry maybe?
+    			Log.get().log(Level.SEVERE, e.getLocalizedMessage(), e);
     		}
 
     		try {

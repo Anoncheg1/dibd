@@ -220,91 +220,91 @@ public class ArticlePuller {
 		String s = "IHAVE "+ messageId;
 		try {
 			ihavec.processLine(conn, s, s.getBytes("UTF-8"));
-		
-		String line = conn.readLine();
-		if (line == null || !line.startsWith("335")) {
-			if (line != null && line.startsWith("435")){
-				return 2;
-			}else
-				Log.get().log(Level.WARNING, "From {0} {1} we ihave:{2}", new Object[]{this.host, messageId, line} );
-			return 1; //some error
-		}
 
-		//ARTICLE
-		this.out.print("ARTICLE " + messageId + NL);
-		this.out.flush();
-		/**	220 0|n message-id    Article follows (multi-line)
-	    *	430                   No article with that message-id
-	    */
-		line = this.in.readLine();
-		if (line == null) {
-            Log.get().warning("Unexpected null reply from remote host");
-            return 1;
-        }
-		if (line.startsWith("430 ")) {
-            Log.get().log(Level.WARNING, "Message {0} not available at {1}",
-                    new Object[]{messageId, this.host});
-            return 1;
-        }
-        if (!line.startsWith("220 ")) {
-            throw new IOException("Unexpected reply to ARTICLE "+messageId);
-        }
-		
-        
-        //OK Lets rock!
-		Log.get().log(Level.FINE, "Pulling article {0} from {1} ", new Object[]{messageId, this.host} );
-		
-				
-		read_article:{
-			do{ //read from ARTICLE response and write to loopback IHAVE
-
-				//System.out.println("READ FILE " + messageId+ " readed:"+line.length());
-				String ihaveline = conn.readLine();
-				if ( ihaveline != null){//error
-					conn.println(ihaveline);
-
-					//any message in the middle of transfer is error or success that required to finish
-					for(int i = 0; i<20 ; i++){
-						line = this.in.readLine();
-						if(line == null || line.equals("."))
-							break read_article;
-					} //wait for 20 lines
-					Log.get().log(Level.FINER, "{0} rejected, reconnecting.", messageId);
-					close();
-					connect();
-
-					break;
-				}
-				
-				line = this.in.readLine();
-				if (line == null) {
-					Log.get().log(Level.WARNING, "{0} null line resived during reading from {1} ", new Object[]{messageId, this.host} );
-					return 1;
-				}
-
-				byte[] raw = line.getBytes(charset);
-				if (raw.length >= ChannelLineBuffers.BUFFER_SIZE){ //ReceivingService.readingBody() will not add \r\n for big line
-					ihavec.processLine(conn, line, raw); //send ihave
-					ihavec.processLine(conn, "", new byte[]{}); //ReceivingService will add \r\n
+			String line = conn.readLine();
+			if (line == null || !line.startsWith("335")) {
+				if (line != null && line.startsWith("435")){
+					return 2;
 				}else
-					ihavec.processLine(conn, line, raw); //send ihave
+					Log.get().log(Level.WARNING, "From {0} {1} we ihave:{2}", new Object[]{this.host, messageId, line} );
+				return 1; //some error
+			}
 
-			}while(!".".equals(line));
-		}
+			//ARTICLE
+			this.out.print("ARTICLE " + messageId + NL);
+			this.out.flush();
+			/**	220 0|n message-id    Article follows (multi-line)
+			 *	430                   No article with that message-id
+			 */
+			line = this.in.readLine();
+			if (line == null) {
+				Log.get().warning("Unexpected null reply from remote host");
+				return 1;
+			}
+			if (line.startsWith("430 ")) {
+				Log.get().log(Level.WARNING, "Message {0} not available at {1}",
+						new Object[]{messageId, this.host});
+				return 1;
+			}
+			if (!line.startsWith("220 ")) {
+				throw new IOException("Unexpected reply to ARTICLE "+messageId);
+			}
 
 
-	
-		line = conn.readLine();//IHAVE response
-		if (line != null)
-			if(line.startsWith("235")) {
-				Log.get().log(Level.INFO, "{0} successfully transmitted", messageId);
-				return 0;
-			} else if (line.equals(IhaveCommand.noRef)){//must never happen
-				Log.get().log(Level.SEVERE, "PULL from {0} {1} NO SUCH THREAD", new Object[]{this.host, messageId} );
-				System.err.println("PULL from "+this.host+" "+messageId+" NO SUCH THREAD");
-				System.exit(1);
-			}else
-				Log.get().log(Level.WARNING, "Pulling {0} from {1} self IHAVE: {2}", new Object[]{messageId, this.host, line});
+			//OK Lets rock!
+			Log.get().log(Level.FINE, "Pulling article {0} from {1} ", new Object[]{messageId, this.host} );
+
+
+			read_article:{
+				do{ //read from ARTICLE response and write to loopback IHAVE
+
+					//System.out.println("READ FILE " + messageId+ " readed:"+line.length());
+					String ihaveline = conn.readLine();
+					if ( ihaveline != null){//error
+						conn.println(ihaveline);
+
+						//any message in the middle of transfer is error or success that required to finish
+						for(int i = 0; i<15 ; i++){ //wait 15 lines for end then interrupt.
+							line = this.in.readLine();
+							if(line == null || line.equals("."))
+								break read_article;
+						} //wait for 20 lines
+						Log.get().log(Level.FINER, "{0} rejected, reconnecting.", messageId);
+						close();
+						connect();
+
+						break;
+					}
+
+					line = this.in.readLine();
+					if (line == null) {
+						Log.get().log(Level.WARNING, "{0} null line resived during reading from {1} ", new Object[]{messageId, this.host} );
+						return 1;
+					}
+
+					byte[] raw = line.getBytes(charset);
+					if (raw.length >= ChannelLineBuffers.BUFFER_SIZE){ //ReceivingService.readingBody() will not add \r\n for big line
+						ihavec.processLine(conn, line, raw); //send ihave
+						ihavec.processLine(conn, "", new byte[]{}); //ReceivingService will add \r\n
+					}else
+						ihavec.processLine(conn, line, raw); //send ihave
+
+				}while(!".".equals(line));
+			}
+
+
+
+			line = conn.readLine();//IHAVE response
+			if (line != null)
+				if(line.startsWith("235")) {
+					Log.get().log(Level.INFO, "{0} successfully received", messageId);
+					return 0;
+				} else if (line.equals(IhaveCommand.noRef)){//must never happen
+					Log.get().log(Level.SEVERE, "PULL from {0} {1} NO SUCH THREAD", new Object[]{this.host, messageId} );
+					System.err.println("PULL from "+this.host+" "+messageId+" NO SUCH THREAD");
+					System.exit(1);
+				}else
+					Log.get().log(Level.WARNING, "Pulling {0} from {1} self IHAVE: {2}", new Object[]{messageId, this.host, line});
 		} catch (UnsupportedEncodingException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -553,7 +553,7 @@ public class ArticlePuller {
 		List<Entry<String, Long>> thTimeList = thTime.entrySet().stream().sorted( (e1, e2) -> Long.compare(e1.getValue(), e2.getValue()) ).collect(Collectors.toList());
 		//left max threads per group threads
 		int threads_per_page = Config.inst().get(Config.THREADS_PER_PAGE, 5);
-		int pages = Config.inst().get(Config.PAGE_COUNT, 6);
+		int pages = Config.inst().get(Config.PAGE_COUNT, 6)+1; //from 0
 		int maxth =  threads_per_page * pages;
 		int size = thTimeList.size();
 		Map<String, List<String>> messageIDs2 = new LinkedHashMap<>(maxth);

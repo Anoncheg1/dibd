@@ -132,7 +132,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			// Prepare statements for method deleteOneOldestThread()
 			this.pstmtDeleteOneOldestThread1 = conn
 					.prepareStatement("SELECT thread.thread_id, message_id, message_id_host FROM thread, article "
-							+ "WHERE article.thread_id = thread.thread_id AND last_post_time IN "
+							+ "WHERE article.thread_id = thread.thread_id AND article.status = 0 AND last_post_time IN "
 							+ "(SELECT min(last_post_time) FROM thread WHERE group_id = ?);");
 			this.pstmtDeleteOneOldestThread2 = conn
 					.prepareStatement("SELECT file_path FROM attachment WHERE article_id IN "
@@ -346,13 +346,13 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 		ResultSet file = null;
 		try {
 			this.conn.setAutoCommit(false); // start transaction
-			//1) get oldest thread_id with his articles
+			//1) get oldest thread_id with his articles (status = 0 for replays)
 			pstmtDeleteOneOldestThread1.setInt(1, groupId);
 			article = pstmtDeleteOneOldestThread1.executeQuery();
 			
 			if (article.next()){ //thread.thread_id(const), message_id, message_id_host
 				int thread_id = article.getInt(1); 
-				//2) get file path for images in thread
+				//2) get file path for images in thread (status = 0)
 				pstmtDeleteOneOldestThread2.setInt(1, thread_id);
 				file = pstmtDeleteOneOldestThread2.executeQuery();
 				while (file.next())
@@ -366,9 +366,10 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 				//4) delete nntp cache for every article of pstmtDeleteOneOldestThread1 request
 				do {
 					String host = article.getString(3).trim();
-					if (! host.equals(Config.inst().get(Config.HOSTNAME, null)))
+					if (! host.equals(Config.inst().get(Config.HOSTNAME, null))){
 						//groupName, message_id=thread.getString(2)
 						StorageManager.nntpcache.delArticle(groupName, article.getString(2).trim());
+					}
 				}while(article.next());
 			}
 			
@@ -474,14 +475,13 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			rs = pstmtGetThreadCountGroup.executeQuery();
 			rs.next(); //return always true;  
 			int threads_per_page = Config.inst().get(Config.THREADS_PER_PAGE, 5);
-			int pages = Config.inst().get(Config.PAGE_COUNT, 6);
+			int pages = Config.inst().get(Config.PAGE_COUNT, 6)+1; //0 page
 			
-			//do we need it?
-			int archive_threads = 0;
-
 			int threadsNow = rs.getInt(1); //0 or >0
 			
-			int max_threads =  threads_per_page * pages + archive_threads;
+			int max_threads =  threads_per_page * pages ;
+			if (max_threads >0)
+				max_threads -= 1; //minus 1 thread for new will be created.
 			//If THREADS_PER_PAGE or PAGE_COUNT change => we must idle once and remove several threads once.
 			if(threadsNow + 2 > max_threads) //idle for 2 threads
 				for (int i = threadsNow; i > max_threads; i--)
@@ -508,14 +508,15 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			// insert article
 			pstmtCreateThread1.setInt(1, id);
 			//thread_id = null for referential cycle insert
+			//UTF-8 problem with strings. simple crutch to trim all strings.
 			pstmtCreateThread1.setString(2, messageId);
 			pstmtCreateThread1.setString(3, article.getMsgID_host());
 			pstmtCreateThread1.setInt(4, article.getHash());
-			pstmtCreateThread1.setString(5, article.getA_name());
-			pstmtCreateThread1.setString(6, article.getSubject());
-			pstmtCreateThread1.setString(7, article.getMessage());
+			pstmtCreateThread1.setString(5, article.getA_name().trim());
+			pstmtCreateThread1.setString(6, article.getSubject().trim());
+			pstmtCreateThread1.setString(7, article.getMessage().trim());
 			pstmtCreateThread1.setLong(8, article.getPost_time());
-			pstmtCreateThread1.setString(9, article.getPath_header());
+			pstmtCreateThread1.setString(9, article.getPath_header().trim());
 			pstmtCreateThread1.setInt(10, article.getStatus());
 			pstmtCreateThread1.execute();
 			// insert thread
@@ -605,16 +606,17 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			}
 			
 			// insert article
+			//UTF-8 problem with strings. simple crutch to trim all strings.
 			pstmtCreateReplay1.setInt(1, id);
 			pstmtCreateReplay1.setInt(2, article.getThread_id());
 			pstmtCreateReplay1.setString(3, messageId);
 			pstmtCreateReplay1.setString(4, article.getMsgID_host());
 			pstmtCreateReplay1.setInt(5, article.getHash());
-			pstmtCreateReplay1.setString(6, article.getA_name());
-			pstmtCreateReplay1.setString(7, article.getSubject());
-			pstmtCreateReplay1.setString(8, article.getMessage());
+			pstmtCreateReplay1.setString(6, article.getA_name().trim());
+			pstmtCreateReplay1.setString(7, article.getSubject().trim());
+			pstmtCreateReplay1.setString(8, article.getMessage().trim());
 			pstmtCreateReplay1.setLong(9, article.getPost_time());
-			pstmtCreateReplay1.setString(10, article.getPath_header());
+			pstmtCreateReplay1.setString(10, article.getPath_header().trim());
 			pstmtCreateReplay1.setInt(11, article.getStatus());
 			pstmtCreateReplay1.execute();
 			//update thread (post time, thread_id)

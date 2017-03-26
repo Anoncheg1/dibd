@@ -67,15 +67,21 @@ public class NNTPCacheProvider {
 	 */
 	public File saveFile (String groupName, String messageId, byte[] data) throws IOException{
 		File ofile = new File(buildPath(groupName, messageId));
-		if (ofile.createNewFile()) {
-
-			FileOutputStream fos = new FileOutputStream(ofile);
-			try {
-				fos.write(data);
-			}finally{
-				fos.close();
-			}
+		if (! ofile.createNewFile()){ //we check that file must be created or overcreated.
+			if(ofile.delete()){
+				if(! ofile.createNewFile())
+					throw new IOException("Can not create cache file after delete the same file. crazy "+messageId);
+			}else
+				throw new IOException("catch file already exist and can not be deleted "+messageId);
 		}
+
+		FileOutputStream fos = new FileOutputStream(ofile);
+		try {
+			fos.write(data);
+		}finally{
+			fos.close();
+		}
+		
 		return ofile;
 	}
 
