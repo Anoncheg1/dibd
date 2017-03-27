@@ -4,16 +4,23 @@
 package dibd.test.unit.storage;
 
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.nio.charset.Charset;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import dibd.daemon.NNTPInterface;
 import dibd.storage.StorageBackendException;
+import dibd.storage.StorageManager;
+import dibd.storage.StorageNNTP;
+import dibd.storage.GroupsProvider.Group;
 import dibd.storage.article.Article;
 import dibd.storage.web.ShortRefParser;
 import dibd.storage.web.StorageWeb;
@@ -26,11 +33,11 @@ import dibd.storage.web.WebRef;
  * @author user
  *
  */
-public class WebShortRefsTest {
+public class ShortRefsTest {
 	
 	StorageWeb db;//mock
 	
-	public WebShortRefsTest() {
+	public ShortRefsTest() {
 		super();
 		
 		db = Mockito.mock(StorageWeb.class);
@@ -60,9 +67,33 @@ public class WebShortRefsTest {
 				1466589502, "host!host2", "group", null, null); //without image
 		Mockito.when(db.getArticleWeb(null, 16*16*16)).thenReturn(art);
 		
-		String a = ShortRefParser.getShortRefs(db, ">>1000jh>>1000");
+		String a = ShortRefParser.shortRefParser(db, ">>1000jh>>1000");
 		
 		assertTrue(a.equals("<aaa@hos.com>jh<aaa@hos.com>"));
+	}
+	
+	@Test
+    public void nntpchanLinksTest() throws StorageBackendException{
+		String mId = "<0eb8c1490413069@web.oniichan.onion>";
+		String sha1trun = "7239a9807e56c0b4e2";
+		Map<String, String> map= new HashMap<>();
+		map.put("<0eb8c1490413069@web.oniichan.onion>", null);
+		//StorageManager.current().getNewArticleIDs(group, 0)
+		//preperation
+		StorageNNTP storage = Mockito.mock(StorageNNTP.class);
+		StorageManager.enableProvider(new TestingStorageProvider(storage));
+		Group group = Mockito.mock(Group.class);
+		when(storage.getNewArticleIDs(group, 0)).thenReturn(map);
+		
+		String message ="blablabla>>723\n"
+				+ "blablabla>>7239a9807e56c0b4e2 >>723";
+				
+		//call
+		String resmes = ShortRefParser.nntpchanLinks(message, group);
+		assertEquals(resmes, "blablabla<0eb8c1490413069@web.oniichan.onion>\nblablabla<0eb8c1490413069@web.oniichan.onion> <0eb8c1490413069@web.oniichan.onion>");
+//		System.out.println(resmes);
+		
+		
 	}
 
 

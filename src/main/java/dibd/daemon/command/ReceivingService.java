@@ -34,6 +34,7 @@ import dibd.storage.StorageBackendException;
 import dibd.storage.StorageManager;
 import dibd.storage.GroupsProvider.Group;
 import dibd.storage.article.Article;
+import dibd.storage.web.ShortRefParser;
 import dibd.util.Log;
 
 /**
@@ -640,8 +641,9 @@ class ReceivingService{
 						date, path.trim(), group.getName(), group.getInternalID(), status);
 				
 				if(status == 0){
-					
 					File fl = StorageManager.nntpcache.saveFile(group.getName(), messageId, rawArticle);
+					//nntpchan links check
+					message = ShortRefParser.nntpchanLinks(message, group);
 					try{
 						article = StorageManager.current().createReplay(art, file, gfileCT, file_name);
 					}catch(StorageBackendException e){ //rollback cache

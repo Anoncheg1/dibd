@@ -54,7 +54,7 @@ public class ChannelLineBuffers {
      * Size of one small buffer; per default this is 512 bytes to fit one
      * standard line.
      */
-    public static final int BUFFER_SIZE = 990; //size of one line in line buffers
+    public static final int BUFFER_SIZE = 998+2; //size of one line in line buffers
     public static final int INPUT_BUFFER_SIZE = 1024*100; //large one input buffer 100KB per connection (must be not less BUFFER_SIZE)
     private static final int maxCachedBuffers = 1024*3; //Cached buffers maximum 1024*1024*7 B = 3 MB
     private static final List<ByteBuffer> freeSmallBuffers = new ArrayList<>(
@@ -225,7 +225,7 @@ public class ChannelLineBuffers {
     				byte b = inputBuffer.get();
     				if (b == 10) //='\n' (UTF-8) need CRLF \r\n  -'\r' left at the end. NNTPConnection.lineReceived(line) deal with it.
     				{
-    					
+    					//TODO:nntpchan use only '\n' how to save it in cache?
     					if (lineBuffer.get(lineBuffer.position()-1) == 13 )//removing \r
     						lineBuffer.position(lineBuffer.position()-1);
     					

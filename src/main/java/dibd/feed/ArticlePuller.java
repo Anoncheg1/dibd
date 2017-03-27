@@ -136,49 +136,53 @@ public class ArticlePuller {
 	
 	//BufferedReader replacer. Buffered reader may be DoSed it can't stop.
 	String getIS() throws IOException {
-	//	return this.in.readLine();
-		//fuck this, not working
-		
-		lines.addAll(lineBuffers.getInputLines());
-		if(!lines.isEmpty()){
-			ByteBuffer buf = this.lines.remove(0);
-			final byte[] rawline = new byte[buf.limit()];
-			buf.get(rawline);
-			ChannelLineBuffers.recycleBuffer(buf);
-			String line2 = new String(rawline, this.charset);
-			//System.out.println("return line:"+line2);
-			return line2;
-		}else{
-			ByteBuffer buf1 = this.lineBuffers.getInputBuffer();
-			int i = 0;
-			while (buf1.hasRemaining()) {
-
-				int b;
-				try{
-					b = this.instream.read();
-				}catch(SocketTimeoutException e)
-				{
-					System.out.println("timeout"+lines.isEmpty());
-					if (i++ > 5)
-						return null;
-					lines.addAll(lineBuffers.getInputLines());
-					if (lines.isEmpty())
-						continue;
-					else
-						break;
-				}
-
-				//if (b == -1) {
-					//break;
-				//}
-
-				buf1.put( (byte) b);
-			}
-			
-			return getIS();
-		}
-
+		byte[] raw = read();
+		if (raw != null)
+			return new String(raw, this.charset);
+		else
+			return null;
 	}
+	
+	
+	byte[] read() throws IOException {
+			lines.addAll(lineBuffers.getInputLines());
+			if(!lines.isEmpty()){
+				ByteBuffer buf = this.lines.remove(0);
+				byte[] rawline = new byte[buf.limit()];
+				buf.get(rawline);
+				ChannelLineBuffers.recycleBuffer(buf);
+				return rawline;
+			}else{
+				ByteBuffer buf1 = this.lineBuffers.getInputBuffer();
+				int i = 0;
+				while (buf1.hasRemaining()) {
+
+					int b;
+					try{
+						b = this.instream.read();
+					}catch(SocketTimeoutException e)
+					{
+						System.out.println("timeout"+lines.isEmpty());
+						if (i++ > 5)
+							return null;
+						lines.addAll(lineBuffers.getInputLines());
+						if (lines.isEmpty())
+							continue;
+						else
+							break;
+					}
+
+					//if (b == -1) {
+						//break;
+					//}
+
+					buf1.put( (byte) b);
+				}
+				
+				return read();
+			}
+
+		}
 	
 	
 	//Hook for command connection
@@ -299,7 +303,7 @@ public class ArticlePuller {
 			 */
 			line = getIS();//this.in.readLine();
 			if (line == null) {
-				Log.get().warning("Unexpected null reply from remote host");
+				Log.get().warning("Unexpected null reply from remote host or timeout");
 				return 1;
 			}
 			if (line.startsWith("430 ")) {
@@ -334,7 +338,6 @@ public class ArticlePuller {
 						Log.get().log(Level.INFO, "{0} Recconnect clear buffers", messageId);
 						close();
 						lineBuffers.getInputBuffer().clear();
-						//lineBuffers = new ChannelLineBuffers();
 						Iterator<ByteBuffer> it = lines.iterator();
 						while (it.hasNext()){
 							ChannelLineBuffers.recycleBuffer(it.next());
@@ -345,18 +348,13 @@ public class ArticlePuller {
 						break;
 					}
 
-					line = getIS();//this.in.readLine();
-					if (line == null) {
-						Log.get().log(Level.WARNING, "{0} null line resived during reading from {1} ", new Object[]{messageId, this.host} );
+					byte[] raw = read();
+					if (raw == null){
+						Log.get().log(Level.WARNING, "{0} null line resived or timeout during reading from {1} ", new Object[]{messageId, this.host} );
 						return 1;
 					}
-
-					byte[] raw = line.getBytes(charset);
-					if (raw.length >= ChannelLineBuffers.BUFFER_SIZE){ //ReceivingService.readingBody() will not add \r\n for big line
-						ihavec.processLine(conn, line, raw); //send ihave
-						ihavec.processLine(conn, "", new byte[]{}); //ReceivingService will add \r\n
-					}else
-						ihavec.processLine(conn, line, raw); //send ihave
+					line = new String(raw, this.charset);
+					ihavec.processLine(conn, line, raw); //send ihave
 
 				}while(!".".equals(line));
 			}
