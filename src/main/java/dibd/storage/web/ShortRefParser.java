@@ -128,7 +128,7 @@ public class ShortRefParser {
 				return null;
 			try{
 				Matcher matcher = 
-						Pattern.compile("(>>(([0-9a-f]){3,18}))").matcher(message);
+						Pattern.compile("(>>(([0-9a-f]){4,18}))").matcher(message);
 
 				//Map <String, String> short_ref_messageId = new HashMap<>();
 				boolean found = false;

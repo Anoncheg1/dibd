@@ -172,7 +172,6 @@ public class FeedManager extends Thread{
 						if (check || article.getMsgID_host().equalsIgnoreCase(s))
 							continue;
 
-						Log.get().info("pushquery " +s+" started"+ article.getMsgID_host());
 						plist.get(0).queueForPush(article); //queue shared we can use any of thread to put.
 						//plist.forEach( (e) -> e.queueForPush(article));
 					}

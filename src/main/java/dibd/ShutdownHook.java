@@ -54,7 +54,7 @@ class ShutdownHook implements Runnable {
     			}
     		}
     		for (Thread thread : threads) { //2)
-    			if((thread.getName().equals("ChannelReader") || thread.getName().equals("ConnectionWorker"))
+    			if((thread.getName().equals("ChannelReader"))
     					&& thread.isAlive()){
     				((DaemonThread) thread).requestShutdown();
     			}

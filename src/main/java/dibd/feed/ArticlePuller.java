@@ -162,8 +162,8 @@ public class ArticlePuller {
 						b = this.instream.read();
 					}catch(SocketTimeoutException e)
 					{
-						System.out.println("timeout"+lines.isEmpty());
-						if (i++ > 5)
+						System.out.println("pull timeout: "+ (i+1));
+						if (i++ >= 5)
 							return null;
 						lines.addAll(lineBuffers.getInputLines());
 						if (lines.isEmpty())
@@ -335,7 +335,7 @@ public class ArticlePuller {
 								break read_article;
 						} //wait for 20 lines
 						
-						Log.get().log(Level.INFO, "{0} Recconnect clear buffers", messageId);
+						Log.get().log(Level.INFO, "{0} Reconnect, clear buffers", messageId);
 						close();
 						lineBuffers.getInputBuffer().clear();
 						Iterator<ByteBuffer> it = lines.iterator();

@@ -85,8 +85,8 @@ public class ShortRefsTest {
 		Group group = Mockito.mock(Group.class);
 		when(storage.getNewArticleIDs(group, 0)).thenReturn(map);
 		
-		String message ="blablabla>>723\n"
-				+ "blablabla>>7239a9807e56c0b4e2 >>723";
+		String message ="blablabla>>7239\n"
+				+ "blablabla>>7239a9807e56c0b4e2 >>7239";
 				
 		//call
 		String resmes = ShortRefParser.nntpchanLinks(message, group);

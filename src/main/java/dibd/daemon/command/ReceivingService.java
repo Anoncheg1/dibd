@@ -637,13 +637,13 @@ class ReceivingService{
 			//status  1 - file was not readed.  0 - normal
 
 			if(thread_id != null){ //replay
+				//nntpchan links converter
+				message = ShortRefParser.nntpchanLinks(message, group);
 				art = new Article(thread_id, messageId, mId[1], from, subject, message,
 						date, path.trim(), group.getName(), group.getInternalID(), status);
 				
 				if(status == 0){
 					File fl = StorageManager.nntpcache.saveFile(group.getName(), messageId, rawArticle);
-					//nntpchan links check
-					message = ShortRefParser.nntpchanLinks(message, group);
 					try{
 						article = StorageManager.current().createReplay(art, file, gfileCT, file_name);
 					}catch(StorageBackendException e){ //rollback cache
@@ -657,11 +657,13 @@ class ReceivingService{
 				}
 				
 			}else{ //thread
+				//nntpchan links converter
+				message = ShortRefParser.nntpchanLinks(message, group);
 				art = new Article(null, messageId, mId[1], from, subject, message,
 						date, path.trim(), group.getName(), group.getInternalID(), status);
 
 				if(status == 0){
-					File fl = StorageManager.nntpcache.saveFile(group.getName(), messageId, rawArticle);	
+					File fl = StorageManager.nntpcache.saveFile(group.getName(), messageId, rawArticle);
 					try{
 						article = StorageManager.current().createThread(art, file, gfileCT, file_name);
 					}catch(StorageBackendException e){ //rollback cache
