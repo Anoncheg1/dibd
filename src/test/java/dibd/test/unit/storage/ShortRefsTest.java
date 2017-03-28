@@ -13,6 +13,7 @@ import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -85,16 +86,48 @@ public class ShortRefsTest {
 		Group group = Mockito.mock(Group.class);
 		when(storage.getNewArticleIDs(group, 0)).thenReturn(map);
 		
-		String message ="blablabla>>7239\n"
-				+ "blablabla>>7239a9807e56c0b4e2 >>7239";
+		String message =">>7239a980 blablabla>>7239\n"
+				+ "blablabla >>7239a9807e56c0b4e2 >>7239\n"
+				+ "blablabla >>7239a9807e56c0b4e2 >>7239\n"
+				+ "blablabla(>>7239a9807e56c0b4e2) (>>7239)";
 				
 		//call
 		String resmes = ShortRefParser.nntpchanLinks(message, group);
-		assertEquals(resmes, "blablabla<0eb8c1490413069@web.oniichan.onion>\nblablabla<0eb8c1490413069@web.oniichan.onion> <0eb8c1490413069@web.oniichan.onion>");
-//		System.out.println(resmes);
+		//System.out.println(resmes);
+		assertEquals(resmes, "<0eb8c1490413069@web.oniichan.onion> blablabla<0eb8c1490413069@web.oniichan.onion>\n"
+				+"blablabla <0eb8c1490413069@web.oniichan.onion> <0eb8c1490413069@web.oniichan.onion>\n"
+				+"blablabla <0eb8c1490413069@web.oniichan.onion> <0eb8c1490413069@web.oniichan.onion>\n"
+				+"blablabla(>>7239a9807e56c0b4e2) (>>7239)");
+//		
 		
 		
 	}
 
+	@Test
+    public void addToGlobalNntpchanLinksTest() throws StorageBackendException{
+		
+		/*String message ="<0eb8c1490413069@web.oniichan.onion> blablabla<0eb8c1490413069@web.oniichan.onion>\n"
+				+"blablabla <0eb8c1490413069@web.oniichan.onion> <0eb8c1490413069@web.oniichan.onion>\n"
+				+"blablabla <0eb8c1490413069@web.oniichan.onion> <0eb8c1490413069@web.oniichan.onion>\n"
+				+"blablabla(>>7239a9807e56c0b4e2) (>>7239)";
+				
+		//call
+		String resmes = ShortRefParser.addToGlobalNntpchanLinks(message);
+		System.out.println(resmes);
+		assertEquals(resmes, "<0eb8c1490413069@web.oniichan.onion>(>>7239a9807e56c0b4e2) blablabla<0eb8c1490413069@web.oniichan.onion>(>>7239a9807e56c0b4e2)\n"
+				+"blablabla <0eb8c1490413069@web.oniichan.onion>(>>7239a9807e56c0b4e2) <0eb8c1490413069@web.oniichan.onion>(>>7239a9807e56c0b4e2)\n"
+				+"blablabla <0eb8c1490413069@web.oniichan.onion>(>>7239a9807e56c0b4e2) <0eb8c1490413069@web.oniichan.onion>(>>7239a9807e56c0b4e2)\n"
+				+"blablabla(>>7239a9807e56c0b4e2) (>>7239)");
+		
+		*/
+		String message ="<0eb8c1490413069@web.oniichan.onion>";
+				
+		//call
+		String resmes = ShortRefParser.addToGlobalNntpchanLinks(message);
+		assertEquals(resmes, "<0eb8c1490413069@web.oniichan.onion>\n(>>7239a9807e56c0b4e2)");
+//		
+		
+		
+	}
 
 }

@@ -41,9 +41,11 @@ public class ShortRefParser {
 		 * @return new message
 		 * @throws StorageBackendException 
 		 */
-		public static String shortRefParser(StorageWeb db, String message) throws StorageBackendException{
-			if (message == null || message.isEmpty())
-				return null;
+		public static String shortRefParser(final StorageWeb db, final String message1) throws StorageBackendException{
+			if (message1 == null || message1.isEmpty())
+				return message1;
+			String message = new String(message1);//copy
+			
 			int fc = Config.inst().get(Config.ID_F_COUNT, 5);
 			Matcher matcher = 
 	        		Pattern.compile("(>>(([0-9a-fA-F]){2,"+fc+"}))").matcher(message);
@@ -106,6 +108,8 @@ public class ShortRefParser {
 		}
 		
 		
+		/////////////////   NNTPCHAN INCORRECT TO RFC LINKS   /////////////////
+		
 		/**
 		 * Prepare NNTPCHAN message to pass to database.
 		 * Convert NNTPCHAN truncated sha1 to global message-id if exist.
@@ -123,18 +127,26 @@ public class ShortRefParser {
 		 * @throws StorageBackendException 
 		 * @throws NoSuchAlgorithmException 
 		 */
-		public static String nntpchanLinks(String message, Group group) throws StorageBackendException {
-			if (message == null || message.isEmpty())
-				return null;
+		public static String nntpchanLinks(final String message1, Group group) throws StorageBackendException {
+			if (message1 == null || message1.isEmpty())
+				return message1;
+			String message = new String(message1);//copy
 			try{
 				Matcher matcher = 
-						Pattern.compile("(>>(([0-9a-f]){4,18}))").matcher(message);
+						Pattern.compile("((.)?(>>(([0-9a-f]){4,18})))").matcher(message);
 
 				//Map <String, String> short_ref_messageId = new HashMap<>();
 				boolean found = false;
 				Map <String, String> Sha1AndMID = null;
 				while (matcher.find()) {
 
+					
+					/*System.out.println("g1:" +matcher.group(1));
+					if (matcher.group(2) != null)
+					System.out.println("g2:" +matcher.group(2));
+					System.out.println("g3:" +matcher.group(3));
+					System.out.println("g4:" +matcher.group(4));*/
+					if( matcher.group(2) == null || ( matcher.group(2) != null && ! matcher.group(2).equals("(") ) ){ 
 					if( ! found){
 						found = true;
 						//get message-id list from whole group
@@ -152,17 +164,57 @@ public class ShortRefParser {
 
 					//main work
 					for(Entry<String, String> sha : Sha1AndMID.entrySet())
-						if (sha.getKey().startsWith(matcher.group(2))){
-							//replace all
-							message = message.replaceFirst(matcher.group(1), sha.getValue()); //nntpchan link to message-id
+						if (sha.getKey().startsWith(matcher.group(4))){
+							message = message.replaceFirst(matcher.group(3), sha.getValue()); //nntpchan link to message-id
 							break;
 						}
+					}
 				}
 			}catch (NoSuchAlgorithmException ex){
 				Log.get().log(Level.WARNING, "No SHA-1 for damned nntpchan links", ex);
 			}
 			//return short_ref_messageId;
 	        return message;
+		}
+		
+		
+		//add to global links nntpchan.
+		public static String addToGlobalNntpchanLinks(final String message1){
+			if (message1 == null || message1.isEmpty())
+				return message1;
+			String message = new String(message1);//copy
+			try{
+			
+				Matcher matcher = 
+						Pattern.compile(NNTPConnection.MESSAGE_ID_PATTERN).matcher(message); //diff			
+
+				boolean found = false;
+				MessageDigest md = null;
+				Set<String> done = new HashSet<>(); //protection from abuse
+				while (matcher.find()) {
+
+					if( ! found){
+						found = true;
+						md = MessageDigest.getInstance("SHA-1");
+
+					}
+				
+					String mg = matcher.group();
+					
+					if (! done.contains(mg)){
+						md.reset();
+						md.update(mg.getBytes());
+						
+						message = message.replace(mg,mg+"\n(>>"+new BigInteger(1, md.digest()).toString(16).substring(0, 18)+")"); //nntpchan link to message-id
+						done.add(mg);
+					}
+					
+					//System.out.println("g0"+matcher.group());
+				}
+			}catch (NoSuchAlgorithmException ex){
+				Log.get().log(Level.WARNING, "No SHA-1 for damned nntpchan links", ex);
+			}
+			return message;
 		}
 
 }

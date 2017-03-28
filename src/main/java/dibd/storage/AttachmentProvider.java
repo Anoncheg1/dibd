@@ -1,5 +1,6 @@
 package dibd.storage;
 
+import java.awt.Image;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -8,6 +9,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.logging.Level;
+
+import javax.imageio.ImageIO;
 
 import org.im4java.core.ConvertCmd;
 import org.im4java.core.IM4JavaException;
@@ -118,7 +121,10 @@ public class AttachmentProvider {
 		return fileName;
 	}
 	
-	
+	private int checkSize(File path) throws IOException{
+		Image image = ImageIO.read(path);
+		return image.getHeight(null);
+	}
 
 	public void createThumbnail(String groupName, String fileName, String media_type){
 		if (media_type.substring(0, 6).equals("image/")){//we will add other formats later
@@ -126,13 +132,27 @@ public class AttachmentProvider {
 				String pathSource = getAPath(groupName, fileName);   //1
 				String pathTarget = getTnPath(groupName, fileName);    //2
 
-				ConvertCmd cmd = new ConvertCmd();
 				File sourceFile = new File(pathSource);
 				File thumbNailFile = new File(pathTarget);
+				
+				//TODO: what about horizontal?
+				//check height of image. if image is small we just copy.
+				Image image = ImageIO.read(sourceFile);
+				int height = image.getHeight(null);
+				if (height > 0 && height < 200){ //-1 error
+					Files.copy(sourceFile.toPath(), thumbNailFile.toPath());
+					return;
+				}
+				
+				ConvertCmd cmd = new ConvertCmd();
+				
 				if (sourceFile.exists() && !thumbNailFile.exists() ) {
+					
 					IMOperation op = new IMOperation();
 					op.addImage(sourceFile.getCanonicalPath());
-					op.thumbnail(null,200);
+					
+					
+					op.thumbnail(null,200);//horizontal and vertical density
 					op.addImage(thumbNailFile.getCanonicalPath());
 					//System.out.println(op.getCmdArgs());
 					cmd.run(op);

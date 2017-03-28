@@ -36,6 +36,7 @@ import dibd.storage.GroupsProvider.Group;
 import dibd.storage.Headers;
 import dibd.storage.StorageBackendException;
 import dibd.storage.StorageManager;
+import dibd.storage.web.ShortRefParser;
 import dibd.util.Log;
 
 /**
@@ -391,6 +392,10 @@ public class Article { //extends ArticleHead
 		return a.status;
 	}
 	
+	
+	//nntpchan links god damn it.
+	private boolean message_was_nntpchaned = false;
+	
 	//NNTP output
 	/**
 	 * Get headers or body(or both) for NNTP output.
@@ -426,7 +431,13 @@ public class Article { //extends ArticleHead
 		final int maxLine = 72; //thunderbird like
 		final String CTtext = "text/plain; charset=utf-8";
 		
-		
+		//message testing and nntpchan links
+		if (a.message == null)
+			a.message = new String("");
+		else if (! message_was_nntpchaned){
+			a.message = dibd.storage.web.ShortRefParser.addToGlobalNntpchanLinks(a.message);
+			message_was_nntpchaned = true;
+		}
 		String messsageB64 = null;
 		int lengthLimit = 490; //max length	of message if we do not have file attached
 		boolean ascii = false;
@@ -439,13 +450,7 @@ public class Article { //extends ArticleHead
 			if (ascii)
 				lengthLimit = 992;
 		}
-		//if we have attachment or too long line we create messsageB64  
-		if (a.fileName != null || maxLength > lengthLimit){ //thunderbird like (about 990-995 for ASCII), (about 490-500 for UTF-8)
-			byte[] message = a.message.getBytes(charset);
-			messsageB64 = new String(Base64.getMimeEncoder(maxLine, NNTPConnection.NEWLINE.getBytes()).encode(message)); //utf-16
-		}
-		//else a.message will be used.
-
+		
 		if(a.fileName != null && boundary == null){ //boundary generator
 			final char[] MULTIPART_CHARS =
 					"-_1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -522,6 +527,17 @@ public class Article { //extends ArticleHead
 			return buf.toString();
 		
 
+		
+		
+		
+		
+		//body preperation 
+		//if we have attachment or too long line we create messsageB64  
+		if (a.fileName != null || maxLength > lengthLimit){ //thunderbird like (about 990-995 for ASCII), (about 490-500 for UTF-8)
+			byte[] message = a.message.getBytes(charset);
+			messsageB64 = new String(Base64.getMimeEncoder(maxLine, NNTPConnection.NEWLINE.getBytes()).encode(message)); //utf-16
+		}
+		//else a.message will be used.
 		//////////////////// Body ///////////////////////////////
 		StringBuilder buf2 = new StringBuilder();
 		if(a.fileName == null){ //text/plain
