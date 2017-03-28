@@ -28,7 +28,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
-import java.util.Arrays;
+import java.nio.charset.StandardCharsets;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.logging.Level;
@@ -56,7 +56,7 @@ public class NNTPConnection implements NNTPInterface{
                                                               // daemon
     /** SocketChannel is generally thread-safe */
     private SocketChannel channel;
-    private Charset charset = Charset.forName("UTF-8");
+    private Charset charset = StandardCharsets.UTF_8;
     private Command command = null;
     
     private Article currentArticle = null;
@@ -279,7 +279,7 @@ public class NNTPConnection implements NNTPInterface{
 
         if (command == null || command.hasFinished()) {
             command = null;
-            charset = Charset.forName("UTF-8"); // Reset to default
+            charset = StandardCharsets.UTF_8; // Reset to default
         }
     }
 

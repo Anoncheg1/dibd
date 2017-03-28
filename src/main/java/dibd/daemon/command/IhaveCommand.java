@@ -162,7 +162,7 @@ public class IhaveCommand implements Command{
 					//isHeadersOK = false;
 				//}
 				if(!rs.checkRef()){
-					conn.println(this.noRef); //437 no such thread for replay.
+					conn.println(IhaveCommand.noRef); //437 no such thread for replay.
 					error = true;
 				}
 				

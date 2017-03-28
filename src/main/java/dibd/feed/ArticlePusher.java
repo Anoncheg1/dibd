@@ -27,6 +27,8 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+
 import javax.net.ssl.SSLSocket;
 
 import dibd.daemon.ChannelLineBuffers;
@@ -45,13 +47,13 @@ public class ArticlePusher {
 	private final OutputStream out;
 	private final BufferedReader inr;
 	private final Socket socket;
-	private final Charset charset = Charset.forName("UTF-8");
+	private final Charset charset = StandardCharsets.UTF_8;
 	private final ChannelLineBuffers lineBuffers = new ChannelLineBuffers();
 	private final LineEncoder lineEncoder = new LineEncoder(charset, lineBuffers);
-	private final String host; //for log messages
+	//private final String host; //for log messages
 
 	public ArticlePusher(Socket socket, boolean TLSEnabled, String host) throws IOException{
-		this.host = host;
+		//this.host = host;
 		
 		this.socket = FeedManager.getHelloFromServer(socket, TLSEnabled, host, charset);
 		if (TLSEnabled){

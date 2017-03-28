@@ -6,7 +6,6 @@ package dibd.daemon.command;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -488,6 +487,22 @@ class ReceivingService{
 		return messageId;
 	}
 	
+	//utf-8 0 bytes appears at the end of message some times.
+	static String trimZeros(String str) {
+		int found = -1;
+	    for( int i = str.length()-1 ; i >= 0;i--)
+	    	if (str.charAt(i)== 0)
+	    		found = i;
+	    	else
+	    		break;
+
+	    if (found != -1){
+	    	System.out.println(found);
+	    	return str.substring(0, found);
+	    }else
+	    	return str;
+	}
+	
 	
 	/**
 	 * If no error it parse article, save and put to transfer.
@@ -535,7 +550,7 @@ class ReceivingService{
 			if (message.isEmpty())
 				message = null;
 			else
-				message = message.trim();
+				message = trimZeros(message);
 		}//else message = null;
 		
 		
@@ -571,8 +586,8 @@ class ReceivingService{
 
 		//*** SAVING MESSAGE ***
 		//preparation
-		String from = (from_raw != null && !from_raw[0].isEmpty()) ? decodeWord(from_raw[0]).trim() : null; //decoded word
-		String subject = (subjectArr != null && !subjectArr[0].isEmpty()) ? decodeWord(MimeUtility.unfold(subjectArr[0])).trim() : null;
+		String from = (from_raw != null && !from_raw[0].isEmpty()) ? trimZeros(decodeWord(from_raw[0])) : null; //decoded word
+		String subject = (subjectArr != null && !subjectArr[0].isEmpty()) ? trimZeros(decodeWord(MimeUtility.unfold(subjectArr[0]))) : null;
 		
 		String file_name = null;
 		if (fCD != null)

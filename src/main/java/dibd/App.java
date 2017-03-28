@@ -209,31 +209,6 @@ public final class App {
         // Start Connections purger thread...
         ConnectionCollector.getInstance().start();
         
-
- 		
- 		//System.out.println(StorageManager.current().getLastPostOfGroup(StorageManager.groups.get("local.test")));
-        // Start feeding(push articles)
-        
-        
-        
-        // Start Peering Connections purger thread...
-        //FeedConnectionCollector.getInstance().start();
-        /*
-        Thread.sleep(1000);
-        String host="localhost";
-        int port2 = Config.inst().get(Config.PORT, 119);
-        System.out.println(host+port2);
-        Socket socket = new Socket(InetAddress.getByName(null), port2);
-        PrintWriter out = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF-8"));
-        BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream(), "UTF-8"));
-        System.out.println(host+port2);
-        String line = in.readLine();
-        System.out.print(line);*/
-        /*if (purger) {
-            Purger purgerDaemon = new Purger();
-            purgerDaemon.start();
-        }*/
-
         // Wait for main thread to exit (setDaemon(false))
         daemon.join();
         //downhook.join();

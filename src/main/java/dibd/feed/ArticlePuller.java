@@ -18,12 +18,9 @@
 
 package dibd.feed;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
@@ -32,6 +29,7 @@ import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.security.cert.X509Certificate;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -80,7 +78,7 @@ public class ArticlePuller {
 	private PrintWriter out;
 	//private BufferedReader in;
 	private static final String NL = NNTPConnection.NEWLINE;
-	private final Charset charset = Charset.forName("UTF-8");
+	private final Charset charset = StandardCharsets.UTF_8;
 	
 	
 	
@@ -284,7 +282,7 @@ public class ArticlePuller {
 		
 		String s = "IHAVE "+ messageId;
 		try {
-			ihavec.processLine(conn, s, s.getBytes("UTF-8"));
+			ihavec.processLine(conn, s, s.getBytes(charset));
 
 			String line = conn.readLine();
 			if (line == null || !line.startsWith("335")) {

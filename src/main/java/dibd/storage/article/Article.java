@@ -36,7 +36,6 @@ import dibd.storage.GroupsProvider.Group;
 import dibd.storage.Headers;
 import dibd.storage.StorageBackendException;
 import dibd.storage.StorageManager;
-import dibd.storage.web.ShortRefParser;
 import dibd.util.Log;
 
 /**
@@ -215,19 +214,19 @@ public class Article { //extends ArticleHead
 			if (a_name.isEmpty())
 				a_name = null;
 			else
-				a.a_name = escapeString(a_name).trim();
+				a.a_name = escapeString(a_name);
 		
 		if (subject != null)
 			if (subject.isEmpty())
 				subject = null;
 			else
-				a.subject = escapeString(subject).trim();
+				a.subject = escapeString(subject);
 		
 		if (message != null)
 			if (message.isEmpty())
 				message = null;
 			else
-				message = message.trim();
+				message = message.replaceAll("\\s+$", ""); //we are more accurate with message. UTF-8 0 byte may appear..
 		/*else
 			for(Entry<String, String> ref : short_ref_messageId.entrySet())
 				message.replace(ref.getKey(), ref.getValue());*/
