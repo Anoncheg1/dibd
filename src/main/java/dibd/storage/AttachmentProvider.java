@@ -121,11 +121,6 @@ public class AttachmentProvider {
 		return fileName;
 	}
 	
-	private int checkSize(File path) throws IOException{
-		Image image = ImageIO.read(path);
-		return image.getHeight(null);
-	}
-
 	public void createThumbnail(String groupName, String fileName, String media_type){
 		if (media_type.substring(0, 6).equals("image/")){//we will add other formats later
 			try{
@@ -139,7 +134,8 @@ public class AttachmentProvider {
 				//check height of image. if image is small we just copy.
 				Image image = ImageIO.read(sourceFile);
 				int height = image.getHeight(null);
-				if (height > 0 && height < 200){ //-1 error
+				boolean gif = media_type.toLowerCase().contains("gif");
+				if (height > 0 && (!gif && height < 200 || gif && height <= 40)){ //-1 error
 					Files.copy(sourceFile.toPath(), thumbNailFile.toPath());
 					return;
 				}
@@ -151,8 +147,11 @@ public class AttachmentProvider {
 					IMOperation op = new IMOperation();
 					op.addImage(sourceFile.getCanonicalPath());
 					
-					
-					op.thumbnail(null,200);//horizontal and vertical density
+					System.out.println(media_type);
+					if (gif)
+						op.thumbnail(null,40);//horizontal and vertical density
+					else
+						op.thumbnail(null,200);//horizontal and vertical density
 					op.addImage(thumbNailFile.getCanonicalPath());
 					//System.out.println(op.getCmdArgs());
 					cmd.run(op);
