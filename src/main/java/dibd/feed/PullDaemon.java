@@ -62,6 +62,22 @@ public class PullDaemon extends DaemonThread {
 			this.messageId = messageId;
 			this.string_for_log = string_for_log;
 		}
+		
+		@Override
+		public boolean equals(Object obj) {
+			 // If the object is compared with itself then return true  
+	        if (obj == this)
+	            return true;
+
+	        /* Check if o is an instance of Complex or not
+	          "null instanceof [type]" also returns false */
+	        if (!(obj instanceof MissingThread)) {
+	        	return false;
+	        }else if (((MissingThread)obj).messageId.equals(this.messageId))
+	        	return true;
+	        else
+	        	return false;
+		}
 	}
 	
 	//IHAVE, TAKETHIS when no reference
@@ -69,13 +85,20 @@ public class PullDaemon extends DaemonThread {
 	
 	private static volatile boolean running = false;
 
-	public static void queueForPush(Group group, String message_id_thread, String string_for_log) {
+	public static void queueForPull(Group group, String message_id_thread, String string_for_log) {
 		assert(group != null);
 		if (running){
 			try {
-				//If queue is full, this call blocks until the queue has free space;
-				// This is probably a bottleneck for article posting
-				groupQueue.put(new MissingThread(group, message_id_thread, string_for_log));
+				MissingThread mt = new MissingThread(group, message_id_thread, string_for_log);
+				synchronized(PullDaemon.class){
+					if (groupQueue.contains(mt))
+						return;
+					else//If queue is full, this call blocks until the queue has free space;
+						// This is probably a bottleneck for article posting
+						groupQueue.put(mt);
+	    		}
+				
+				
 			} catch (InterruptedException ex) {
 				Log.get().log(Level.WARNING, null, ex);
 			}
@@ -135,10 +158,11 @@ public class PullDaemon extends DaemonThread {
     public void run() {
     	PullDaemon.running = isRunning(); 
     	while (isRunning()) {
+    		MissingThread mthr = null;
     		try{
-
-    			MissingThread mthr = PullDaemon.groupQueue.take();
-    			Thread.sleep(30000);//30sec wait for missing thread be spread to peer network we connected
+    			mthr = PullDaemon.groupQueue.take();
+    			
+    			Thread.sleep(20000);//20sec wait for missing thread be spread to peer network we connected
 
     			List<Subscription> subs = new ArrayList<>(); 
     			for (Subscription sub : StorageManager.peers.getAll())

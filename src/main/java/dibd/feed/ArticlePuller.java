@@ -364,10 +364,9 @@ public class ArticlePuller {
 				if(line.startsWith("235")) {
 					Log.get().log(Level.INFO, "{0} successfully received", messageId);
 					return 0;
-				} else if (line.equals(IhaveCommand.noRef)){//must never happen
-					Log.get().log(Level.SEVERE, "PULL from {0} {1} NO SUCH THREAD", new Object[]{this.host, messageId} );
-					System.err.println("PULL from "+this.host+" "+messageId+" NO SUCH THREAD");
-					System.exit(1);
+				} else if (line.equals(IhaveCommand.noRef)){//may happen if thread is refering to another thread....
+					Log.get().log(Level.SEVERE, "PULL from {0} {1} THIS THREAD refering another thread!", new Object[]{this.host, messageId} );
+					return 1;
 				}else
 					Log.get().log(Level.WARNING, "Pulling {0} from {1} self IHAVE: {2}", new Object[]{messageId, this.host, line});
 		} catch (UnsupportedEncodingException e) {
@@ -427,16 +426,18 @@ public class ArticlePuller {
 	
 	
 	void getThread(String threadMId, String gname) throws IOException, StorageBackendException{
-		List<String> capabilties = getCapabilities();
+		
 		int received=0;
 		//First lets try to get thread
 		int res = transferToItself(new IhaveCommand(), threadMId);
+		Log.get().log(Level.WARNING, "wtf0 "+threadMId+ "res: "+res);
 		if (res == 1){
 			Log.get().log(Level.WARNING, "From host {0} can not get thread {1} group {2}", new Object[]{this.host, threadMId, gname});
 			return;
 		}else if (res == 0)
 			received++;
 		
+		List<String> capabilties = getCapabilities();
 		if ( ! capabilties.contains("READER")){ //case sensitive!
 			Log.get().log(Level.WARNING, "From host: {0} CAPABILITIES do not contain: READER", this.host);
 			return;
@@ -462,7 +463,7 @@ public class ArticlePuller {
 		boolean found = false;
 		
 		line = getIS();//this.in.readLine();
-		while (line != null && !(".".equals(line.trim()))) {
+		while (line != null && !(".".equals(line))) {
 			String[] part = line.split("\t");
 			if (part.length < 5){
 				Log.get().log(Level.WARNING, "From host: {0} XOVER 0 for group {1}, Lines have less than 5 parts: {2}", new Object[]{this.host, gname, line});
@@ -483,13 +484,15 @@ public class ArticlePuller {
 			//we assume thread is early than his replays
 			
 			if(found == false){ //1)
-				if (part[4].equals(threadMId)){
+				if (part[4].equals(threadMId) && (part.length == 5 || !part[5].matches(NNTPConnection.MESSAGE_ID_PATTERN))){
 					replays = new ArrayList<>();
 					found = true;
 				}
 			}else //2)
-				if(part[5].equals(threadMId) && part[4].matches(NNTPConnection.MESSAGE_ID_PATTERN))
+				if(part.length > 5 && part[5].equals(threadMId) && part[4].matches(NNTPConnection.MESSAGE_ID_PATTERN))
 					replays.add(part[4]); //3)
+			
+			line = getIS();
 		}
 		
 		if( ! found){
@@ -497,6 +500,7 @@ public class ArticlePuller {
 			return;
 		}
 		
+		Log.get().log(Level.WARNING, "wtf1 "+threadMId+ " "+replays.size());
 		//receive replays
 		for (String mId : replays){
 			res = transferToItself(new IhaveCommand(), mId);	
@@ -553,7 +557,7 @@ public class ArticlePuller {
 		Map<String, String> aThreads = new HashMap<>();
 		
 		line = getIS();
-		while (line != null && !(".".equals(line.trim()))) {
+		while (line != null && !(".".equals(line))) {
 			String[] part = line.split("\t");
 			if (part.length < 5){
 				Log.get().log(Level.WARNING, "From host: {0} XOVER 0 for group {1}, Lines have less than 5 parts: {2}", new Object[]{this.host, gname, line});

@@ -79,7 +79,7 @@ public class FeedManager extends Thread{
 		if (Config.inst().get(Config.PEERING, true)) {
 			
 			//1) Pull daemon for getting missing threads 
-			final int pullThreadsAmount = 5; //TODO:make configurable
+			final int pullThreadsAmount = 3; //TODO:make configurable
 			for(int i = 0; i < pullThreadsAmount; i++){
         		(new PullDaemon()).start();
         	}

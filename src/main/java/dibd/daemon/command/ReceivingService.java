@@ -456,7 +456,7 @@ class ReceivingService{
 						return false;
 				}else{
 					//request missed thread:
-					PullDaemon.queueForPush(group, ref[0], messageId+" "+this.host+" "+path);
+					PullDaemon.queueForPull(group, ref[0], messageId+" "+this.host+" "+path);
 					return false; //"no such REFERENCE";
 				}
 
