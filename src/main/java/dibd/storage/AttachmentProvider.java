@@ -147,7 +147,6 @@ public class AttachmentProvider {
 					IMOperation op = new IMOperation();
 					op.addImage(sourceFile.getCanonicalPath());
 					
-					System.out.println(media_type);
 					if (gif)
 						op.thumbnail(null,40);//horizontal and vertical density
 					else
