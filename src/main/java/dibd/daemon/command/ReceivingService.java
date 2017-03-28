@@ -385,7 +385,7 @@ class ReceivingService{
 				return true;
 			}else{
 				//			Log.get().log(Level.INFO, () ->
-				//		String.format(this.command+" sender is unknewn {%s}, messageB-id {%s)", lastSender, headers.getHeader(Headers.MESSAGE_ID)[0]));
+				//		String.format(this.command+" sender is unknewn {%s}, message-id {%s)", lastSender, headers.getHeader(Headers.MESSAGE_ID)[0]));
 				Log.get().log(Level.INFO, "{0}: sender is unknewn {1}, message-id {2}, host {3}",
 						new Object[] {this.command, lastSender, messageId, host});
 				return false;
@@ -492,8 +492,10 @@ class ReceivingService{
 	/**
 	 * If no error it parse article, save and put to transfer.
 	 * 
+	 * from, subject, message are trimmed.
+	 * 
 	 * @param status 0 - ok, 1 - multifile not readed
-	 * @return error messageB or null if success
+	 * @return error message or null if success
 	 * @throws StorageBackendException 
 	 * @throws MessagingException 
 	 * @throws ParseException 
@@ -532,6 +534,8 @@ class ReceivingService{
 
 			if (message.isEmpty())
 				message = null;
+			else
+				message = message.trim();
 		}//else message = null;
 		
 		
@@ -567,8 +571,8 @@ class ReceivingService{
 
 		//*** SAVING MESSAGE ***
 		//preparation
-		String from = (from_raw != null && !from_raw[0].isEmpty()) ? decodeWord(from_raw[0]) : null; //decoded word
-		String subject = (subjectArr != null && !subjectArr[0].isEmpty()) ? decodeWord(MimeUtility.unfold(subjectArr[0])) : null;
+		String from = (from_raw != null && !from_raw[0].isEmpty()) ? decodeWord(from_raw[0]).trim() : null; //decoded word
+		String subject = (subjectArr != null && !subjectArr[0].isEmpty()) ? decodeWord(MimeUtility.unfold(subjectArr[0])).trim() : null;
 		
 		String file_name = null;
 		if (fCD != null)

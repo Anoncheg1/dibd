@@ -223,11 +223,11 @@ public class Article { //extends ArticleHead
 			else
 				a.subject = escapeString(subject).trim();
 		
-		
-		if (message != null && message.isEmpty())
-			message = null;
-		else
-			message.trim();
+		if (message != null)
+			if (message.isEmpty())
+				message = null;
+			else
+				message = message.trim();
 		/*else
 			for(Entry<String, String> ref : short_ref_messageId.entrySet())
 				message.replace(ref.getKey(), ref.getValue());*/

@@ -132,14 +132,16 @@ public class AttachmentProvider {
 				
 				//TODO: what about horizontal?
 				//check height of image. if image is small we just copy.
+				boolean gif = false;
 				Image image = ImageIO.read(sourceFile);
-				int height = image.getHeight(null);
-				boolean gif = media_type.toLowerCase().contains("gif");
-				if (height > 0 && (!gif && height < 200 || gif && height <= 40)){ //-1 error
-					Files.copy(sourceFile.toPath(), thumbNailFile.toPath());
-					return;
+				if (image != null){
+					int height = image.getHeight(null);
+					gif = media_type.toLowerCase().contains("gif");
+					if (height > 0 && (!gif && height < 200 || gif && height <= 40)){ //-1 error
+						Files.copy(sourceFile.toPath(), thumbNailFile.toPath());
+						return;
+					}
 				}
-				
 				ConvertCmd cmd = new ConvertCmd();
 				
 				if (sourceFile.exists() && !thumbNailFile.exists() ) {
