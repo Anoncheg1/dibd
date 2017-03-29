@@ -53,7 +53,7 @@ import dibd.util.Log;
  * @since sonews/2.0
  */
 public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Storage
-	public static final int MAX_RESTARTS = 2;
+	public static final int MAX_RESTARTS = 3;
 
 	protected Connection conn = null;
 
@@ -404,14 +404,16 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			rs = pstmtGetThreadCountGroup.executeQuery();
 			if (rs.next())
 				ret = rs.getInt(1);
+			
+			this.restarts = 0; // Reset error count
+			return ret;
 		} catch (SQLException ex) {
 			restartConnection(ex);
 			return getThreadsCountGroup(groupId);
 		} finally {
 			closeResultSet(rs);
-			this.restarts = 0; // Reset error count
 		}
-		return ret;
+		
 	}
 	
 	/**
@@ -539,7 +541,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			
 			this.conn.commit();
 			this.conn.setAutoCommit(true);
-
+			this.restarts = 0; // Reset error count
 			return new Article(article, id, messageId, file_name, file_ct);
 		} catch (IOException e) {
 			
@@ -565,13 +567,8 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			}
 
 			restartConnection(ex);
-			createThread(article, bfile, file_ct, file_name);
-		}finally{
-			this.restarts = 0; // Reset error count
+			return createThread(article, bfile, file_ct, file_name);
 		}
-		Log.get().log(Level.SEVERE, "createThread() base failded, exit ");
-		System.exit(1); //Never happen. restartConnection() will throw exception or recursion.
-		return null;
 	}
 	
 	public Article createReplayWeb(Article article,
@@ -631,7 +628,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 
 			this.conn.commit();
 			this.conn.setAutoCommit(true);
-			
+			this.restarts = 0;
 			return new Article(article, id, messageId, file_name, file_ct);
 		} catch (IOException e) {
 			Log.get().log(Level.SEVERE, "Can't save attachment: {0}", e);
@@ -650,13 +647,9 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			}
 
 			restartConnection(ex);
-			createReplay(article, bfile, file_ct, file_name);
-		}finally{
-			this.restarts = 0; // Reset error count
+			return createReplay(article, bfile, file_ct, file_name);
 		}
-		Log.get().log(Level.SEVERE, "createReplay() database faild, exit.");
-		System.exit(1);
-		return null;//Never happen. restartConnection() will throw exception or recursion.
+		
 	}
 
 	
@@ -714,6 +707,8 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			}
 			this.conn.commit();
 			this.conn.setAutoCommit(true);
+			this.restarts = 0; // Reset error count
+			return map;
 		} catch (SQLException ex) {
 			try {
 				this.conn.setAutoCommit(true); // and release locks
@@ -726,10 +721,9 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 		} finally {
 			closeResultSet(rs);
 			closeResultSet(rs2);
-			this.restarts = 0; // Reset error count
+			
 		}
-
-		return map;
+		
 	}
 	
 	
@@ -764,15 +758,17 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 							rs.getString(5), rs.getString(6), rs.getLong(7), null, boardName, rs.getString(8), null));
 				} while (rs.next());
 			}
+			
+			this.restarts = 0; // Reset error count
+			return thread;
 		} catch (SQLException ex) {
 			restartConnection(ex);
 			return getOneThread(threadId, boardName, status);
 		} finally {
 			closeResultSet(rs);
-			this.restarts = 0; // Reset error count
 		}
 
-		return thread;
+		
 	}
 	
 	//-1 if error or no thread 0 - no rLeft
@@ -787,15 +783,16 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			if (count == 0) //no such thread
 				count = -1;
 			else count -= 1; //minus thread
+			
+			//this.restarts = 0; // Reset error count //used inside
+			return count;
 		} catch (SQLException ex) {
 			restartConnection(ex);
 			return getReplaysCount(threadId);
 		} finally {
 			closeResultSet(rs);
-			this.restarts = 0; // Reset error count
 		}
 		
-		return count;
 	}
 	
 	public String getMessageId(int id) throws StorageBackendException {
@@ -806,15 +803,16 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			rs = pstmtGetMessageId.executeQuery();
 			if(rs.next())
 				mId = rs.getString(1);
+			
+			//this.restarts = 0; // Reset error count/ used inside
+			return mId; //never null
 		} catch (SQLException ex) {
 			restartConnection(ex);
 			return getMessageId(id);
 		} finally {
 			closeResultSet(rs);
-			this.restarts = 0; // Reset error count
 		}
 		
-		return mId; //never null
 	}
 	
 	//newnews
@@ -841,14 +839,16 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 				else
 					ret.put(mId, mId_above); //replay (mId_above never null)
 			}
+			
+			this.restarts = 0; // Reset error count
+			return ret; //may be empty
 		} catch (SQLException ex) {
 			restartConnection(ex);
 			return getNewArticleIDs(group, date);
 		} finally {
 			closeResultSet(rs);
-			this.restarts = 0; // Reset error count
 		}
-		return ret; //may be empty
+		
 	}
 	
 	
@@ -878,14 +878,16 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			rs = pstmtGetArticleNumbers.executeQuery();
 			while (rs.next())
 				ret.add(rs.getInt(1));
+			
+			this.restarts = 0; // Reset error count
+			return ret;
 		} catch (SQLException ex) {
 			restartConnection(ex);
 			return getArticleNumbers(groupID, start);
 		} finally {
 			closeResultSet(rs);
-			this.restarts = 0; // Reset error count
 		}
-		return ret;
+		
 	}
 
 	@Override
@@ -897,13 +899,16 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			rs = pstmtGetArticleCountGroup.executeQuery();
 			if (rs.next())
 				ret = rs.getInt(1);
+			
+			this.restarts = 0; // Reset error count
+			return ret;
 		} catch (SQLException ex) {
 			restartConnection(ex);
 			return getArticleCountGroup(groupID);
 		} finally {
 			closeResultSet(rs);
 		}
-		return ret;
+		
 	}
 	
 	@Override
@@ -939,14 +944,16 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 						rs.getString(5), rs.getString(6), rs.getString(7), rs.getLong(8), 
 						rs.getString(9), StorageManager.groups.getName(rs.getInt(10)), rs.getString(11), rs.getString(12));
 			}
+			
+			this.restarts = 0; // Reset error count
+			return art;
 		} catch (SQLException ex) {
 			restartConnection(ex);
 			return getArticle(messageId, id, status);
 		} finally {
 			closeResultSet(rs);
-			this.restarts = 0; // Reset error count
 		}
-		return art;
+		
 	}
 
 		
@@ -962,13 +969,13 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			while (rs.next())
 				tm.put(rs.getInt(1), rs.getString(2)); //now in normal order
 			
+			this.restarts = 0; // Reset error count
 			return tm;
 		} catch (SQLException ex) {
 			restartConnection(ex);
 			return scrapThreadIds(group, limit);
 		} finally {
 			closeResultSet(rs);
-			this.restarts = 0; // Reset error count
 		}
 	}
 	

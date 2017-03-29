@@ -160,9 +160,11 @@ public class ArticlePuller {
 						b = this.instream.read();
 					}catch(SocketTimeoutException e)
 					{
-						System.out.println("pull timeout: "+ (i+1));
-						if (i++ >= 5)
-							return null;
+						
+						if (i++ >= 5){
+							Log.get().log(Level.INFO, "From {0} connection timeout. return null.", this.host);
+							return null; //connection timeout
+						}
 						lines.addAll(lineBuffers.getInputLines());
 						if (lines.isEmpty())
 							continue;
