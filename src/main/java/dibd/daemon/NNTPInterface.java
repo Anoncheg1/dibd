@@ -31,6 +31,8 @@ public interface NNTPInterface{
 	/**
 	 * Puts article to output buffers. Article must have "\r\n" at the end and UTF-8 encoded.
 	 * 
+	 * must close fs.
+	 * 
 	 * @param fs
 	 * @param mId 
 	 * @throws IOException

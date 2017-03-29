@@ -67,6 +67,11 @@ public class PullDaemon extends DaemonThread {
 		}
 		
 		@Override
+		public int hashCode() {
+			return this.messageId.hashCode();
+		}
+		
+		@Override
 		public boolean equals(Object obj) {
 			 // If the object is compared with itself then return true  
 	        if (obj == this)
@@ -101,9 +106,9 @@ public class PullDaemon extends DaemonThread {
 	 * 
 	 * @param group
 	 * @param message_id_thread
-	 * @param string_for_log
+	 * @param messageIdHostPath
 	 */
-	public static void queueForPull(Group group, String message_id_thread, String string_for_log) {
+	public static void queueForPull(Group group, String message_id_thread, String messageIdHostPath) {
 		assert(group != null);
 		if (running){
 			try {
@@ -114,7 +119,7 @@ public class PullDaemon extends DaemonThread {
 						System.out.println("do not contain thread-id");
 						return;
 					}else{
-						mt = new MissingThread(group, message_id_thread, string_for_log);
+						mt = new MissingThread(group, message_id_thread, messageIdHostPath);
 						if (waitingQueue.contains(mt))
 							return;
 					}	
@@ -133,6 +138,16 @@ public class PullDaemon extends DaemonThread {
 	
 	
 	
+	/**
+	 * @param mthread
+	 * @param proxy
+	 * @param host
+	 * @param port
+	 * @param retries
+	 * @param sleep
+	 * @return true if we success false if was error
+	 * @throws StorageBackendException
+	 */
 	private boolean pull(MissingThread mthread, Proxy proxy, String host, int port, int retries, int sleep) throws StorageBackendException {
 		String gname = mthread.g.getName();
     	for(int retry =1; retry<retries;retry++){
@@ -148,12 +163,11 @@ public class PullDaemon extends DaemonThread {
 					break;
 				}
     			Log.get().log(
-    					Level.INFO, "Pull missing thread  {0}  from {1} group {2}", //his groups {1}",
-    					new Object[]{mthread.messageId, host, gname});
+    					Level.INFO, "Pull missing thread  {0}  from {1}", //his groups {1}",
+    					new Object[]{gname, mthread.string_for_log});
 
     			
-    			if(ap.getThread(mthread.messageId, gname));
-    				return true;
+    			return ap.getThread(mthread.messageId, gname);
 
     		}catch (IOException ex) {
     			Log.get().log(Level.INFO,"{0}: try {1} for host:{2}:{3} {4}",
@@ -211,9 +225,9 @@ public class PullDaemon extends DaemonThread {
     				}
     				
     				try {
+    					//if was error we will try another sub
     					if(pull(mthr, proxy, sub.getHost(), sub.getPort(), 5, 30*1000)) //0 add days, 5 retries, 30 sec. 
     						break;
-    					//else lets try another subscriptions
 							
 					} catch (StorageBackendException e) {
 						Log.get().log(Level.WARNING, e.getLocalizedMessage(), e);
