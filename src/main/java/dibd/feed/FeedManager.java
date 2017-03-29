@@ -15,6 +15,7 @@ import java.net.Proxy.Type;
 import java.nio.charset.Charset;
 import java.security.cert.X509Certificate;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -250,7 +251,7 @@ public class FeedManager extends Thread{
 	 * @return
 	 * @throws IOException
 	 */
-	public static Socket getHelloFromServer(Socket socket, boolean TLSEnabled, String host, Charset charset) throws SSLPeerUnverifiedException, IOException{
+	public static Socket getHelloFromServer(Socket socket, boolean TLSEnabled, String host, Charset charset) throws SSLPeerUnverifiedException, IOException, SocketTimeoutException{
 		
 		PrintWriter out = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), charset));
 		BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream(), charset));

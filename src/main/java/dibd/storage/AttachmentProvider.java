@@ -167,7 +167,7 @@ public class AttachmentProvider {
 	public void saveFile (String groupName, String fileName, byte[] data) throws IOException{
 		String fullFileName = this.getAPath(groupName, fileName);
 		File ofile = new File(fullFileName);
-		if (ofile.createNewFile()) {
+		if (ofile.createNewFile()) { //if exist just carry on.
 
 			FileOutputStream fos = new FileOutputStream(ofile);
 			try{

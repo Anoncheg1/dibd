@@ -75,9 +75,8 @@ public class PullAtStart extends Thread {
     			try{
     				try{
     					ap = new ArticlePuller(proxy, host, port, TLSenabled);
-    				} catch (SSLPeerUnverifiedException e) {
-    					Log.get().log(Level.WARNING, "For host {0} TLS did not present a valid certificate",
-    							host);
+    				} catch (IOException ex) { //second try
+    					Log.get().warning(ex.toString()+" to host "+host);
     					break;
     				}
     				Log.get().log(

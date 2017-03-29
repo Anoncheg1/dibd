@@ -371,12 +371,9 @@ public class ArticlePuller {
 					return 1;
 				}else
 					Log.get().log(Level.WARNING, "Pulling {0} from {1} self IHAVE: {2}", new Object[]{messageId, this.host, line});
-		} catch (UnsupportedEncodingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			Log.get().log(Level.WARNING, "Pulling {0} from {1} : {2}", new Object[]{messageId, this.host, e.getLocalizedMessage()});
+			return 1;
 		} //send ihave	
 		return 1;
 	}

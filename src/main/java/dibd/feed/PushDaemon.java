@@ -110,7 +110,7 @@ public class PushDaemon extends DaemonThread {
 						try {
 							ap = new ArticlePusher(FeedManager.createSocket(proxy, sub.getHost(), sub.getPort()), TLSenabled, sub.getHost());
 						} catch (IOException ex1) { //second try
-							Log.get().info(ex1.toString()+" to host "+sub.getHost());
+							Log.get().warning(ex1.toString()+" to host "+sub.getHost());
 							continue; //fail to connect
 						}
 					}

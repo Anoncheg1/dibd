@@ -319,7 +319,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 		}
 		
 		if (bfile != null)
-			StorageManager.attachments.saveFile(groupName, fileNameForSave, bfile);
+			StorageManager.attachments.saveFile(groupName, fileNameForSave, bfile);//if exist just carry on.
 		//save database record
 		this.pstmtAttachmentSaving.setInt(1, id);
 		this.pstmtAttachmentSaving.setString(2, fileNameForSave);
