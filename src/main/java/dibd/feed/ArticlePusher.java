@@ -89,7 +89,7 @@ public class ArticlePusher {
 		String line = this.inr.readLine();
 		if (line == null)
 			throw new IOException(line);
-		else if (line.startsWith("435")){ 
+		else if (line.startsWith("435") || line.startsWith("437")){ 
 			return false;
 		}else if (!line.startsWith("335"))
 			throw new IOException(line);

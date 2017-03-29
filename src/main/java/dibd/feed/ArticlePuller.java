@@ -270,7 +270,7 @@ public class ArticlePuller {
 	 * 
 	 * @param ihavec
 	 * @param messageId
-	 * @return 0 if accepted 1 if error 2 if already have 
+	 * @return 0 if accepted 1 if error 2 if already have 3 do not repeat 
 	 * @throws IOException for any inappropriate input from remote host
 	 * @throws StorageBackendException
 	 */
@@ -307,7 +307,7 @@ public class ArticlePuller {
 			if (line.startsWith("430 ")) {
 				Log.get().log(Level.WARNING, "Message {0} not available at {1}",
 						new Object[]{messageId, this.host});
-				return 1;
+				return 3;
 			}
 			if (!line.startsWith("220 ")) {
 				throw new IOException("Unexpected reply to ARTICLE "+messageId);
@@ -424,23 +424,28 @@ public class ArticlePuller {
 		
 	}
 	
-	
-	void getThread(String threadMId, String gname) throws IOException, StorageBackendException{
+	//throw ioexception if want to repeat.
+	boolean getThread(String threadMId, String gname) throws IOException, StorageBackendException{
 		
 		int received=0;
 		//First lets try to get thread
 		int res = transferToItself(new IhaveCommand(), threadMId);
-		Log.get().log(Level.WARNING, "wtf0 "+threadMId+ "res: "+res);
 		if (res == 1){
 			Log.get().log(Level.WARNING, "From host {0} can not get thread {1} group {2}", new Object[]{this.host, threadMId, gname});
-			return;
+			throw new IOException(); //we will retry
+		}else if (res == 2){
+			Log.get().log(Level.INFO, "Missing thread {0} we guess was received before {1} group {2}", new Object[]{threadMId, this.host, gname});
+			return false;
+		}else if (res == 3){
+			Log.get().log(Level.INFO, "Missing thread {0} we do not have access {1} group {2}", new Object[]{threadMId, this.host, gname});
+			return false;
 		}else if (res == 0)
 			received++;
 		
 		List<String> capabilties = getCapabilities();
 		if ( ! capabilties.contains("READER")){ //case sensitive!
 			Log.get().log(Level.WARNING, "From host: {0} CAPABILITIES do not contain: READER", this.host);
-			return;
+			return false;
 		}
 		
 		this.out.print("GROUP "+gname+NL);
@@ -467,7 +472,7 @@ public class ArticlePuller {
 			String[] part = line.split("\t");
 			if (part.length < 5){
 				Log.get().log(Level.WARNING, "From host: {0} XOVER 0 for group {1}, Lines have less than 5 parts: {2}", new Object[]{this.host, gname, line});
-				return;
+				return false;
 			}
 
 			//0 1 2 - id, subject, from
@@ -497,10 +502,9 @@ public class ArticlePuller {
 		
 		if( ! found){
 			Log.get().log(Level.WARNING, "Thread not found. From host {0} group {1} mid {2}", new Object[]{this.host, gname, threadMId});
-			return;
+			return false;
 		}
 		
-		Log.get().log(Level.WARNING, "wtf1 "+threadMId+ " "+replays.size());
 		//receive replays
 		for (String mId : replays){
 			res = transferToItself(new IhaveCommand(), mId);	
@@ -508,8 +512,11 @@ public class ArticlePuller {
 				received ++;
 		}
 		
-		if (received > 0)
+		if (received > 0){
 			Log.get().log(Level.FINE, "Missing thread {0} reseived in articles {1}", new Object[]{threadMId, received});
+			return true;
+		}
+		return false;
 			
 		
 	}

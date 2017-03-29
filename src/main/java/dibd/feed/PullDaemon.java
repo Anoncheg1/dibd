@@ -22,7 +22,10 @@ import java.io.IOException;
 import java.net.Proxy;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
 
@@ -46,7 +49,7 @@ import dibd.util.Log;
 public class PullDaemon extends DaemonThread {
 
 	// TODO Make configurable
-	public static final int QUEUE_SIZE = 256;
+	public static final int QUEUE_SIZE = 128;
 	
 	private static class MissingThread{
 		Group g; //groupt to query to
@@ -80,23 +83,46 @@ public class PullDaemon extends DaemonThread {
 		}
 	}
 	
-	//IHAVE, TAKETHIS when no reference
-	private final static LinkedBlockingQueue<MissingThread> groupQueue = new LinkedBlockingQueue<>(QUEUE_SIZE);
+	//IHAVE, TAKETHIS Queue for waiting: put, take
+	private final static LinkedBlockingQueue<MissingThread> waitingQueue = new LinkedBlockingQueue<>(QUEUE_SIZE);
+	//working list: add, remove, contains
+	private final static Set<String> workingSet = Collections.synchronizedSet(new HashSet<String>(5)); //amount of processes
 	
 	private static volatile boolean running = false;
 
+	
+	
+	
+	/**
+	 * The problem is
+	 * 1) place object to queue if 1. space available and 2. not in queue yet 3. there is not working thread with such object
+	 * 2) take object from queue with waiting.
+	 * 
+	 * 
+	 * @param group
+	 * @param message_id_thread
+	 * @param string_for_log
+	 */
 	public static void queueForPull(Group group, String message_id_thread, String string_for_log) {
 		assert(group != null);
 		if (running){
 			try {
-				MissingThread mt = new MissingThread(group, message_id_thread, string_for_log);
-				synchronized(PullDaemon.class){
-					if (groupQueue.contains(mt))
+				MissingThread mt; 
+				//synchronized(workingSet){ //we must guarantee during checking waitingQueue workingQueue will not be changed.
+				synchronized(workingSet){
+					if(workingSet.contains(message_id_thread)){
+						System.out.println("do not contain thread-id");
 						return;
-					else//If queue is full, this call blocks until the queue has free space;
-						// This is probably a bottleneck for article posting
-						groupQueue.put(mt);
-	    		}
+					}else{
+						mt = new MissingThread(group, message_id_thread, string_for_log);
+						if (waitingQueue.contains(mt))
+							return;
+					}	
+				}
+				
+				//If queue is full, this call blocks until the queue has free space;
+				// This is probably a bottleneck for article posting
+				waitingQueue.put(mt);
 				
 				
 			} catch (InterruptedException ex) {
@@ -107,7 +133,7 @@ public class PullDaemon extends DaemonThread {
 	
 	
 	
-	private int pull(MissingThread mthread, Proxy proxy, String host, int port, int retries, int sleep) throws StorageBackendException {
+	private boolean pull(MissingThread mthread, Proxy proxy, String host, int port, int retries, int sleep) throws StorageBackendException {
 		String gname = mthread.g.getName();
     	for(int retry =1; retry<retries;retry++){
     		ArticlePuller ap = null;
@@ -126,15 +152,15 @@ public class PullDaemon extends DaemonThread {
     					new Object[]{mthread.messageId, host, gname});
 
     			
-    			ap.getThread(mthread.messageId, gname);
-    			
+    			if(ap.getThread(mthread.messageId, gname));
+    				return true;
 
     		}catch (IOException ex) {
     			Log.get().log(Level.INFO,"{0}: try {1} for host:{2}:{3} {4}",
     					new Object[]{Thread.currentThread().getName(), retry, host, port, ex.toString()});
     		}catch (NullPointerException e) {
     			Log.get().log(Level.WARNING,"No error if it is shutdown {0}", e);
-    			return -1;
+    			return false;
     		}finally{
     			//Log.get().log(Level.WARNING, "Finally host: {0}:{1} can not pull from.", new Object[]{host, port});
     			if (ap != null)
@@ -147,7 +173,7 @@ public class PullDaemon extends DaemonThread {
     			break;
     		}
     	}
-    	return -1;
+    	return false;
     }
 	
     
@@ -160,8 +186,10 @@ public class PullDaemon extends DaemonThread {
     	while (isRunning()) {
     		MissingThread mthr = null;
     		try{
-    			mthr = PullDaemon.groupQueue.take();
-    			
+    			mthr = PullDaemon.waitingQueue.take();
+    			if(! PullDaemon.workingSet.add(mthr.messageId))
+    					return;
+
     			Thread.sleep(20000);//20sec wait for missing thread be spread to peer network we connected
 
     			List<Subscription> subs = new ArrayList<>(); 
@@ -183,23 +211,24 @@ public class PullDaemon extends DaemonThread {
     				}
     				
     				try {
-    					int r = pull(mthr, proxy, sub.getHost(), sub.getPort(), 5, 30*1000); //0 add days, 5 retries, 30 sec. 
-    					if (r != -1)
-    						res += r;
+    					if(pull(mthr, proxy, sub.getHost(), sub.getPort(), 5, 30*1000)) //0 add days, 5 retries, 30 sec. 
+    						break;
+    					//else lets try another subscriptions
 							
 					} catch (StorageBackendException e) {
 						Log.get().log(Level.WARNING, e.getLocalizedMessage(), e);
 					}
     			}
     			
-    			if(res == 0)
-    				Log.get().log(Level.WARNING, "No thread was found for missing thread: {0} at {1} peers", new Object[] {mthr.string_for_log, subs.size()});
-    		
     		} catch (InterruptedException e1) {
     			Log.get().log(Level.FINEST, "PullDaemon interrupted: {0}", e1.getLocalizedMessage());
     			return;
 			}catch (Exception e) {
 	    		Log.get().log(Level.SEVERE, e.getLocalizedMessage(), e);
+	    	}finally{
+	    		if (mthr != null) //if interupted
+	    			PullDaemon.workingSet.remove(mthr.messageId);//synchronized
+    			
 	    	}
     	}
     }

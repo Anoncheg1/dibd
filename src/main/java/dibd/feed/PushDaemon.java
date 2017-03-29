@@ -76,7 +76,7 @@ public class PushDaemon extends DaemonThread {
 	@Override
 	public void run() {
 		while (isRunning()) {
-			int retries = 20;
+			int retries = 10;
 			for(int retry =1; retry<retries;retry++){
 				
 				Article article;
@@ -135,7 +135,7 @@ public class PushDaemon extends DaemonThread {
 				}
 				
 				try {
-	    			Thread.sleep(5*1000*retry*retry);//geometric progression from 5 sec to 33 min 
+	    			Thread.sleep(5*1000*retry*retry);//geometric progression from 5 sec to 8 min 
 	    		} catch (InterruptedException e) {
 	    			break;
 	    		}
