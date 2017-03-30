@@ -1,19 +1,25 @@
 package dibd.storage;
 
 import java.awt.Image;
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
+import java.util.Scanner;
 import java.util.logging.Level;
 
 import javax.imageio.ImageIO;
 
 import org.im4java.core.ConvertCmd;
 import org.im4java.core.IMOperation;
+import org.im4java.core.IdentifyCmd;
+import org.im4java.process.OutputConsumer;
 import org.im4java.process.ProcessStarter;
 
 import dibd.storage.GroupsProvider.Group;
@@ -120,6 +126,8 @@ public class AttachmentProvider {
 		return fileName;
 	}
 	
+	public String[] res = null; //used only in createThumbnail. must be locked with 
+	
 	public void createThumbnail(String groupName, String fileName, String media_type){
 		if (media_type.substring(0, 6).equals("image/")){//we will add other formats later
 			try{
@@ -129,27 +137,61 @@ public class AttachmentProvider {
 				File sourceFile = new File(pathSource);
 				File thumbNailFile = new File(pathTarget);
 				
-				//TODO: what about horizontal?
-				//check height of image. if image is small we just copy.
-				boolean gif = false;
-				Image image = ImageIO.read(sourceFile);
-				if (image != null){
-					int height = image.getHeight(null);
-					gif = media_type.toLowerCase().contains("gif");
-					if (height > 0 && (!gif && height < 200 || gif && height <= 40)){ //-1 error
-						Files.copy(sourceFile.toPath(), thumbNailFile.toPath());
-						return;
+				///// identifying resolution  ///////
+				IdentifyCmd icmd = new IdentifyCmd();
+				IMOperation op = new IMOperation();
+				op.addImage(sourceFile.getCanonicalPath());
+				
+				OutputConsumer ocanon = new OutputConsumer(){ //anonymouse class
+					@Override
+					public void consumeOutput(InputStream is) throws IOException {
+						Scanner sc = null;
+						try{
+							sc = new java.util.Scanner(is,"UTF-8");
+							java.util.Scanner scanner = sc.useDelimiter("\\A");
+							///home/user/nogirls.jpg JPEG 960x887 960x887+0+0 8-bit sRGB 137KB 0.000u 0:00.000
+							String theString = scanner.hasNext() ? scanner.next() : "";
+							res = theString.split(" ")[2].split("x");
+						}finally{
+							if(sc != null)
+								sc.close();
+						}
+					}		
+				};
+				icmd.setOutputConsumer(ocanon);
+				
+				boolean gif = media_type.toLowerCase().contains("gif");
+				
+				synchronized(this){ //rez lock
+					icmd.run(op);
+					
+					//check resolution is normal
+					if (res != null){
+						int width = Integer.parseInt(res[0]);
+						int height = Integer.parseInt(res[1]);
+						
+						if (width > 14000 || height > 14000) //TODO:make configurable
+							return; //ABORT
+
+						if (gif)
+							if ((width <= 50) && (height <= 50)){//if small gif just copy
+								Files.copy(sourceFile.toPath(), thumbNailFile.toPath());
+								return;
+							}
 					}
+					res = null;
 				}
+				
+				///////   creating thumbnail  ////// 
 				ConvertCmd cmd = new ConvertCmd();
 				
 				if (sourceFile.exists() && !thumbNailFile.exists() ) {
 					
-					IMOperation op = new IMOperation();
+					op = new IMOperation();
 					op.addImage(sourceFile.getCanonicalPath());
 					
 					if (gif)
-						op.thumbnail(null,40);//horizontal and vertical density
+						op.thumbnail(null,50);//horizontal and vertical density
 					else
 						op.thumbnail(null,200);//horizontal and vertical density
 					op.addImage(thumbNailFile.getCanonicalPath());
@@ -164,20 +206,9 @@ public class AttachmentProvider {
 	
 	
 	
-	public void saveFile (String groupName, String fileName, byte[] data) throws IOException{
+	public void saveFile (String groupName, String fileName, File file) throws IOException{
 		String fullFileName = this.getAPath(groupName, fileName);
-		File ofile = new File(fullFileName);
-		if (ofile.createNewFile()) { //if exist just carry on.
-
-			FileOutputStream fos = new FileOutputStream(ofile);
-			try{
-				fos.write(data);
-				fos.flush();
-			}finally{
-				fos.close();
-			}
-
-		}
+		Files.move(file.toPath(), new File(fullFileName).toPath(), StandardCopyOption.REPLACE_EXISTING);
 	}
 	
 	public byte[] readFile (String groupName, String fileName) throws IOException{

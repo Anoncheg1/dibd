@@ -5,7 +5,10 @@ import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -43,13 +46,13 @@ import dibd.util.Log;
  * @author user
  *
  */
-@Ignore
 public class IHAVEandTAKETHISTest {
 	
 	
 	private StorageNNTP storage; //mock
 	private NNTPInterface conn; //mock
 	private Constructor<?> groupC;
+	NNTPCacheProvider cache; //mock
 	
 	public IHAVEandTAKETHISTest() throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, StorageBackendException, NoSuchMethodException, SecurityException, IOException {
 		storage = Mockito.mock(StorageNNTP.class);
@@ -62,11 +65,12 @@ public class IHAVEandTAKETHISTest {
 		when(tls.getPeerNames()).thenReturn(new String[]{"host"});
 		
 		Article art = Mockito.mock(Article.class);
-		when(storage.createThread((Article)Mockito.any(), (byte[])Mockito.any(), (String)Mockito.any(), (String)Mockito.any())).thenReturn(art);
-		when(storage.createReplay((Article)Mockito.any(), (byte[])Mockito.any(), (String)Mockito.any(), (String)Mockito.any())).thenReturn(art);
+		when(storage.createThread((Article)Mockito.any(), (File)Mockito.any(), (String)Mockito.any(), (String)Mockito.any())).thenReturn(art);
+		when(storage.createReplay((Article)Mockito.any(), (File)Mockito.any(), (String)Mockito.any(), (String)Mockito.any())).thenReturn(art);
 		
-		StorageManager.enableNNTPCacheProvider(Mockito.mock(NNTPCacheProvider.class));
-        
+		cache = Mockito.mock(NNTPCacheProvider.class);
+		StorageManager.enableNNTPCacheProvider(cache);
+		 
 		
 		//mocking peers
 		SubscriptionsProvider sp = Mockito.mock(SubscriptionsProvider.class);  
@@ -155,7 +159,11 @@ public class IHAVEandTAKETHISTest {
 	
 	@Test
 	public void IhaveThreadTest1() throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, UnsupportedEncodingException, IOException, StorageBackendException, ParseException {
-
+		File t = File.createTempFile("test", null);
+		t.deleteOnExit();
+        when(cache.createTMPfile(Mockito.anyString())).thenReturn(t);
+		
+		
 		Set<String> host = new HashSet<String>(Arrays.asList("hschan.ano","host.com"));
 		//name id flags hosts
 		when(StorageManager.groups.get("local.test")).thenReturn(
@@ -201,8 +209,9 @@ public class IHAVEandTAKETHISTest {
 		//date[0], path[0], groupHeader[0], group.getInternalID());
 		Article art = new Article(null, "<23456@host.com>", "host.com", null, "subj", "message",
 				"Thu, 02 May 2013 12:16:44 +0000", "hschan.ano", "local.test", 23, 0);
+		//InputStream is = new ByteArrayInputStream(Base64.getDecoder().decode("R0lGODlhAQABAIAAAP///wAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw=="));
 		verify(this.storage, atLeastOnce()).createThread(
-				art, Base64.getDecoder().decode("R0lGODlhAQABAIAAAP///wAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw=="),"image/gif", "Blank.gif"); //ReceivingService here
+				Mockito.eq(art), Mockito.any(), Mockito.eq("image/gif"), Mockito.eq("Blank.gif")); //ReceivingService here
 		verify(conn, atLeastOnce()).println(startsWith("235")); //article is accepted
 	}
 	
@@ -210,6 +219,10 @@ public class IHAVEandTAKETHISTest {
 	@Test
 	public void IhaveThreadTest2() throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, UnsupportedEncodingException, IOException, StorageBackendException, ParseException {
 
+		File t = File.createTempFile("test", null);
+		t.deleteOnExit();
+        when(cache.createTMPfile(Mockito.anyString())).thenReturn(t);
+		
 		Set<String> host = new HashSet<String>(Arrays.asList("hschan.ano","host.com"));
 		//name id flags hosts
 		when(StorageManager.groups.get("local.test")).thenReturn(
@@ -651,16 +664,20 @@ public class IHAVEandTAKETHISTest {
 		
 		//Article art = new Article(thread_id, mId[0], mId[1], from, subjectT, message,
 		//date[0], path[0], groupHeader[0], group.getInternalID());
-		//Article art = new Article(null, "23456", "host.com", null, "subj", "message",
-			//	"Thu, 02 May 2013 12:16:44 +0000", "hschan.ano", "local.test", 23);
-		//verify(this.storage, atLeastOnce()).createThread(
-			//	art, Base64.getDecoder().decode("R0lGODlhAQABAIAAAP///wAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw=="), "image/gif"); //ReceivingService here
+		Article art = new Article(null, "<23456@host.com>", "host.com", "user <user@localhost>", "ads", "asasd\nasd\nasd",
+				"Tue, 06 Dec 2016 03:59:13 +0000", "hschan.ano", "local.test", 23, 0);
+		verify(this.storage, atLeastOnce()).createThread(
+				Mockito.eq(art), Mockito.any(), Mockito.eq("image/png"), Mockito.eq("705730.png")); //ReceivingService here
 		verify(conn, atLeastOnce()).println(startsWith("235")); //article is accepted
 	}
 	
 	
 	@Test
 	public void TakeThisReplayTest() throws StorageBackendException, IOException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, ParseException{
+		File t = File.createTempFile("test", null);
+		t.deleteOnExit();
+        when(cache.createTMPfile(Mockito.anyString())).thenReturn(t);
+		
 		Config.inst().set(Config.HOSTNAME, "not-in-path.com"); //added to path
 		Article art0 = Mockito.mock(Article.class);//empty
 		//when(storage.getArticle("<23456@host.com>", null)).thenReturn(art0);//ref
@@ -712,6 +729,10 @@ public class IHAVEandTAKETHISTest {
 	@Ignore
 	public void IHAVEThreadTooLargeAttTest() throws StorageBackendException, IOException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, ParseException{
 
+		File t = File.createTempFile("test", null);
+		t.deleteOnExit();
+        when(cache.createTMPfile(Mockito.anyString())).thenReturn(t);
+		
 		Set<String> host = new HashSet<String>(Arrays.asList("chan","host.com"));
 		//name id flags hosts
 		when(StorageManager.groups.get("overchan.random")).thenReturn(
@@ -767,8 +788,10 @@ public class IHAVEandTAKETHISTest {
 		//date[0], path[0], groupHeader[0], group.getInternalID());
 		Article art = new Article(null, "<f282b1489970884@chan>", "host.com", "Anonymous <poster@chan>", "None", "should look like this",
 				"Mon, 20 Mar 2017 00:48:04 +0000", "chan", "overchan.random", 23, 0);
+		
+		//InputStream is = new ByteArrayInputStream(Base64.getDecoder().decode("R0lGODlhAQABAIAAAP///wAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw=="));
 		verify(this.storage, atLeastOnce()).createThread(
-				art, Base64.getDecoder().decode("R0lGODlhAQABAIAAAP///wAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw=="),"image/gif", "asd.png"); //ReceivingService here
+				art, Mockito.any(),"image/gif", "asd.png"); //ReceivingService here
 		verify(conn, atLeastOnce()).println(startsWith("235")); //article is accepted
 	}
 	
@@ -776,6 +799,10 @@ public class IHAVEandTAKETHISTest {
 	@Test
 	public void IhaveThreadMultiattachTest() throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, UnsupportedEncodingException, IOException, StorageBackendException, ParseException {
 
+		File t = File.createTempFile("test", null);
+		t.deleteOnExit();
+        when(cache.createTMPfile(Mockito.anyString())).thenReturn(t);
+		
 		Set<String> host = new HashSet<String>(Arrays.asList("hschan.ano","host.com"));
 		//name id flags hosts
 		when(StorageManager.groups.get("local.test")).thenReturn(
@@ -827,8 +854,9 @@ public class IHAVEandTAKETHISTest {
 		//date[0], path[0], groupHeader[0], group.getInternalID());
 		Article art = new Article(null, "<23456@host.com>", "host.com", null, "subj", "message",
 				"Thu, 02 May 2013 12:16:44 +0000", "hschan.ano", "local.test", 23, 0);
+		//InputStream is = new ByteArrayInputStream(Base64.getDecoder().decode("R0lGODlhAQABAIAAAP///wAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw=="));
 		verify(this.storage, atLeastOnce()).createThread(
-				art, Base64.getDecoder().decode("R0lGODlhAQABAIAAAP///wAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw=="),"image/gif", "Blank.gif"); //ReceivingService here
+				Mockito.eq(art), Mockito.any(), Mockito.eq("image/gif"), Mockito.eq("Blank.gif")); //ReceivingService here
 		verify(conn, atLeastOnce()).println(startsWith("235")); //article is accepted
 	}
 	

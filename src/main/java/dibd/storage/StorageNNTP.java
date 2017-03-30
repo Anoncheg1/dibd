@@ -17,6 +17,7 @@
  */
 package dibd.storage;
 
+import java.io.File;
 import java.util.List;
 import java.util.Map;
 
@@ -83,7 +84,7 @@ public interface StorageNNTP {
 	 * @throws StorageBackendException
 	 * @return article never null
 	 */	
-	Article createReplay(Article article, byte[] bfile, String file_ct, String file_name)
+	Article createReplay(Article article, File file, String file_ct, String file_name)
 			throws StorageBackendException;
 	
 	/**
@@ -100,7 +101,7 @@ public interface StorageNNTP {
 	 * @throws StorageBackendException
 	 * @return article never null
 	 */
-	Article createThread(Article article, byte[] bfile, String file_ct, String file_name)
+	Article createThread(Article article, File file, String file_ct, String file_name)
 			throws StorageBackendException;
 	
 	/**

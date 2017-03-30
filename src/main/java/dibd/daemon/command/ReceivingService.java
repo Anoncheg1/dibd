@@ -3,11 +3,14 @@
  */
 package dibd.daemon.command;
 
+import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.text.ParseException;
@@ -82,7 +85,7 @@ class ReceivingService{
 		Matcher m=pattern.matcher(s);
 
 	    if(m.find()){
-				return MimeUtility.decodeText(s);
+	    	return MimeUtility.decodeText(s);
 	    }
 	    //else
 		return s;
@@ -123,6 +126,7 @@ class ReceivingService{
 
 		if (".".equals(line)) //end of the article
 			return "No body for article.";//No body
+		
 		if ("".equals(line)) { //empty line headers-body separator
 			// we finally met the blank line
 			// separating headers from body
@@ -195,6 +199,7 @@ class ReceivingService{
 			return "ok";//reading body now
 		}
 		
+		//keep reading
 		if (lineHeadCount > 20){
 			Log.get().log(Level.SEVERE, "Headers is too large for {0} from host {1}", new Object[] {this.cMessageId, host});
 			return "headers is too large.";
@@ -202,6 +207,9 @@ class ReceivingService{
 			return null;//continue
 	}
 
+	
+	
+	
 	/////    readingBody    /////
 	private int lineHeadCount = 0;
 	private long bodySize = 0; //approximate
@@ -220,11 +228,14 @@ class ReceivingService{
 	private InternetHeaders multiMesHeaders;
 	private StringBuilder messageB = new StringBuilder();	//for multi and not
 	private InternetHeaders multiAttachHeaders;
-	private StringBuilder attachBody;
-	FileOutputStream attachStream;
+	//private StringBuilder attachBody; //java heap overflow
+	//saving attachment to file
+	private FileOutputStream attachStream = null;
+	private File attachFile  = null; //tmp file
 	//SIDE EFFECT FUNCTION
 	//bufBody
 	/**
+	 * 5 - internal error.
 	 * 4 - "." reached. Wrong multipart format.
 	 * 3 - too big. message was not read. multipart and not. "." not reachead.
 	 * 2 - too big. multipart, message readed. "." not reachead.
@@ -263,9 +274,10 @@ class ReceivingService{
 				case MessagePart:{
 					if(line.startsWith("--") && line.equals("--"+boundary)){
 						mPart = Multipart.AttachmentPart;
-						//attachStream = StorageManager.nntpcache.createTMPfile(cMessageId);
+						attachFile = StorageManager.nntpcache.createTMPfile(cMessageId);
+						attachStream = new FileOutputStream(attachFile); 
 						multiAttachHeaders = new InternetHeaders();
-						attachBody = new StringBuilder();
+						//attachBody = new StringBuilder();
 						break;
 					}
 						
@@ -300,8 +312,8 @@ class ReceivingService{
 						else
 							multiAttachHeaders.addHeaderLine(line); //must contain only US-ASCII characters.
 					}else{ //if(attachPart == Attachment.Body){
-						//attachStream.write(raw);
-						attachBody.append(line);
+						attachStream.write(raw);
+						//attachBody.append(line);
 					}
 					
 						
@@ -314,32 +326,44 @@ class ReceivingService{
 				
 				//multipart
 				//check size of messageB
-				if (bodySize > maxArticleSize)
+				if (bodySize > maxArticleSize){
+					attachStream.close();
+					attachFile.delete();
 					if (mPart == Multipart.AttachmentPart || mPart == Multipart.AttachmentReaded)
 						return 2;
 					else
 						return 3;//fail
+					
+				}
 					
 			
 				
 			}else{//////////// not multipart ////////////
 				
 					messageB.append(line).append("\n");//stringbuilder.setlength to remove last \n
-					//check messageB size
-					if (messageB.length() > maxMessageSize)
-						return 3;//fail
-					
 			}
+			
+			//check messageB size
+			if (messageB.length() > maxMessageSize)
+				return 3;//fail
 			
 			
 			return 0; //continue to read
 			
 		} else { //"." was reach
 			
-			if ((boundary != null && mPart != Multipart.AttachmentReaded) || bodySize == 0) //==0 if every line is was empty line 
-				return 4;//It is the end but it doesn't look like the end.
+			 //if body is empty?
+			if ((boundary != null && mPart != Multipart.AttachmentReaded) || bodySize == 0){
+				if (attachStream != null){
+					attachStream.close();
+					attachFile.delete();
+				}
+				return 4;//It is the end but it doesn't look like the end
+			}
 			
-
+			if (attachStream != null)
+				attachStream.close();
+			
 			return 1;
 		}
 		/*System.out.println("mheader:"+multiHeadMessage.getAllHeaders().hasMoreElements());
@@ -488,7 +512,7 @@ class ReceivingService{
 	}
 	
 	//utf-8 0 bytes appears at the end of message some times.
-	static String trimZeros(String str) {
+	private String trimZeros(String str) {
 		int found = -1;
 	    for( int i = str.length()-1 ; i >= 0;i--)
 	    	if (str.charAt(i)== 0)
@@ -497,10 +521,41 @@ class ReceivingService{
 	    		break;
 
 	    if (found != -1){
-	    	System.out.println(found);
 	    	return str.substring(0, found);
 	    }else
 	    	return str;
+	}
+	
+
+	/**
+	 * Decode one tmp-file to another. First deleted, second returned.
+	 * Base64
+	 * 
+	 * @param tf1
+	 * @return
+	 * @throws IOException
+	 */
+	private File decodeTmpFile( File tf1) throws IOException{
+		
+		InputStream is = Base64.getDecoder().wrap(new FileInputStream(tf1));
+		File attachFile2 = File.createTempFile(cMessageId+2, "");//second tmp file with decoded data. will be moved later.
+		
+		FileOutputStream fos = new FileOutputStream(attachFile2);
+		try{
+			BufferedInputStream isb = new BufferedInputStream(is, 1024*512); //encoded to decoded
+			int read = 0;
+			byte[] bytes = new byte[1024*512];//write
+
+			while ((read = isb.read(bytes)) != -1) {
+				fos.write(bytes, 0, read);
+			}
+			isb.close();
+			fos.flush();
+		}finally{
+			fos.close();
+		}
+		tf1.delete();
+		return attachFile2;
 	}
 	
 	
@@ -520,11 +575,11 @@ class ReceivingService{
 	 */
 	String process(int status) throws StorageBackendException, MessagingException, ParseException, IOException{
 		String message = null; //UTF-16
-		byte[] file = null;
+		
 		String gfileCT = null; //guess Content-type for file
 
 		ContentDisposition fCD = null;//file Content-Disposition with file name
-
+		
 		
 		//   message, multipart or not   //
 		
@@ -576,7 +631,7 @@ class ReceivingService{
 				//Encoding
 				if (enc == null) return "Multipart file Content-Transfer-Encoding is not defined";
 				if(enc[0].equalsIgnoreCase("base64")) //base64
-					file = Base64.getDecoder().decode(attachBody.toString());
+					this.attachFile = decodeTmpFile(this.attachFile); //attachFile now decoded
 				else
 					return "Wrong Content-Transfer-Encoding header in attachment";
 			}
@@ -640,77 +695,83 @@ class ReceivingService{
 		//3. attachment save to database if fail roll back
 		//4. save thumbnail - Not critical.
 		//5. article to database
-		if (command.equals("POST")){
-			assert(status == 0);
-			if(thread_id != null){ //replay
-				art = new Article(thread_id, from, subject, message, group);
-				article = StorageManager.current().createReplay(art, file, gfileCT, file_name);
-			}else{ //thread
-				art = new Article(null, from, subject, message, group);
-				article = StorageManager.current().createThread(art, file, gfileCT, file_name);
-			}
-			FeedManager.queueForPush(article); //send to peers
-		}else{
-			
-			////   IHAVE, TAKETHIS    //////
-			//status  1 - file was not readed.  0 - normal
-
-			if(thread_id != null){ //replay
-				//nntpchan links converter
-				message = ShortRefParser.nntpchanLinks(message, group);
-				art = new Article(thread_id, messageId, mId[1], from, subject, message,
-						date, path.trim(), group.getName(), group.getInternalID(), status);
-				
-				if(status == 0){
-					File fl = StorageManager.nntpcache.saveFile(group.getName(), messageId, rawArticle);
-					try{
-						article = StorageManager.current().createReplay(art, file, gfileCT, file_name);
-					}catch(StorageBackendException e){ //rollback cache
-						StorageManager.nntpcache.delFile(fl);
-						throw new StorageBackendException(e);
-					}
-					
-				}else{ //if (status == 1)//no need cache if status =1
-					assert(file == null); // that is how we understand that statys = 1
-					article = StorageManager.current().createReplay(art, file, gfileCT, file_name);
+		try{
+			if (command.equals("POST")){
+				assert(status == 0);
+				if(thread_id != null){ //replay
+					art = new Article(thread_id, from, subject, message, group);
+					article = StorageManager.current().createReplay(art, this.attachFile, gfileCT, file_name);
+				}else{ //thread
+					art = new Article(null, from, subject, message, group);
+					article = StorageManager.current().createThread(art, this.attachFile, gfileCT, file_name);
 				}
-				
-			}else{ //thread
-				//nntpchan links converter
-				message = ShortRefParser.nntpchanLinks(message, group);
-				art = new Article(null, messageId, mId[1], from, subject, message,
-						date, path.trim(), group.getName(), group.getInternalID(), status);
-
-				if(status == 0){
-					File fl = StorageManager.nntpcache.saveFile(group.getName(), messageId, rawArticle);
-					try{
-						article = StorageManager.current().createThread(art, file, gfileCT, file_name);
-					}catch(StorageBackendException e){ //rollback cache
-						StorageManager.nntpcache.delFile(fl);
-						throw new StorageBackendException(e);
-					}
-				}else{ //if (status == 1)//no need cache if status =1
-					assert(file == null); // that is how we understand that statys = 1
-					article = StorageManager.current().createThread(art, file, gfileCT, file_name);
-				}
-				
-			}
-			
-			
-			//3) Third check. Sender must be in group.
-			if( ! group.getHosts().contains(mId[1])){
-				Log.get().log(Level.SEVERE, "{0}: sender {1} have NEW SOURCE {2} in group {3}",
-						new Object[]{this.command, host, mId[1], group.getName()});
-				//FeedManager.lazyQueueForPush(art);
-				
-			}else if ( ! pullMode && status == 0){
-				assert(article != null);
-				article.setRaw(rawArticle);
 				FeedManager.queueForPush(article); //send to peers
-				Log.get().log(Level.FINE, "{0}: article {1} received and it is {2} that we can send it to another hosts",
-						new Object[]{this.command, messageId, group.getHosts().contains(mId[1])});
+			}else{
+
+				////   IHAVE, TAKETHIS    //////
+				//status  1 - file was not readed.  0 - normal
+
+				if(thread_id != null){ //replay
+					//nntpchan links converter
+					message = ShortRefParser.nntpchanLinks(message, group);
+					art = new Article(thread_id, messageId, mId[1], from, subject, message,
+							date, path.trim(), group.getName(), group.getInternalID(), status);
+
+					if(status == 0){
+						File fl = StorageManager.nntpcache.saveFile(group.getName(), messageId, rawArticle);
+						try{
+							article = StorageManager.current().createReplay(art, this.attachFile, gfileCT, file_name);
+						}catch(StorageBackendException e){ //rollback cache
+							StorageManager.nntpcache.delFile(fl);
+							throw new StorageBackendException(e);
+						}
+
+					}else{ //if (status == 1)//no need cache if status =1
+						assert(this.attachFile == null); // that is how we understand that statys = 1
+						article = StorageManager.current().createReplay(art, this.attachFile, gfileCT, file_name);
+					}
+
+				}else{ //thread
+					//nntpchan links converter
+					message = ShortRefParser.nntpchanLinks(message, group);
+					art = new Article(null, messageId, mId[1], from, subject, message,
+							date, path.trim(), group.getName(), group.getInternalID(), status);
+
+					if(status == 0){
+						File fl = StorageManager.nntpcache.saveFile(group.getName(), messageId, rawArticle);
+						try{
+							article = StorageManager.current().createThread(art, this.attachFile, gfileCT, file_name);
+						}catch(StorageBackendException e){ //rollback cache
+							StorageManager.nntpcache.delFile(fl);
+							throw new StorageBackendException(e);
+						}
+					}else{ //if (status == 1)//no need cache if status =1
+						assert(this.attachFile == null); // that is how we understand that statys = 1
+						article = StorageManager.current().createThread(art, this.attachFile, gfileCT, file_name);
+					}
+
+				}
+
+
+
+				//3) Third check. Sender must be in group.
+				if( ! group.getHosts().contains(mId[1])){
+					Log.get().log(Level.SEVERE, "{0}: sender {1} have NEW SOURCE {2} in group {3}",
+							new Object[]{this.command, host, mId[1], group.getName()});
+					//FeedManager.lazyQueueForPush(art);
+
+				}else if ( ! pullMode && status == 0){
+					assert(article != null);
+					article.setRaw(rawArticle);
+					FeedManager.queueForPush(article); //send to peers
+					Log.get().log(Level.FINE, "{0}: article {1} received and it is {2} that we can send it to another hosts",
+							new Object[]{this.command, messageId, group.getHosts().contains(mId[1])});
+				}
+
 			}
-			
+		}finally{
+			if (this.attachFile != null && this.attachFile.exists()) //no happen - must be moved
+				this.attachFile.delete(); //just for case
 		}
 		 
 		return null; //success

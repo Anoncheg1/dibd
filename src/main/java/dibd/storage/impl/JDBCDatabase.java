@@ -18,7 +18,9 @@
 
 package dibd.storage.impl;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -303,11 +305,12 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 	 * @throws IOException
 	 * @return new filename 
 	 */
-	private String attachmentSaving(final int id, final String groupName, byte[] bfile, final String content_type,  final String file_name) throws SQLException, StorageBackendException, IOException{
+	private String attachmentSaving(final int id, final String groupName, File file, final String content_type,  final String file_name) throws SQLException, StorageBackendException, IOException{
 		if (content_type.length() > 256)
 			throw new StorageBackendException("Too long media-type");
+		
 		String fileNameForSave;
-		if (bfile != null)
+		if (file != null)
 			fileNameForSave = String.valueOf(id);
 		else
 			fileNameForSave = "No File(was too large)";
@@ -318,16 +321,16 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 				fileNameForSave = fileNameForSave + "." + nameparts[nameparts.length-1];
 		}
 		
-		if (bfile != null)
-			StorageManager.attachments.saveFile(groupName, fileNameForSave, bfile);//if exist just carry on.
+		if (file != null)
+			StorageManager.attachments.saveFile(groupName, fileNameForSave, file);//if exist just carry on.
 		//save database record
 		this.pstmtAttachmentSaving.setInt(1, id);
 		this.pstmtAttachmentSaving.setString(2, fileNameForSave);
 		this.pstmtAttachmentSaving.setString(3, content_type);
 		this.pstmtAttachmentSaving.execute();
 		//create thumbbnail (not critical)
-		if (bfile != null)
-			StorageManager.attachments.createThumbnail(groupName, fileNameForSave, content_type);
+		if (file != null)
+			StorageManager.attachments.createThumbnail(groupName, fileNameForSave, content_type);// not important
 		
 		return fileNameForSave;
 
@@ -449,21 +452,21 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 	}
 	
 	//bfile or media_type may be null
-	public Article createThreadWeb(Article article,
-			byte[] bfile, final String file_ct, final String file_name)
+	public Article createThreadWeb(final Article article,
+			final File file, final String file_ct, final String file_name)
 					throws StorageBackendException {
-		assert((bfile == null && file_ct == null) ||
-				(bfile != null && file_ct != null));
+		assert((file == null && file_ct == null) ||
+				(file != null && file_ct != null));
 		if (repeatCheck(article.getHash(), article.getPost_time()))
 			return null;
-		else
-			return createThread(article, bfile, file_ct, file_name);
+		else 
+			return createThread(article, file, file_ct, file_name);
 	}
 	
 	
 	
-	public Article createThread(final Article article,
-			final byte[] bfile, final String file_ct, String file_name)
+	public Article createThread(final Article article, final File file,
+			final String file_ct, String file_name)
 					throws StorageBackendException {
 		ResultSet rs = null;
 		int id = 0;
@@ -535,7 +538,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			
 			// attachment saving (part of transaction)
 			if (file_ct != null){  //if bfile == null we use status = 1
-				file_name = attachmentSaving(id, groupName, bfile, file_ct, file_name);
+				file_name = attachmentSaving(id, groupName, file, file_ct, file_name);
 			}
 			
 			
@@ -567,23 +570,22 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			}
 
 			restartConnection(ex);
-			return createThread(article, bfile, file_ct, file_name);
+			return createThread(article, file, file_ct, file_name);
 		}
 	}
 	
-	public Article createReplayWeb(Article article,
-			byte[] bfile, final String file_ct, final String file_name)
+	public Article createReplayWeb(final Article article,
+			final File file, final String file_ct, final String file_name)
 					throws StorageBackendException {
-		assert((bfile == null && file_ct == null) ||
-				(bfile != null && file_ct != null));
+		assert((file == null && file_ct == null) ||
+				(file != null && file_ct != null));
 		if (repeatCheck(article.getHash(), article.getPost_time()))
 			return null;
 		else
-			return createReplay(article, bfile, file_ct, file_name);
-		
+			return createReplay(article, file, file_ct, file_name);
 	}
 	
-	public Article createReplay(Article article, byte[] bfile,
+	public Article createReplay(final Article article, final File file,
 			final String file_ct, String file_name)
 					throws StorageBackendException {
 		//TODO: Get replays count  in thread and throw Exception if count > replays max  
@@ -624,7 +626,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 
 			// attachment saving (part of transaction)
 			if (file_ct != null)  //if bfile == null we use status = 1
-				file_name = attachmentSaving(id, groupName, bfile, file_ct, file_name);
+				file_name = attachmentSaving(id, groupName, file, file_ct, file_name);
 
 			this.conn.commit();
 			this.conn.setAutoCommit(true);
@@ -647,7 +649,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			}
 
 			restartConnection(ex);
-			return createReplay(article, bfile, file_ct, file_name);
+			return createReplay(article, file, file_ct, file_name);
 		}
 		
 	}

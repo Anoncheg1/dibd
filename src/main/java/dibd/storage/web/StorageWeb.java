@@ -3,6 +3,8 @@
  */
 package dibd.storage.web;
 
+import java.io.File;
+import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 
@@ -54,7 +56,7 @@ public interface StorageWeb {
 	 * @throws StorageBackendException
 	 * @return null if exist or article with id.
 	 */	
-	Article createReplayWeb(Article article, byte[] bfile, String file_ct, String file_name)
+	Article createReplayWeb(Article article, File file, String file_ct, String file_name)
 			throws StorageBackendException;
 	
 	/**
@@ -71,7 +73,7 @@ public interface StorageWeb {
 	 * @throws StorageBackendException
 	 * @return null if exist or article with id.
 	 */
-	Article createThreadWeb(Article article, byte[] bfile, String file_ct, String file_name)
+	Article createThreadWeb(Article article, File file, String file_ct, String file_name)
 			throws StorageBackendException;
 	
 	/**

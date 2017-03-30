@@ -10,7 +10,9 @@ import static org.mockito.Mockito.verify;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PipedInputStream;
@@ -124,8 +126,8 @@ public class ArticlePusherTest {
 		//Storage
 		StorageManager.enableProvider(new dibd.test.unit.storage.TestingStorageProvider(storage));
 		Article art = Mockito.mock(Article.class);
-		when(storage.createThread((Article)Mockito.any(), (byte[])Mockito.any(), (String)Mockito.any(), (String)Mockito.any())).thenReturn(art);
-		when(storage.createReplay((Article)Mockito.any(), (byte[])Mockito.any(), (String)Mockito.any(), (String)Mockito.any())).thenReturn(art);
+		when(storage.createThread((Article)Mockito.any(), (File)Mockito.any(), (String)Mockito.any(), (String)Mockito.any())).thenReturn(art);
+		when(storage.createReplay((Article)Mockito.any(), (File)Mockito.any(), (String)Mockito.any(), (String)Mockito.any())).thenReturn(art);
 		
 		when(conn.getCurrentCharset()).thenReturn(Charset.forName("UTF-8"));
 		

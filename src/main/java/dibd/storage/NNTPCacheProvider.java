@@ -8,6 +8,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -84,6 +85,38 @@ public class NNTPCacheProvider {
 		
 		return ofile;
 	}
+	
+	
+	/*public File saveFile (String groupName, String messageId, InputStream fis) throws IOException{
+		FileOutputStream fos = null;
+		try {
+			File ofile = new File(buildPath(groupName, messageId));
+			if (! ofile.createNewFile()){ //we check that file must be created or overcreated.
+				if(ofile.delete()){
+					if(! ofile.createNewFile())
+						throw new IOException("Can not create cache file after delete the same file. crazy "+messageId);
+				}else
+					throw new IOException("catch file already exist and can not be deleted "+messageId);
+			}
+
+			fos = new FileOutputStream(ofile);
+
+			int read = 0;
+			byte[] bytes = new byte[1024];
+
+			while ((read = fis.read(bytes)) != -1) {
+				fos.write(bytes, 0, read);
+			}
+
+			return ofile;
+		}finally{
+			fis.close();
+			if (fos != null)
+				fos.close();
+		}
+		
+
+	}*/
 
 	/**
 	 * Del article from cache from cache/group/ with message-id like {@literal <}random{@literal @}host{@literal >}
@@ -127,17 +160,21 @@ public class NNTPCacheProvider {
 		}		
 	}
 	
-	public FileOutputStream createTMPfile(String messageId) {
-		File ofile = new File(this.cachePath+"/"+messageId);
-		try {
-			ofile.createNewFile();
-			return new FileOutputStream(ofile);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		return null;
-				
+	/**
+	 * create temp file that will be deleted on JVM exit, but it is recommended to delete it right after use.
+	 * 
+	 * @param messageId
+	 * @return FileOutputStream
+	 * @throws IOException 
+	 */
+	public File createTMPfile(String messageId) throws IOException {
+		File temp = File.createTempFile(messageId, "");
+		temp.deleteOnExit();
+		if (temp.canWrite())
+			return temp;
+		else 
+			throw new IOException("temp file is not writable");
+
 	}
 	
 }
