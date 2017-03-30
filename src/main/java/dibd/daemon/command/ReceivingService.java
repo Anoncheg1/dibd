@@ -536,23 +536,34 @@ class ReceivingService{
 	 * @throws IOException
 	 */
 	private File decodeTmpFile( File tf1) throws IOException{
-		
-		InputStream is = Base64.getDecoder().wrap(new FileInputStream(tf1));
+		InputStream i = null;
+		InputStream is = null;
+		BufferedInputStream isb = null;
+		//second file
 		File attachFile2 = File.createTempFile(cMessageId+2, "");//second tmp file with decoded data. will be moved later.
-		
 		FileOutputStream fos = new FileOutputStream(attachFile2);
+		
 		try{
-			BufferedInputStream isb = new BufferedInputStream(is, 1024*512); //encoded to decoded
+			i = new FileInputStream(tf1);
+			is = Base64.getDecoder().wrap(i);
+			isb = new BufferedInputStream(is, 1024*512); //encoded to decoded
 			int read = 0;
 			byte[] bytes = new byte[1024*512];//write
 
 			while ((read = isb.read(bytes)) != -1) {
 				fos.write(bytes, 0, read);
 			}
-			isb.close();
+			
 			fos.flush();
 		}finally{
-			fos.close();
+			if (i != null)
+				i.close();
+			if (is != null) //if first stream closed are wrappers close too?
+				is.close();
+			if (isb != null)
+				isb.close();
+			if (fos != null)
+				fos.close();
 		}
 		tf1.delete();
 		return attachFile2;
