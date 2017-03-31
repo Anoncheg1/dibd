@@ -112,6 +112,7 @@ public class ArticlePuller {
 		if (TLSEnabled){
 			
 			SSLSocket sslsocket = (SSLSocket) this.socket;
+			//system.out Log.get().severe("Socket:"+socket.getClass().getName());
 			//new encrypted streams
 			this.out = new PrintWriter(new OutputStreamWriter(sslsocket.getOutputStream(), this.charset));
 			//this.in = new BufferedReader(new InputStreamReader(sslsocket.getInputStream(), this.charset));
@@ -218,6 +219,7 @@ public class ArticlePuller {
 				X509Certificate cert = null;
 				try {
 					//was checked at FeedManager.getHelloFromServer()
+					//TODO: Strange error happen sometimes. here - can not cast socket to SSLSocket. 
 					cert = (X509Certificate) ((SSLSocket)socket).getSession().getPeerCertificates()[0];
 				} catch (SSLPeerUnverifiedException e) {// should never happen
 					// TODO Auto-generated catch block

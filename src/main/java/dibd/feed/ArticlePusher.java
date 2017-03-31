@@ -112,12 +112,18 @@ public class ArticlePusher {
 		 }	
 	}
 	
-	private void checkErrors () throws IOException{
-		//lastActivity = System.currentTimeMillis();
+	//true - do not retry. break.
+	private boolean checkErrors () throws IOException{
 		String line = inr.readLine();
 
-		if (line == null || !line.startsWith("235"))
+		if (line == null){
 			throw new IOException(line);
+		}else if (line.startsWith("437")){
+			return true;
+		}else if (!line.startsWith("235"))
+			throw new IOException(line);
+		
+		return false;
 	}
 	
 	
@@ -167,7 +173,8 @@ public class ArticlePusher {
 			//good working for diboard
 			try {Thread.sleep(2000);} catch (InterruptedException e) {} //2 sec is enough 
 			if(inr.ready()){	//(My invention)
-				checkErrors();
+				if (checkErrors())
+					return false;
 			}
 			
 			//body
@@ -196,8 +203,10 @@ public class ArticlePusher {
 		this.out.write(".\r\n".getBytes(charset));
 		this.out.flush();
 		
-		checkErrors();
-		return true;
+		if ( ! checkErrors())
+			return true;
+		else
+			return false;
 	}
 /*
 	public Socket getSocket() {
