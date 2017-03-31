@@ -328,9 +328,6 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 		this.pstmtAttachmentSaving.setString(2, fileNameForSave);
 		this.pstmtAttachmentSaving.setString(3, content_type);
 		this.pstmtAttachmentSaving.execute();
-		//create thumbbnail (not critical)
-		if (file != null)
-			StorageManager.attachments.createThumbnail(groupName, fileNameForSave, content_type);// not important
 		
 		return fileNameForSave;
 
@@ -470,8 +467,10 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 					throws StorageBackendException {
 		ResultSet rs = null;
 		int id = 0;
+		String messageId;
 		int groupId = article.getGroupId();
 		String groupName = article.getGroupName();
+		
 		
 		//delete old threads
 		try {
@@ -502,7 +501,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			this.conn.setAutoCommit(false); // start transaction
 			// Generate id
 			id = genId();
-			String messageId = article.getMessageId();
+			messageId = article.getMessageId();
 			
 			assert(article.getMsgID_host() != null);
 			if (messageId == null){
@@ -545,7 +544,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			this.conn.commit();
 			this.conn.setAutoCommit(true);
 			this.restarts = 0; // Reset error count
-			return new Article(article, id, messageId, file_name, file_ct);
+			
 		} catch (IOException e) {
 			
 			try {
@@ -572,6 +571,10 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			restartConnection(ex);
 			return createThread(article, file, file_ct, file_name);
 		}
+		//create thumbbnail (not critical). and out of transaction
+		if (file_ct != null)
+			StorageManager.attachments.createThumbnail(groupName, file_name, file_ct);// not important
+		return new Article(article, id, messageId, file_name, file_ct);
 	}
 	
 	public Article createReplayWeb(final Article article,
@@ -590,6 +593,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 					throws StorageBackendException {
 		//TODO: Get replays count  in thread and throw Exception if count > replays max  
 		int id = 0;
+		String messageId;
 		String groupName = article.getGroupName();
 		
 		try {
@@ -597,7 +601,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 
 			// Generate id
 			id = genId();
-			String messageId = article.getMessageId();
+			messageId = article.getMessageId();
 			
 			if (messageId == null){
 				String mId_random = Integer.toHexString(id) + article.getPost_time();
@@ -631,7 +635,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			this.conn.commit();
 			this.conn.setAutoCommit(true);
 			this.restarts = 0;
-			return new Article(article, id, messageId, file_name, file_ct);
+			//return new Article(article, id, messageId, file_name, file_ct);
 		} catch (IOException e) {
 			Log.get().log(Level.SEVERE, "Can't save attachment: {0}", e);
 			throw new StorageBackendException("Can not save attachment");
@@ -651,6 +655,11 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			restartConnection(ex);
 			return createReplay(article, file, file_ct, file_name);
 		}
+		
+		//create thumbbnail (not critical). and out of transaction
+		if (file_ct != null)
+			StorageManager.attachments.createThumbnail(groupName, file_name, file_ct);// not important
+		return new Article(article, id, messageId, file_name, file_ct);
 		
 	}
 
