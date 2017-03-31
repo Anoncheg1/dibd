@@ -19,6 +19,7 @@ import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -325,9 +326,20 @@ public class FeedManager extends Thread{
 
 		//replays without threads. May happen for nntpchan only
 		if (! replays.isEmpty()){
-			StringBuilder restreplays= new StringBuilder();
-			replays.entrySet().forEach(e -> restreplays.append(e).append(" "));
-			Log.get().log(Level.FINE, "From: {0} NEWNEWS or XOVER replays without thread: {1}", new Object[]{host, restreplays.toString()});
+			//get threads
+			Set<String> thmiss = new HashSet<>();
+			for (Map.Entry<String,String> re : replays.entrySet())
+				thmiss.add(re.getValue());
+			//log
+			if (thmiss.size() < 15){
+				/*StringBuilder restreplays= new StringBuilder();
+				replays.entrySet().forEach(e -> restreplays.append(e).append(" "));
+				Log.get().log(Level.FINE, "From: {0} NEWNEWS or XOVER replays without thread: {1}", new Object[]{host, restreplays.toString()});*/
+				StringBuilder thm = new StringBuilder();
+				thmiss.forEach(e -> thm.append(e).append(" "));
+				Log.get().log(Level.INFO, "From: {0} NEWNEWS or XOVER missing threads: {1}", new Object[]{host, thm.toString()});
+			}else
+				Log.get().log(Level.INFO, "From: {0} NEWNEWS or XOVER replays {1} without threads: {2}", new Object[]{host, replays.size(), thmiss.size()});
 		}
 
 		return messageIDs;
