@@ -79,6 +79,7 @@ public class ShortRefsTest {
 		String sha1trun = "7239a9807e56c0b4e2";
 		Map<String, String> map= new HashMap<>();
 		map.put("<0eb8c1490413069@web.oniichan.onion>", null);
+		map.put("<24d71490991291@mp74puo7cp6gsgkj.onion>", null);
 		//StorageManager.current().getNewArticleIDs(group, 0)
 		//preperation
 		StorageNNTP storage = Mockito.mock(StorageNNTP.class);
@@ -86,7 +87,8 @@ public class ShortRefsTest {
 		Group group = Mockito.mock(Group.class);
 		when(storage.getNewArticleIDs(group, 0)).thenReturn(map);
 		
-		String message =">>7239a980 blablabla>>7239\n"
+		String message =">>020428741fbcf77f05\n"
+				+ ">>7239a980 blablabla>>7239\n"
 				+ "blablabla >>7239a9807e56c0b4e2 >>7239\n"
 				+ "blablabla >>7239a9807e56c0b4e2 >>7239\n"
 				+ "blablabla(>>7239a9807e56c0b4e2) (>>7239)";
@@ -94,13 +96,11 @@ public class ShortRefsTest {
 		//call
 		String resmes = ShortRefParser.nntpchanLinks(message, group);
 		//System.out.println(resmes);
-		assertEquals(resmes, "<0eb8c1490413069@web.oniichan.onion> blablabla<0eb8c1490413069@web.oniichan.onion>\n"
+		assertEquals(resmes, "<24d71490991291@mp74puo7cp6gsgkj.onion>\n"
+				+ "<0eb8c1490413069@web.oniichan.onion> blablabla<0eb8c1490413069@web.oniichan.onion>\n"
 				+"blablabla <0eb8c1490413069@web.oniichan.onion> <0eb8c1490413069@web.oniichan.onion>\n"
 				+"blablabla <0eb8c1490413069@web.oniichan.onion> <0eb8c1490413069@web.oniichan.onion>\n"
 				+"blablabla(>>7239a9807e56c0b4e2) (>>7239)");
-//		
-		
-		
 	}
 
 	@Test

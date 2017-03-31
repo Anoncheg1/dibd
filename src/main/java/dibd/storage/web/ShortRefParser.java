@@ -157,7 +157,9 @@ public class ShortRefParser {
 						for(String mId : mIds){
 							md.reset();
 							md.update(mId.getBytes());
-							Sha1AndMID.put(new BigInteger(1, md.digest()).toString(16).substring(0, 18), mId);
+							String st = String.format("%040x", new BigInteger(1, md.digest())).substring(0, 18);
+							//System.out.println(st);
+							Sha1AndMID.put(st, mId);
 						}
 					}
 
