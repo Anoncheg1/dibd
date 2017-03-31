@@ -47,15 +47,13 @@ public class Log extends Logger {
         String logfile = Config.inst().getSilent(Config.LOGFILE, null);
         if (logfile != null){
         	try {
-        		FileHandler fh = new FileHandler(logfile);
+        		FileHandler fh = new FileHandler(logfile.replaceFirst("\\.", ".%g."), 700*1024, 5); //700kb per file 
 				fh.setFormatter(formatter);
 	        	addHandler(fh);
-			} catch (SecurityException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+			} catch (SecurityException e1) {
+				Log.get().log(Level.SEVERE, "", e1);
+			} catch (IOException e2) {
+				Log.get().log(Level.SEVERE, "", e2);
 			}
         	//default
         	StreamHandler streamHandler = new StreamHandler(System.out, formatter);

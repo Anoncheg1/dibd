@@ -771,12 +771,17 @@ class ReceivingService{
 							new Object[]{this.command, host, mId[1], group.getName()});
 					//FeedManager.lazyQueueForPush(art);
 
-				}else if ( ! pullMode && status == 0){
-					assert(article != null);
-					article.setRaw(rawArticle);
-					FeedManager.queueForPush(article); //send to peers
-					Log.get().log(Level.FINE, "{0}: article {1} received and it is {2} that we can send it to another hosts",
-							new Object[]{this.command, messageId, group.getHosts().contains(mId[1])});
+				}else if ( ! pullMode){
+					if( status == 0){
+						assert(article != null);
+						article.setRaw(rawArticle);
+						Log.get().log(Level.INFO, "{0}: article {1} received and we push it to another another hosts",
+								new Object[]{this.command, messageId});
+						FeedManager.queueForPush(article); //send to peers
+
+					}else
+						Log.get().log(Level.INFO, "{0}: article {1} received. But attachment was too large for us.",
+								new Object[]{this.command, messageId});
 				}
 
 			}
