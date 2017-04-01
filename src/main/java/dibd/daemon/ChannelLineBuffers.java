@@ -56,7 +56,7 @@ public class ChannelLineBuffers {
      */
     public static final int BUFFER_SIZE = 998+2; //size of one line in line buffers
     public static final int INPUT_BUFFER_SIZE = 1024*100; //large one input buffer 100KB per connection (must be not less BUFFER_SIZE)
-    private static final int maxCachedBuffers = 1024*3; //Cached buffers maximum 1024*1024*7 B = 3 MB
+    private static final int maxCachedBuffers = 1024*6; //Cached buffers maximum 1024*1024*7 B = 6 MB
     private static final List<ByteBuffer> freeSmallBuffers = new ArrayList<>(
             maxCachedBuffers);
 

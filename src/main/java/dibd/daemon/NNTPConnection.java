@@ -324,6 +324,7 @@ public class NNTPConnection implements NNTPInterface{
     	byte[] tmp = new byte[ChannelLineBuffers.BUFFER_SIZE];
     	int len = 0;
     	int count;
+    	int buffered = 0;
     	try{
     		while ((count = fs.read(tmp)) != -1) {
     			ByteBuffer buf = ChannelLineBuffers.newLineBuffer();
@@ -333,15 +334,18 @@ public class NNTPConnection implements NNTPInterface{
 
     			lineBuffers.addOutputBuffer(buf);
 
-    			//System.out.println(new String(tmp, charset));
-    			enableWriteEvents("Article "+mId+" processed: "+len);
     			len += count;
+    			buffered += count;
+    			if (buffered > 100*1024){
+    				enableWriteEvents("Article "+mId+" processed: "+len); //we output every 100KB.
+    				buffered = 0;
+    			}
     		}
+    		if (buffered != 0)
+    			enableWriteEvents("Article "+mId+" processed: "+len);
     	} catch (ClosedChannelException e) {
     		Log.get().log(Level.WARNING, "NNTPConnection.printArticle(): {0}", e);
     		return;
-    	}finally{
-    		fs.close();
     	}
     	
     	

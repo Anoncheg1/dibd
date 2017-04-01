@@ -74,13 +74,8 @@ public class Article { //extends ArticleHead
 
 	protected Art a; // visible to subclasses and self only
 	
-	/**
-	 * wen we several times query getSource() we need to save boundary for all of them. 
-	 */
-	private String boundary = null;
 	
-	private byte[] rawArticle = null; //temporary nntp cache for Push
-
+	
 	/**
 	 * Creates a new Article object NNTP IHAVE, TAKETHIS input.
 	 * Group id is required!
@@ -391,6 +386,10 @@ public class Article { //extends ArticleHead
 		return a.status;
 	}
 	
+	/**
+	 * If we several times query buildNNTPMessage() we need to save boundary for all of them. 
+	 */
+	private String boundary = null;
 	
 	//nntpchan links god damn it.
 	private boolean message_was_nntpchaned = false;
@@ -623,11 +622,11 @@ public class Article { //extends ArticleHead
 		}
 	}
 	
-	public void setRaw(byte[] rawArticle) {
+	/*public void setRaw(byte[] rawArticle) {
 		this.rawArticle = rawArticle;
 	}
 	
 	public byte[] getRaw() {
 		return this.rawArticle;
-	}
+	}*/
 }

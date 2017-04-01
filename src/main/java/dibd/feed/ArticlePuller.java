@@ -129,8 +129,8 @@ public class ArticlePuller {
 	}
 
 	private InputStream instream;
-	private ChannelLineBuffers lineBuffers = new ChannelLineBuffers();
-	List<ByteBuffer> lines = new ArrayList<>();
+	private ChannelLineBuffers lineBuffers = new ChannelLineBuffers(); //must be very accurate with recycling
+	List<ByteBuffer> lines = new ArrayList<>(); //must be recycled no matter what.
 
 	
 	//BufferedReader replacer. Buffered reader may be DoSed it can't stop.
@@ -338,13 +338,8 @@ public class ArticlePuller {
 						} //wait for 20 lines
 						
 						Log.get().log(Level.INFO, "{0} Reconnect, clear buffers", messageId);
-						close();
-						lineBuffers.getInputBuffer().clear();
-						Iterator<ByteBuffer> it = lines.iterator();
-						while (it.hasNext()){
-							ChannelLineBuffers.recycleBuffer(it.next());
-							it.remove();
-						}
+						close();//lines recycled in close()
+						lineBuffers.getInputBuffer().clear();//clear input
 						connect();
 
 						break;
@@ -653,6 +648,15 @@ public class ArticlePuller {
 	 */
 	public void close(){
 		try{
+			//ChannelLineBuffers buffers must be recycled no matter what.
+			if(lines != null && ! lines.isEmpty()){
+				Iterator<ByteBuffer> it = lines.iterator();
+				while (it.hasNext()){
+					ChannelLineBuffers.recycleBuffer(it.next());
+					it.remove();
+				}
+			}
+			
 			if (out != null && this.instream != null){
 				this.out.print("QUIT\r\n");
 				this.out.flush();

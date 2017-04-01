@@ -18,7 +18,9 @@
 
 package dibd.feed;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -28,13 +30,16 @@ import java.nio.CharBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.logging.Level;
 
 import javax.net.ssl.SSLSocket;
 
 import dibd.daemon.ChannelLineBuffers;
 import dibd.daemon.LineEncoder;
 import dibd.daemon.NNTPConnection;
+import dibd.storage.StorageManager;
 import dibd.storage.article.Article;
+import dibd.util.Log;
 
 /**
  * Posts an Article to a NNTP server using the IHAVE command with 1 sec waiting between header and body.
@@ -98,19 +103,7 @@ public class ArticlePusher {
 			
 	}
 	
-	private void writeLines() throws IOException{
-		ByteBuffer buf = this.lineBuffers.getOutputBuffer();
 
-		 while (buf != null) // There is data to be send
-		 {
-			 byte[] b = new byte[buf.remaining()];
-			 buf.get(b);
-
-			 this.out.write(b);
-			 buf = this.lineBuffers.getOutputBuffer();
-
-		 }	
-	}
 	
 	//true - do not retry. break.
 	private boolean checkErrors () throws IOException{
@@ -127,21 +120,66 @@ public class ArticlePusher {
 	}
 	
 	
-	private void splitToBuffers(byte[] rawArticle) throws ClosedChannelException{
-		int copy = rawArticle.length < ChannelLineBuffers.BUFFER_SIZE ?
-				rawArticle.length : ChannelLineBuffers.BUFFER_SIZE; //lesser of two
-		for (int pos = 0; pos < rawArticle.length; ){
+
+	
+	
+	/*private void splitToBuffers(FileInputStream fis) throws ClosedChannelException{
+		int copy = fis.length < ChannelLineBuffers.BUFFER_SIZE ?
+				fis.length : ChannelLineBuffers.BUFFER_SIZE; //lesser of two
+		for (int pos = 0; pos < fis.length; ){
 
 			ByteBuffer buf = ChannelLineBuffers.newLineBuffer();
-			buf.put(rawArticle, pos, copy);
+			buf.put(fis, pos, copy);
 			buf.flip();
 			lineBuffers.addOutputBuffer(buf);
 
-			int remain = rawArticle.length - (pos+copy);
+			int remain = fis.length - (pos+copy);
 			pos += copy;
 			copy = remain < ChannelLineBuffers.BUFFER_SIZE ? 
 					remain : ChannelLineBuffers.BUFFER_SIZE;//lesser of two
 		}
+	}*/
+
+	private void pushFileStream(FileInputStream fis) throws IOException{
+		BufferedInputStream bfis = new BufferedInputStream(fis, 1024*200);//200KB buffer
+		try{
+			byte[] tmp = new byte[ChannelLineBuffers.BUFFER_SIZE];
+			int count;
+			int buffered = 0;
+
+			while ((count = bfis.read(tmp)) != -1) {
+				ByteBuffer buf = ChannelLineBuffers.newLineBuffer();
+				assert buf.position() == 0;
+				assert buf.capacity() >= ChannelLineBuffers.BUFFER_SIZE;
+				buf.put(tmp,0,count).flip();
+
+				lineBuffers.addOutputBuffer(buf);
+
+				buffered += count;
+				if (buffered > 100*1024){
+					writeLines(); //we output every 100KB.
+					buffered = 0;
+				}
+			}
+			if (buffered != 0)
+				writeLines();
+		}finally{
+			if (bfis!= null)
+				bfis.close();
+		}
+	}
+	
+	private void writeLines() throws IOException{
+		ByteBuffer buf = this.lineBuffers.getOutputBuffer();
+
+		 while (buf != null) // There is data to be send
+		 {
+			 byte[] b = new byte[buf.remaining()];
+			 buf.get(b);
+
+			 this.out.write(b);
+			 buf = this.lineBuffers.getOutputBuffer();
+		 }	
 	}
 	
 	
@@ -160,46 +198,35 @@ public class ArticlePusher {
 			return false;
 		
 		
-		byte[] rawArticle = art.getRaw();
-		
-		if(rawArticle == null){//local
-			//header
-			this.lineEncoder.encode(CharBuffer.wrap(art.buildNNTPMessage(this.charset, 1)));//(), this.charset).encode(lineBuffers);
-			writeLines();
-			
-			
-			
-			
-			//good working for diboard
-			try {Thread.sleep(2000);} catch (InterruptedException e) {} //2 sec is enough 
-			if(inr.ready()){	//(My invention)
-				if (checkErrors())
-					return false;
-			}
-			
-			//body
-			this.lineEncoder.encode(CharBuffer.wrap(art.buildNNTPMessage(charset, 2)));
-			writeLines();
-			this.out.write((NNTPConnection.NEWLINE).getBytes(charset));//it's add "\r\n" at the end of the body
-		}else{ //NNTP cache
-			//fast version
-			splitToBuffers(rawArticle);	
-			//slow version
-			/*ByteBuffer rawBuffer = ByteBuffer.wrap(rawArticle);
-			while (rawBuffer.hasRemaining()){
-				ByteBuffer buf = ChannelLineBuffers.newLineBuffer();
-				while (buf.hasRemaining()){
-					if (rawBuffer.hasRemaining())
-						buf.put(rawBuffer.get());
-					else
-						break;
+		//byte[] rawArticle = art.getRaw();
+		FileInputStream fis = StorageManager.nntpcache.getFileStream(art);
+		try{
+			if(fis == null){//local
+				//header
+				this.lineEncoder.encode(CharBuffer.wrap(art.buildNNTPMessage(this.charset, 1)));//(), this.charset).encode(lineBuffers);
+				writeLines();
+
+
+
+
+				//good working for diboard
+				try {Thread.sleep(2000);} catch (InterruptedException e) {} //2 sec is enough 
+				if(inr.ready()){	//(My invention)
+					if (checkErrors())
+						return false;
 				}
-				buf.flip();
-				lineBuffers.addOutputBuffer(buf);
-			}*/
-			
-			writeLines();
+
+				//body
+				this.lineEncoder.encode(CharBuffer.wrap(art.buildNNTPMessage(charset, 2)));
+				writeLines();
+				this.out.write((NNTPConnection.NEWLINE).getBytes(charset));//it's add "\r\n" at the end of the body
+			}else //NNTP cache
+				pushFileStream(fis);
+		}finally{
+			if (fis != null)
+				fis.close();
 		}
+		
 		this.out.write(".\r\n".getBytes(charset));
 		this.out.flush();
 		

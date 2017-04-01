@@ -169,7 +169,12 @@ public class ArticleCommand implements Command {
             FileInputStream fs = StorageManager.nntpcache.getFileStream(article);
         	if (fs != null){
         		conn.println(ok);
+        		try{
         		conn.print(fs, article.getMessageId());
+        		}finally{
+        			if (fs != null)
+        			fs.close();
+        		}
         	//2)check if message is ours
         	}else{
         		if (article.getMsgID_host()
@@ -177,10 +182,11 @@ public class ArticleCommand implements Command {
         			conn.println(ok);
         			//we build our article if it was not received by partial threads.
         			conn.println(article.buildNNTPMessage(conn.getCurrentCharset(), 0));
-        		}else{
+        		}else{ //message is not ours and we do not have cache.
         			Log.get().log(Level.SEVERE, "{0} article was not found in cache and do not have our hostname. NNPTCache is corrupted",
         					article.getMessageId());
-        			conn.println("500 Internal server problem.");
+        			conn.println("500 Internal server problem."); //error
+        			return;
         		}
         	}
             

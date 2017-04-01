@@ -40,6 +40,9 @@ import dibd.storage.web.ShortRefParser;
 import dibd.util.Log;
 
 /**
+ * 
+ * No cachefile for POST.
+ * 
  * @author user
  *
  */
@@ -50,7 +53,9 @@ class ReceivingService{
 	//Very roughly, Base64-encoded binary data is equal to 1.37 times the original data size + headers
 	private final long maxArticleSize = (long) (Config.inst().get(Config.MAX_ARTICLE_SIZE, 1) * 1024 * 1024 * 1.37); //MB
 	private final ByteArrayOutputStream bufHead = new ByteArrayOutputStream(); //raw bytes UTF-8 by default
-	private final ByteArrayOutputStream bufBody = new ByteArrayOutputStream(); //raw bytes UTF-8 by default
+	//private final ByteArrayOutputStream bufBody = new ByteArrayOutputStream(); //raw bytes UTF-8 by default
+	private File cacheFile = null;
+	FileOutputStream cacheOs = null;
 	
 	//constructor
 	private final String command;
@@ -196,8 +201,14 @@ class ReceivingService{
 			}
 			
 			///// end of analysis
-			return "ok";//reading body now
-		}
+			//reading body now
+			//first save head to future cache.
+			cacheFile = File.createTempFile(cMessageId+"createtmp", "");
+			cacheOs = new FileOutputStream(cacheFile);
+			cacheOs.write(bufHead.toByteArray());
+			return "ok";
+		}//empty line
+		
 		
 		//keep reading
 		if (lineHeadCount > 20){
@@ -235,7 +246,6 @@ class ReceivingService{
 	//SIDE EFFECT FUNCTION
 	//bufBody
 	/**
-	 * 5 - internal error.
 	 * 4 - "." reached. Wrong multipart format.
 	 * 3 - too big. message was not read. multipart and not. "." not reachead.
 	 * 2 - too big. multipart, message readed. "." not reachead.
@@ -252,9 +262,9 @@ class ReceivingService{
 			bodySize += raw.length; //approximate value
 			
 			//saving raw to bufBody 
-			bufBody.write(raw); //\r\n was already removed in ChannelLineBuffers and NNTPConnection
+			cacheOs.write(raw); //\r\n was already removed in ChannelLineBuffers and NNTPConnection
 			if (raw.length < ChannelLineBuffers.BUFFER_SIZE)//we add new line if buffer was not full.
-				bufBody.write(NNTPConnection.NEWLINE.getBytes(charset)); //UTF-8
+				cacheOs.write(NNTPConnection.NEWLINE.getBytes(charset)); //UTF-8
 			
 			
 			
@@ -274,7 +284,7 @@ class ReceivingService{
 				case MessagePart:{
 					if(line.startsWith("--") && line.equals("--"+boundary)){
 						mPart = Multipart.AttachmentPart;
-						attachFile = StorageManager.nntpcache.createTMPfile(cMessageId);
+						attachFile = StorageManager.nntpcache.createTMPfile(cMessageId +"createtmp" + '1');
 						attachStream = new FileOutputStream(attachFile); 
 						multiAttachHeaders = new InternetHeaders();
 						//attachBody = new StringBuilder();
@@ -325,12 +335,14 @@ class ReceivingService{
 				}
 				
 				//multipart
-				//check size of messageB
+				//check size of message
 				if (bodySize > maxArticleSize){
 					attachStream.close();
 					attachFile.delete();
+					cacheOs.close();
+					cacheFile.delete();
 					if (mPart == Multipart.AttachmentPart || mPart == Multipart.AttachmentReaded)
-						return 2;
+						return 2;//save only message in database.
 					else
 						return 3;//fail
 					
@@ -343,17 +355,25 @@ class ReceivingService{
 					messageB.append(line).append("\n");//stringbuilder.setlength to remove last \n
 			}
 			
-			//check messageB size
-			if (messageB.length() > maxMessageSize)
+			//check message size
+			if (messageB.length() > maxMessageSize){//error
+				cacheOs.close();
+				cacheFile.delete();
 				return 3;//fail
+			}
 			
 			
 			return 0; //continue to read
 			
 		} else { //"." was reach
 			
+			cacheOs.flush();
+			cacheOs.close();
+			
 			 //if body is empty?
-			if ((boundary != null && mPart != Multipart.AttachmentReaded) || bodySize == 0){
+			if ((boundary != null && mPart != Multipart.AttachmentReaded) || bodySize == 0){//error
+				//cacheOs.close();//done
+				cacheFile.delete();
 				if (attachStream != null){
 					attachStream.close();
 					attachFile.delete();
@@ -364,7 +384,7 @@ class ReceivingService{
 			if (attachStream != null)
 				attachStream.close();
 			
-			return 1;
+			return 1; //full success.
 		}
 		/*System.out.println("mheader:"+multiHeadMessage.getAllHeaders().hasMoreElements());
 		System.out.println("mMessage:"+multiMessage.toString());
@@ -540,7 +560,7 @@ class ReceivingService{
 		InputStream is = null;
 		BufferedInputStream isb = null;
 		//second file
-		File attachFile2 = File.createTempFile(cMessageId+2, "");//second tmp file with decoded data. will be moved later.
+		File attachFile2 = File.createTempFile(cMessageId+ "createtmp" + '2', "");//second tmp file with decoded data. will be moved later.
 		FileOutputStream fos = new FileOutputStream(attachFile2);
 		
 		try{
@@ -666,7 +686,7 @@ class ReceivingService{
 		Article article; //to transfer
 		
 		String[] mId = null; //message-id two parts 0-id 1-sender
-		byte[] rawArticle = null; //never null actually
+
 		if (!command.equals("POST")){
 			mId = messageId.replaceAll("(<|>)", "").split("@");
 			String ourhost = Config.inst().get(Config.HOSTNAME, null);
@@ -687,16 +707,12 @@ class ReceivingService{
 			}
 			
 			//preparing raw data
-			rawArticle = new byte[bufHead.size() + bufBody.size()];
-			//System.out.println("1#"+new String(bufHead.toByteArray())+"#");
-			//System.out.println("2#"+new String(bufBody.toByteArray())+"#");
-			//System.out.println("bufHead.size "+bufHead.size());
-			//System.out.println("bufBody.size "+bufBody.size());
-			//System.out.println("rawArticle "+rawArticle.length);
+			/*rawArticle = new byte[bufHead.size() + bufBody.size()];
+			
 			System.arraycopy(bufHead.toByteArray(), 0, rawArticle, 0, bufHead.size()); //remove trailing \r\n
 			System.arraycopy(bufBody.toByteArray(), 0, rawArticle, bufHead.size(), bufBody.size()); //we have \r\n at the end in cache
 			bufHead.close();
-			bufBody.close();
+			bufBody.close();*/
 		}
 
 
@@ -729,7 +745,7 @@ class ReceivingService{
 							date, path.trim(), group.getName(), group.getInternalID(), status);
 
 					if(status == 0){
-						File fl = StorageManager.nntpcache.saveFile(group.getName(), messageId, rawArticle);
+						File fl = StorageManager.nntpcache.saveFile(group.getName(), messageId, this.cacheFile);
 						try{
 							article = StorageManager.current().createReplay(art, this.attachFile, gfileCT, file_name);
 						}catch(StorageBackendException e){ //rollback cache
@@ -749,7 +765,7 @@ class ReceivingService{
 							date, path.trim(), group.getName(), group.getInternalID(), status);
 
 					if(status == 0){
-						File fl = StorageManager.nntpcache.saveFile(group.getName(), messageId, rawArticle);
+						File fl = StorageManager.nntpcache.saveFile(group.getName(), messageId, this.cacheFile);
 						try{
 							article = StorageManager.current().createThread(art, this.attachFile, gfileCT, file_name);
 						}catch(StorageBackendException e){ //rollback cache
@@ -774,7 +790,7 @@ class ReceivingService{
 				}else if ( ! pullMode){
 					if( status == 0){
 						assert(article != null);
-						article.setRaw(rawArticle);
+						//article.setRaw(rawArticle);
 						Log.get().log(Level.INFO, "{0}: article {1} received and we push it to another another hosts",
 								new Object[]{this.command, messageId});
 						FeedManager.queueForPush(article); //send to peers
@@ -786,8 +802,12 @@ class ReceivingService{
 
 			}
 		}finally{
-			if (this.attachFile != null && this.attachFile.exists()) //no happen - must be moved
+			if (this.attachFile != null && this.attachFile.exists()) //not happen - must be moved
 				this.attachFile.delete(); //just for case
+			
+			//work for POST
+			if (this.cacheFile != null && this.cacheFile.exists()) //not happen - must be moved
+				this.cacheFile.delete(); //just for case
 		}
 		 
 		return null; //success

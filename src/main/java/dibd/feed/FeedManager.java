@@ -194,8 +194,8 @@ public class FeedManager extends Thread{
 	 */
 	public static Socket createSocket(Proxy proxy, String host, int port) throws IOException{
 		
-		int CONNECT_TIMEOUT_MILLISECONDS = 60000;
-		int READ_TIMEOUT_MILLISECONDS = 60000;
+		int CONNECT_TIMEOUT_MILLISECONDS = 60000;	//1min
+		int READ_TIMEOUT_MILLISECONDS = 60000;		//1min
 		Socket socket;
 		
 		if (proxy == null){

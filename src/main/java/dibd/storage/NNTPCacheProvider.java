@@ -9,6 +9,8 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -63,29 +65,34 @@ public class NNTPCacheProvider {
 	 * 
 	 * @param groupName
 	 * @param messageId
-	 * @param data
+	 * @param tmpfile
 	 * @throws IOException
 	 */
-	public File saveFile (String groupName, String messageId, byte[] data) throws IOException{
-		File ofile = new File(buildPath(groupName, messageId));
-		if (! ofile.createNewFile()){ //we check that file must be created or overcreated.
-			if(ofile.delete()){
-				if(! ofile.createNewFile())
-					throw new IOException("Can not create cache file after delete the same file. crazy "+messageId);
-			}else
-				throw new IOException("catch file already exist and can not be deleted "+messageId);
-		}
+	public File saveFile (String groupName, String messageId, File tmpfile) throws IOException{
+		String cachedPath = buildPath(groupName, messageId);
+		File newfile = new File(cachedPath);
+		Files.move(tmpfile.toPath(), newfile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+		return newfile;
+	}
 
-		FileOutputStream fos = new FileOutputStream(ofile);
-		try {
-			fos.write(data);
-		}finally{
-			fos.close();
-		}
-		
-		return ofile;
+	
+	/*	File ofile = new File(buildPath(groupName, messageId));
+	if (! ofile.createNewFile()){ //we check that file must be created or overcreated.
+		if(ofile.delete()){
+			if(! ofile.createNewFile())
+				throw new IOException("Can not create cache file after delete the same file. crazy "+messageId);
+		}else
+			throw new IOException("catch file already exist and can not be deleted "+messageId);
+	}
+
+	FileOutputStream fos = new FileOutputStream(ofile);
+	try {
+		fos.write(data);
+	}finally{
+		fos.close();
 	}
 	
+	return ofile;*/
 	
 	/*public File saveFile (String groupName, String messageId, InputStream fis) throws IOException{
 		FileOutputStream fos = null;
