@@ -8,6 +8,8 @@ import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.net.Proxy;
 import java.net.Socket;
 import java.nio.charset.Charset;
@@ -15,11 +17,15 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.Mockito;
 
 import dibd.feed.FeedManager;
+import dibd.storage.GroupsProvider.Group;
 import dibd.util.Log;
 
 import static org.junit.Assert.*;
@@ -30,9 +36,11 @@ public class FeedManagerTest{
 
 	private final Socket rSocket;
 
-	public FeedManagerTest() {
+	public FeedManagerTest() throws NoSuchMethodException, SecurityException {
 		rSocket = mock(Socket.class);
 	}
+	
+	
 	
 	@Test
 	public void getHelloFromServerTest() throws IOException{
@@ -49,12 +57,14 @@ public class FeedManagerTest{
 		rOut.println("200 hello");
 		rOut.flush();
 		Socket socket = FeedManager.getHelloFromServer(rSocket, false, "testhost", Charset.forName("UTF-8"));
+		assertTrue (socket != null);
+		
 		
 	}
 	
 	
 	@Test
-	public void sortThreadsReplaysTest(){
+	public void sortThreadsReplaysTest() throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException{
 		
 		Map<String, String> replays = new LinkedHashMap<>(250);
 		List<String> threads = new ArrayList<String>(250);
@@ -64,7 +74,9 @@ public class FeedManagerTest{
 		
 		threads.add("th@hh");
 		Log.get().setLevel(Level.SEVERE);
-		Map<String, List<String>> res = FeedManager.sortThreadsReplays(threads, replays, "host");
+
+		Group gr = Mockito.mock(Group.class);
+		Map<String, List<String>> res = FeedManager.sortThreadsReplays(threads, replays, "host", gr);
 		Log.get().setLevel(Level.WARNING);
 		assertEquals(res.size(), 1);
 		assertEquals(res.get("th@hh").size(), 1);

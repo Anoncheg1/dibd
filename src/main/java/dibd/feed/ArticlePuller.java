@@ -18,9 +18,11 @@
 
 package dibd.feed;
 
+import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
@@ -76,7 +78,7 @@ public class ArticlePuller {
 
 	private Socket socket;
 	private PrintWriter out;
-	//private BufferedReader in;
+	private BufferedReader in;
 	private static final String NL = NNTPConnection.NEWLINE;
 	private final Charset charset = StandardCharsets.UTF_8;
 	
@@ -115,7 +117,7 @@ public class ArticlePuller {
 			//system.out Log.get().severe("Socket:"+socket.getClass().getName());
 			//new encrypted streams
 			this.out = new PrintWriter(new OutputStreamWriter(sslsocket.getOutputStream(), this.charset));
-			//this.in = new BufferedReader(new InputStreamReader(sslsocket.getInputStream(), this.charset));
+			this.in = new BufferedReader(new InputStreamReader(sslsocket.getInputStream(), this.charset));
 			
 			this.instream = sslsocket.getInputStream();
 			
@@ -314,7 +316,7 @@ public class ArticlePuller {
 				return 3;
 			}
 			if (!line.startsWith("220 ")) {
-				throw new IOException("Unexpected reply to ARTICLE "+messageId);
+				throw new IOException("Unexpected reply to ARTICLE "+messageId+" "+line);
 			}
 
 
@@ -338,8 +340,9 @@ public class ArticlePuller {
 						} //wait for 20 lines
 						
 						Log.get().log(Level.INFO, "{0} Reconnect, clear buffers", messageId);
-						close();//lines recycled in close()
 						lineBuffers.getInputBuffer().clear();//clear input
+						close();//lines recycled in close()
+						
 						connect();
 
 						break;
@@ -599,7 +602,7 @@ public class ArticlePuller {
 		Map<String, List<String>> messageIDs;// = new LinkedHashMap<>(0); //empty for return
 		
 		//remove rLeft without threads
-		messageIDs = FeedManager.sortThreadsReplays(threads, replays, this.host); //ordered LinkedHashMap
+		messageIDs = FeedManager.sortThreadsReplays(threads, replays, this.host, group); //ordered LinkedHashMap
 		
 		//replay with larger date should be after replay with earlier date
 		//Log.get().log(Level.F, "BEFORE: {0} ", messageIDs.size());
@@ -662,8 +665,9 @@ public class ArticlePuller {
 				this.out.flush();
 
 				//this.lastActivity = System.currentTimeMillis();
-				getIS();//this.in.readLine(); //we are polite
-		//		lineBuffers.recycleBuffers();
+				//getIS();
+				this.in.readLine(); //we are polite
+				//lineBuffers.recycleBuffers();
 				instream.close();
 				out.close();
 			}

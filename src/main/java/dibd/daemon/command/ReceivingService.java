@@ -203,7 +203,8 @@ class ReceivingService{
 			///// end of analysis
 			//reading body now
 			//first save head to future cache.
-			cacheFile = File.createTempFile(cMessageId+"createtmp", "");
+			//createtmp
+			cacheFile = File.createTempFile(cMessageId+"cachefile", "");
 			cacheOs = new FileOutputStream(cacheFile);
 			cacheOs.write(bufHead.toByteArray());
 			return "ok";
@@ -284,7 +285,8 @@ class ReceivingService{
 				case MessagePart:{
 					if(line.startsWith("--") && line.equals("--"+boundary)){
 						mPart = Multipart.AttachmentPart;
-						attachFile = StorageManager.nntpcache.createTMPfile(cMessageId +"createtmp" + '1');
+						//createtmp
+						attachFile = StorageManager.nntpcache.createTMPfile(cMessageId +"attachmentone");
 						attachStream = new FileOutputStream(attachFile); 
 						multiAttachHeaders = new InternetHeaders();
 						//attachBody = new StringBuilder();
@@ -301,8 +303,12 @@ class ReceivingService{
 						if(raw.length < ChannelLineBuffers.BUFFER_SIZE)
 							messageB.append("\n");//stringbuilder.setlength to remove last \n
 						//check message size
-						if (messageB.length() > maxMessageSize)
+						if (messageB.length() > maxMessageSize){
+							cacheOs.close();
+							cacheFile.delete();
 							return 3;
+						}
+							
 					}
 					
 					break;
@@ -560,7 +566,8 @@ class ReceivingService{
 		InputStream is = null;
 		BufferedInputStream isb = null;
 		//second file
-		File attachFile2 = File.createTempFile(cMessageId+ "createtmp" + '2', "");//second tmp file with decoded data. will be moved later.
+		//createtmp
+		File attachFile2 = File.createTempFile(cMessageId+ "decodedattachment", "");//second tmp file with decoded data. will be moved later.
 		FileOutputStream fos = new FileOutputStream(attachFile2);
 		
 		try{

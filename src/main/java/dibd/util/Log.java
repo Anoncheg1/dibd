@@ -18,6 +18,7 @@
 
 package dibd.util;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
@@ -44,10 +45,12 @@ public class Log extends Logger {
         SimpleFormatter formatter = new SimpleFormatter();
         
         ///// create log to file if possible ////
-        String logfile = Config.inst().getSilent(Config.LOGFILE, null);
-        if (logfile != null){
+        String logdir = Config.inst().getSilent(Config.LOGDIR, null);
+        if (logdir != null){
         	try {
-        		FileHandler fh = new FileHandler(logfile.replaceFirst("\\.", ".%g."), 700*1024, 5); //700kb per file 
+        		File dir = new File(logdir);
+        		dir.mkdirs();
+        		FileHandler fh = new FileHandler(new File(dir, "dibd.%g.log").getAbsolutePath(), 700*1024, 5); //700kb per file 
 				fh.setFormatter(formatter);
 	        	addHandler(fh);
 			} catch (SecurityException e1) {

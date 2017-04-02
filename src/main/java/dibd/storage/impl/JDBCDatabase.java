@@ -471,7 +471,6 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 		int groupId = article.getGroupId();
 		String groupName = article.getGroupName();
 		
-		
 		//delete old threads
 		try {
 			// Count on all threads in group

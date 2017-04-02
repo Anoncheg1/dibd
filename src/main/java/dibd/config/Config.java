@@ -43,7 +43,8 @@ public class Config extends AbstractConfig {
      * BackendConfig key constant. Value: Amount of news that are feeded per
      * run.
      */
-    public static final String EVENTLOG = "dibd.eventlog";
+    public static final String LOGDIR = "dibd.log.dir";
+    public static final String LOGLEVEL = "dibd.log.level";
 
     public static final String PEERING = "dibd.feed";
     public static final String FEED_NEWSPERRUN = "dibd.feed.newsperrun";//notused
@@ -56,7 +57,7 @@ public class Config extends AbstractConfig {
     public static final String HOSTNAME = "dibd.hostname";
     public static final String PORT = "dibd.port";
     public static final String TIMEOUT = "dibd.timeout";
-    public static final String LOGLEVEL = "dibd.loglevel";
+    
     //It can be increased or decreased without lose. VALUES 1-7
     public static final String ID_F_COUNT = "dibd.id_f_count"; //count of F symbol in hex internal article Id
      
@@ -112,8 +113,6 @@ public class Config extends AbstractConfig {
      */
     public static final String XDAEMON_HOST = "sonews.xdaemon.host";
 
-    /** The config key for the filename of the logfile */
-    public static final String LOGFILE = "dibd.logfile";
     /*public static final String[] AVAILABLE_KEYS = { ARTICLE_MAXSIZE, EVENTLOG,
     		PEERING, FEED_NEWSPERRUN, FEED_PULLINTERVAL, HOSTNAME, MLPOLL_DELETEUNKNOWN,
             MLPOLL_HOST, MLPOLL_PASSWORD, MLPOLL_USER, MLSEND_ADDRESS,

@@ -116,12 +116,14 @@ public class PullDaemon extends DaemonThread {
 				//synchronized(workingSet){ //we must guarantee during checking waitingQueue workingQueue will not be changed.
 				synchronized(workingSet){
 					if(workingSet.contains(message_id_thread)){
-						System.out.println("do not contain thread-id");
+						Log.get().finer(message_id_thread+" already in requested as missing thread");
 						return;
 					}else{
 						mt = new MissingThread(group, message_id_thread, messageIdHostPath);
-						if (waitingQueue.contains(mt))
+						if (waitingQueue.contains(mt)){
+							Log.get().finer(message_id_thread+" already in waiting queue as missing thread");
 							return;
+						}
 					}	
 				}
 				
