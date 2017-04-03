@@ -130,17 +130,13 @@ public final class App {
         }
         
         String hostname = Config.inst().get(Config.HOSTNAME, null);
-        if (hostname == null || hostname.isEmpty()){
-        	System.err.println("No hostname");
-        	System.exit(1); //Host name is important for message-id to determinate whether this Article is local or from peer 
-        }
+        if (hostname == null || hostname.isEmpty())
+        	throw new Error("No hostname");//Host name is important for message-id to determinate whether this Article is local or from peer
 
         // Load the storage backend
         String database = Config.inst().get(Config.STORAGE_DATABASE, null);
-        if (database == null) {
-        	System.err.println("No storage backend configured (dibd.storage.database)");
-            System.exit(1);
-        }
+        if (database == null)
+        	throw new Error("No storage backend configured (dibd.storage.database)");
 
         //StorageManager
         String provName = Config.inst().get(Config.LEVEL_FILE,
@@ -157,10 +153,8 @@ public final class App {
         	IMpath = "/usr/bin/";
         	if(!new File(IMpath).exists()){
         		IMpath="C:\\Programs\\ImageMagick;C:\\Programs\\exiftool";
-        		if(! new File(IMpath.split(";")[0]).exists()){
-        			System.err.println("Fail to locate ImageMagic");
-        			System.exit(1);
-        		}
+        		if(! new File(IMpath.split(";")[0]).exists())
+        			throw new Error("Fail to locate ImageMagic");
         	}
         }	
         try {

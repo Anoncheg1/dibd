@@ -582,6 +582,9 @@ class ReceivingService{
 			}
 			
 			fos.flush();
+		}catch(IOException e){
+			attachFile2.delete();
+			throw e;
 		}finally{
 			if (i != null)
 				i.close();
@@ -757,7 +760,7 @@ class ReceivingService{
 							article = StorageManager.current().createReplay(art, this.attachFile, gfileCT, file_name);
 						}catch(StorageBackendException e){ //rollback cache
 							StorageManager.nntpcache.delFile(fl);
-							throw new StorageBackendException(e);
+							throw e;
 						}
 
 					}else{ //if (status == 1)//no need cache if status =1
@@ -777,7 +780,7 @@ class ReceivingService{
 							article = StorageManager.current().createThread(art, this.attachFile, gfileCT, file_name);
 						}catch(StorageBackendException e){ //rollback cache
 							StorageManager.nntpcache.delFile(fl);
-							throw new StorageBackendException(e);
+							throw e;
 						}
 					}else{ //if (status == 1)//no need cache if status =1
 						assert(this.attachFile == null); // that is how we understand that statys = 1

@@ -176,8 +176,11 @@ class ChannelReader extends DaemonThread {
                 } catch (IOException ex) {
                     // The connection was probably closed by the remote host
                     // in a non-clean fashion
-                    Log.get().log(Level.INFO,
-                            "ChannelReader.processSelectionKey(): {0}", ex);
+                	if (ex.getMessage().equals("Connection reset by peer"))
+                		Log.get().log(Level.FINE, "Connection reset by peer");
+                	else
+                		Log.get().log(Level.WARNING,
+                					"ChannelReader.processSelectionKey(): {0}", ex);
                 } catch (Exception ex) {
                     Log.get().log(Level.WARNING,
                             "ChannelReader.processSelectionKey(): {0}", ex);

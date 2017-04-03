@@ -482,7 +482,7 @@ public class Article { //extends ArticleHead
 			String refArtMid = null;
 			try{
 				refArtMid = StorageManager.current().getMessageId(a.thread_id);
-			} catch (StorageBackendException e) {	e.printStackTrace(); System.exit(1);} //Never happen
+			} catch (StorageBackendException e) {	throw new Error("Article.build cant not get thread message-id.",e); } //Never happen
 			buf.append(Headers.REFERENCES).append(c).append(refArtMid).append(nl);
 		}
 		//Path + localhost

@@ -463,7 +463,7 @@ public class ArticlePuller {
 			throw new IOException(); //we will retry
 		}
 		
-		List<String> replays = null;
+		List<String> replays = new ArrayList<>();
 		boolean found = false;
 		
 		line = getIS();//this.in.readLine();
@@ -485,22 +485,16 @@ public class ArticlePuller {
 			//2) if thread exist
 			//3) get his replays
 			
-			//we assume thread is early than his replays
+			//Do not assume thread is early than his replays '-.-'
 			
-			if(found == false){ //1)
-				if (part[4].equals(threadMId) && (part.length == 5 || !part[5].matches(NNTPConnection.MESSAGE_ID_PATTERN))){
-					replays = new ArrayList<>();
-					found = true;
-				}
-			}else //2)
-				if(part.length > 5 && part[5].equals(threadMId) && part[4].matches(NNTPConnection.MESSAGE_ID_PATTERN))
-					replays.add(part[4]); //3)
+			if(part.length > 5 && part[5].equals(threadMId) && part[4].matches(NNTPConnection.MESSAGE_ID_PATTERN))
+				replays.add(part[4]); //3)
 			
 			line = getIS();
 		}
-		
-		if( ! found){
-			Log.get().log(Level.WARNING, "Thread not found. From host {0} group {1} mid {2}", new Object[]{this.host, gname, threadMId});
+		//thread must have replays if it got up from dust
+		if(replays.isEmpty()){
+			Log.get().log(Level.WARNING, "No replays for missing thread, strange! From host {0} group {1} mid {2}", new Object[]{this.host, gname, threadMId});
 			return false;
 		}
 		
