@@ -476,7 +476,8 @@ public class Article { //extends ArticleHead
 		buf.append(Headers.NEWSGROUPS).append(c).append(a.groupName).append(nl);
 		//Subject
 		if(a.subject != null && !a.subject.isEmpty())
-			buf.append(Headers.SUBJECT).append(c).append(MimeUtility.fold(8, MimeUtility.encodeWord(a.subject))).append(nl);//256
+			//buf.append(Headers.SUBJECT).append(c).append(MimeUtility.fold(8, MimeUtility.encodeWord(a.subject))).append(nl);//256
+			buf.append(Headers.SUBJECT).append(c).append(a.subject).append(nl);//256 //UTF-8 headers
 		//References
 		if(a.thread_id != null){
 			String refArtMid = null;
