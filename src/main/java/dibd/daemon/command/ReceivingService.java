@@ -101,7 +101,8 @@ class ReceivingService{
 	private String boundary = null; //maybe null here
 	private ContentType contentType = null; //maybe null here
 	private String[] from_raw = null; //may be null
-	private String[] subjectArr = null; //may be null
+	//private String[] subjectArr = null; //may be null
+	private String subject;
 	private String[] ref = null; //may be null (used for checkRef)
 	
 	private String date = null;
@@ -127,7 +128,11 @@ class ReceivingService{
 		lineHeadCount++;
 		bufHead.write(raw);
 		bufHead.write(NNTPConnection.NEWLINE.getBytes(charset)); //UTF-8
-	
+		//utf-8 subject without word encoding for nntpchan
+		if (line.length() > 10 && line.substring(0,9).equalsIgnoreCase("subject: ")
+				&& ! line.contains("=?UTF-")) //&& line.length() <= 256+9
+			subject = line.substring(9, 256+9).trim();
+		
 
 		if (".".equals(line)) //end of the article
 			return "No body for article.";//No body
@@ -143,7 +148,10 @@ class ReceivingService{
 				headers = new InternetHeaders(new ByteArrayInputStream(bufHead.toByteArray())); //we decode headers before parse.
 				String[] contentType_raw = headers.getHeader(Headers.CONTENT_TYPE);//maybe null here
 				from_raw = headers.getHeader(Headers.FROM); //may be null
-				subjectArr = headers.getHeader(Headers.SUBJECT); //may be null
+				if (subject == null){
+					String[] subjectArr = headers.getHeader(Headers.SUBJECT); //may be null
+					subject = (subjectArr != null && !subjectArr[0].isEmpty()) ? trimZeros(decodeWord(MimeUtility.unfold(subjectArr[0]))) : null;
+				}
 				ref = headers.getHeader(Headers.REFERENCES); //may be null
 				
 				String[] groupHeader = headers.getHeader(Headers.NEWSGROUPS);
@@ -683,7 +691,7 @@ class ReceivingService{
 		//*** SAVING MESSAGE ***
 		//preparation
 		String from = (from_raw != null && !from_raw[0].isEmpty()) ? trimZeros(decodeWord(from_raw[0])) : null; //decoded word
-		String subject = (subjectArr != null && !subjectArr[0].isEmpty()) ? trimZeros(decodeWord(MimeUtility.unfold(subjectArr[0]))) : null;
+		//subject = (subjectArr != null && !subjectArr[0].isEmpty()) ? trimZeros(decodeWord(MimeUtility.unfold(subjectArr[0]))) : null;
 		
 		String file_name = null;
 		if (fCD != null)

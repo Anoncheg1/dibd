@@ -83,7 +83,8 @@ public class ArticleTest {
         buf.append("Date: Wed, 22 Jun 2016 09:58:22 +0000").append("\r\n");
         buf.append("Message-ID: <message-id@host.com>").append("\r\n");
         buf.append("Newsgroups: "+group).append("\r\n");
-        buf.append("Subject: "+MimeUtility.encodeWord("сабджект")).append("\r\n");
+        //buf.append("Subject: "+MimeUtility.encodeWord("сабджект")).append("\r\n");
+        buf.append("Subject: "+"сабджект").append("\r\n");
         buf.append("References: <refmessageid@foo.bar>").append("\r\n");
         buf.append("Path: 127.0.0.1!host!host2").append("\r\n");
         buf.append("Content-Type: text/plain; charset=utf-8").append("\r\n");
@@ -111,7 +112,8 @@ public class ArticleTest {
         buf.append("date: Wed, 22 Jun 2016 09:58:22 +0000").append("\r\n");
         buf.append("message-id: <message-id@host.com>").append("\r\n");
         buf.append("newsgroups: "+group).append("\r\n");
-        buf.append("subject: "+MimeUtility.encodeWord("сабджект")).append("\r\n");
+        //buf.append("subject: "+MimeUtility.encodeWord("сабджект")).append("\r\n");
+        buf.append("subject: "+"сабджект").append("\r\n");
         buf.append("references: <refmessageid@foo.bar>").append("\r\n");
         buf.append("path: 127.0.0.1!host!host2").append("\r\n");
         buf.append("content-transfer-encoding: 8bit").append("\r\n");
