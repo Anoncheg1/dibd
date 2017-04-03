@@ -203,7 +203,7 @@ public class PullDaemon extends DaemonThread {
     		try{
     			mthr = PullDaemon.waitingQueue.take();
     			if(! PullDaemon.workingSet.add(mthr.messageId))
-    					return;
+    					return;//if already have
 
     			Thread.sleep(20000);//20sec wait for missing thread be spread to peer network we connected
 

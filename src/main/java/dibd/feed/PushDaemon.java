@@ -77,15 +77,16 @@ public class PushDaemon extends DaemonThread {
 	public void run() {
 		while (isRunning()) {
 			int retries = 8;
+			
+			Article article;
+			try {
+				article = articleQueue.take();
+			} catch (InterruptedException ex) {
+				Log.get().log(Level.FINEST, "PushDaemon interrupted: {0}", ex.getLocalizedMessage());
+				return;
+			}
+			
 			for(int retry =1; retry<retries;retry++){
-				
-				Article article;
-				try {
-					article = articleQueue.take();
-				} catch (InterruptedException ex) {
-					Log.get().log(Level.FINEST, "PushDaemon interrupted: {0}", ex.getLocalizedMessage());
-					return;
-				}
 				
 				ArticlePusher ap = null;
 				try{
@@ -96,7 +97,7 @@ public class PushDaemon extends DaemonThread {
 						proxy = FeedManager.getProxy(sub);
 					} catch (NumberFormatException | UnknownHostException e) {
 						Log.get().log(Level.SEVERE, "Wrong proxy configuration: {0}", e);
-						return;
+						break;
 					}
 
 					// POST the message to remote server
@@ -128,7 +129,7 @@ public class PushDaemon extends DaemonThread {
 							new Object[] { sub.getHost(), article.getMessageId(), article.getGroupName(), retry, ex.getLocalizedMessage()});//contitune
 				}catch (Exception e) {
 					Log.get().log(Level.SEVERE, e.getLocalizedMessage(), e);
-					return;
+					break;
 				}finally{
 					if (ap != null)
 						ap.close();
@@ -137,7 +138,7 @@ public class PushDaemon extends DaemonThread {
 				try {
 	    			Thread.sleep(5*1000*retry*retry*retry);//geometric progression from 5 sec to 42 min 
 	    		} catch (InterruptedException e) {
-	    			break;
+	    			return;
 	    		}
 			}
 		}

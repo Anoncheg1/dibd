@@ -193,7 +193,7 @@ public class ArticlePusher {
 	 * @throws IOException
 	 * @return false already have true success
 	 */
-	public boolean writeArticle(Article art) throws IOException {
+	public boolean writeArticle(Article art) throws IOException{
 		if (! prepareIHAVE(art.getMessageId()))
 			return false;
 		
