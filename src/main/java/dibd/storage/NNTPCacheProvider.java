@@ -6,9 +6,7 @@ package dibd.storage;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
@@ -24,39 +22,23 @@ import dibd.util.Log;
  *
  */
 public class NNTPCacheProvider {
-	private final String cachePath;
+	private final File cachePath;
 	
-	private String buildPath(String groupName, String messageId){
-		return new StringBuilder(this.cachePath)
-				.append(groupName)
-				.append("/")
-				.append(messageId)
-				.toString();
+	private File buildPath(String groupName, String messageId){
+		return new File(new File(cachePath, groupName), messageId);
 	}
 
 	public NNTPCacheProvider(final String savePath) throws Exception{
-		if (savePath.charAt(savePath.length()-1) != '/')
-			this.cachePath = savePath + '/';
-		else
-			this.cachePath = savePath;
+		cachePath = new File(savePath);
+		cachePath.mkdir();
 		
+		assert(cachePath.exists());
 		
-		// NNTP cache
-        File ncdir = new File(this.cachePath);
-        if (!ncdir.exists()){
-        	if(!ncdir.mkdir()){
-        		throw new Exception("Can't create NNTP Cache direcotry");        		
-        	}
-        }
-        List<Group> boards = StorageManager.groups.getAll();
+		List<Group> boards = StorageManager.groups.getAll();
         for (Group gr : boards){
- 			String p = this.cachePath + gr.getName();
- 			File boardd = new File(p);
- 			if (!boardd.exists()){
- 				if(!boardd.mkdir()){
- 	        		throw new Exception("Can't create NNTP Cache direcotry: "+p);        		
- 	        	};
- 	        }
+        	File grDir = new File(cachePath, gr.getName());
+ 			grDir.mkdir();
+ 			assert(grDir.exists());
         }
 	}
 	
@@ -69,62 +51,12 @@ public class NNTPCacheProvider {
 	 * @throws IOException
 	 */
 	public File saveFile (String groupName, String messageId, File tmpfile) throws IOException{
-		String cachedPath = buildPath(groupName, messageId);
-		File newfile = new File(cachedPath);
+		File newfile = buildPath(groupName, messageId);
 		Files.move(tmpfile.toPath(), newfile.toPath(), StandardCopyOption.REPLACE_EXISTING);
 		return newfile;
 	}
 
 	
-	/*	File ofile = new File(buildPath(groupName, messageId));
-	if (! ofile.createNewFile()){ //we check that file must be created or overcreated.
-		if(ofile.delete()){
-			if(! ofile.createNewFile())
-				throw new IOException("Can not create cache file after delete the same file. crazy "+messageId);
-		}else
-			throw new IOException("catch file already exist and can not be deleted "+messageId);
-	}
-
-	FileOutputStream fos = new FileOutputStream(ofile);
-	try {
-		fos.write(data);
-	}finally{
-		fos.close();
-	}
-	
-	return ofile;*/
-	
-	/*public File saveFile (String groupName, String messageId, InputStream fis) throws IOException{
-		FileOutputStream fos = null;
-		try {
-			File ofile = new File(buildPath(groupName, messageId));
-			if (! ofile.createNewFile()){ //we check that file must be created or overcreated.
-				if(ofile.delete()){
-					if(! ofile.createNewFile())
-						throw new IOException("Can not create cache file after delete the same file. crazy "+messageId);
-				}else
-					throw new IOException("catch file already exist and can not be deleted "+messageId);
-			}
-
-			fos = new FileOutputStream(ofile);
-
-			int read = 0;
-			byte[] bytes = new byte[1024];
-
-			while ((read = fis.read(bytes)) != -1) {
-				fos.write(bytes, 0, read);
-			}
-
-			return ofile;
-		}finally{
-			fis.close();
-			if (fos != null)
-				fos.close();
-		}
-		
-
-	}*/
-
 	/**
 	 * Del article from cache from cache/group/ with message-id like {@literal <}random{@literal @}host{@literal >}
 	 * 
@@ -132,7 +64,7 @@ public class NNTPCacheProvider {
 	 * @param messageId
 	 */
 	public void delArticle(String groupName, String messageId) {
-		File fl = new File(buildPath(groupName, messageId));
+		File fl = buildPath(groupName, messageId);
 		if(!fl.delete())
 			Log.get().log(Level.WARNING, "Fail to delete article: {0}", messageId);
 	}
@@ -159,7 +91,7 @@ public class NNTPCacheProvider {
 	 * @return null if not exist
 	 */
 	public FileInputStream getFileStream(Article article) {
-		File f = new File(buildPath(article.getGroupName(), article.getMessageId()));
+		File f = buildPath(article.getGroupName(), article.getMessageId());
 		try {
 			return new FileInputStream(f);
 		} catch (FileNotFoundException e) {

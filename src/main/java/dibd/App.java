@@ -159,10 +159,10 @@ public final class App {
         }	
         try {
         	StorageManager.enableAttachmentProvider(
-        			new AttachmentProvider("attachments/", IMpath));
+        			new AttachmentProvider(Config.inst().get(Config.ATTACHDIR, "attachments"), IMpath));
         			//new AttachmentProvider(Config.inst().get(Config.ATTACHMENTSPATH, "attachments/"), IMpath));
         	StorageManager.enableNNTPCacheProvider(
-        			new NNTPCacheProvider(Config.inst().get(Config.NNTPCACHEPATH, "nntpcache/")));
+        			new NNTPCacheProvider(Config.inst().get(Config.NNTPCACHEDIR, "nntpcache")));
 		} catch (Exception e) {
 			e.printStackTrace();
 			System.exit(1);

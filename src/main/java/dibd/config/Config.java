@@ -77,10 +77,10 @@ public class Config extends AbstractConfig {
     public static final String MLSEND_USER = "dibd.mlsend.user";
     public static final String MLSEND_AUTH = "dibd.mlsend.auth";
     */
-    //public static final String ATTACHMENTSPATH = "dibd.path.attachments";//used in web and can't be accessed
-    public static final String NNTPCACHEPATH = "dibd.path.nntpcache";
     public static final String NNTPALLOW_UNAUTORIZED = "dibd.nntp.allow_unautorized_post";
     public static final String IMAGEMAGICPATH = "dibd.path.imagemagic";
+    public static final String ATTACHDIR = "dibd.attach.dir";
+    public static final String NNTPCACHEDIR = "dibd.nntpcache.dir";
     
 
     /**

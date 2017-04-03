@@ -4,8 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Scanner;
@@ -23,46 +21,23 @@ import dibd.util.Log;
 //TODO:something with svg+xml format
 //user@localhost:~$ convert -thumbnail 200 Roda\ Emosi\ Plutchik.svg a.png
 public class AttachmentProvider {
-	private final String attachmentPath;
-	/**
-	 * "/img/"
-	 */
-	private static final String aimg = "/img/";
-	/**
-	 * "/thm/"
-	 */
-	private static final String thumbnails = "/thm/";
+	private final File attachmentDir;
+	
+	public enum Atype {img, thm};//original attachments and thumbnails
 	
 	/**
-	 * Get path to attachment src file.
+	 * Get path to attachment file.
 	 * 
 	 * @param groupName
 	 * @param fileName
-	 * @return path
+	 * @param attach
+	 * @return
 	 */
-	private String getAPath(String groupName, String fileName){
-		return new StringBuilder(this.attachmentPath)
-				.append(groupName)
-				.append(aimg)
-				.append(fileName)
-				.toString(); //1
+	public File getPath(String groupName, String fileName, Atype attach){
+		return new File(new File(new File(attachmentDir, groupName), attach.toString()),fileName);
 	}
 	
-	/**
-	 * Get path to thumbnail of attachment file.
-	 * 
-	 * @param groupName
-	 * @param fileName
-	 * @return path
-	 */
-	private String getTnPath(String groupName, String fileName){
-		return new StringBuilder(this.attachmentPath)
-				.append(groupName)
-				.append(thumbnails)
-				.append(checkSupported(fileName))
-				.toString(); //2
-	}
-
+	
 	/**
 	 * Initializate attachments and thumbnailer
 	 *
@@ -71,39 +46,19 @@ public class AttachmentProvider {
 	 * @throws Error 
 	 */
 	public AttachmentProvider(final String savePath, final String IMpath) throws Error {
-		if (savePath.charAt(savePath.length()-1) != '/')
-			this.attachmentPath = savePath + '/';
-		else
-			this.attachmentPath = savePath;
+		
 		ProcessStarter.setGlobalSearchPath(IMpath);
 		
-		//create dirs 
-		File atdir = new File(this.attachmentPath);
-        if (!atdir.exists()){
-        	if(!atdir.mkdir()){
-        		throw new Error("Can't create attachments direcotry which is not exist");        		
-        	}
-        }
+		attachmentDir = new File(savePath);
+		attachmentDir.mkdir();
+		
         List<Group> boards = StorageManager.groups.getAll();
  		for (Group g : boards){
- 			String patha = this.attachmentPath + g.getName();
- 			File bdir = new File(patha);
- 			if (!bdir.exists()){
- 				if(!bdir.mkdir())
- 					throw new Error("Can't create attachments direcotry for group which is not exist");
- 	        }
- 			File img = new File(patha+"/img/");
-				if (!img.exists()){
-					if(!img.mkdir())
-						throw new Error("Can't create attachments direcotry for /img/ which is not exist");
-				}
-				File thm = new File(patha+"/thm/");
-				if (!thm.exists()){
-					if(!thm.mkdir())
-						throw new Error("Can't create attachments direcotry for /thm/ which is not exist");
-				}
+ 			File grDir = new File(attachmentDir, g.getName());
+ 			grDir.mkdir();
+ 			new File(grDir, Atype.img.toString()).mkdir();
+ 			new File(grDir, Atype.thm.toString()).mkdir();
  		}
-		
 	}
 	
 	/**
@@ -126,11 +81,10 @@ public class AttachmentProvider {
 	public void createThumbnail(String groupName, String fileName, String media_type){
 		if (media_type.substring(0, 6).equals("image/")){//we will add other formats later
 			try{
-				String pathSource = getAPath(groupName, fileName);   //1
-				String pathTarget = getTnPath(groupName, fileName);    //2
+				File sourceFile = getPath(groupName, fileName, Atype.img);   //1
+				File thumbNailFile = getPath(groupName, fileName, Atype.thm);    //2
 
-				File sourceFile = new File(pathSource);
-				File thumbNailFile = new File(pathTarget);
+				assert(sourceFile.exists());
 				
 				///// identifying resolution  ///////
 				IdentifyCmd icmd = new IdentifyCmd();
@@ -165,7 +119,7 @@ public class AttachmentProvider {
 						int width = Integer.parseInt(res[0]);
 						int height = Integer.parseInt(res[1]);
 						
-						if (width > 14000 || height > 14000) //TODO:make configurable
+						if (width > 11000 || height > 11000) //TODO:make configurable
 							return; //ABORT
 
 						if (gif)
@@ -202,13 +156,15 @@ public class AttachmentProvider {
 	
 	
 	public void saveFile (String groupName, String fileName, File file) throws IOException{
-		String fullFileName = this.getAPath(groupName, fileName);
-		Files.move(file.toPath(), new File(fullFileName).toPath(), StandardCopyOption.REPLACE_EXISTING);
+		assert(file.exists());
+		File fdest = this.getPath(groupName, fileName, Atype.img);
+		Files.move(file.toPath(), fdest.toPath(), StandardCopyOption.REPLACE_EXISTING);
 	}
 	
 	public byte[] readFile (String groupName, String fileName) throws IOException{
-		Path path = Paths.get(this.getAPath(groupName, fileName));
-		return Files.readAllBytes(path);
+		File ftoread = getPath(groupName, fileName, Atype.img);
+		assert(ftoread.exists());
+		return Files.readAllBytes(ftoread.toPath());
 	}
 	
 	/**
@@ -218,8 +174,8 @@ public class AttachmentProvider {
 	 * @param fileName
 	 */
 	public void delFile (String groupName, String fileName){
-		File fileImg = new File(getAPath(groupName, fileName)); //img
-		File fileThm = new File(this.getTnPath(groupName, fileName)); //thm
+		File fileImg = getPath(groupName, fileName, Atype.img); //img
+		File fileThm = getPath(groupName, fileName, Atype.thm); //thm
 		if(!fileImg.delete())
 			Log.get().warning("Can not detete image "+groupName+" "+fileName);
 		if(fileThm.exists())

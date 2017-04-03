@@ -575,6 +575,11 @@ public class Article { //extends ArticleHead
 			buf2.append(nl);
 
 			//base64 encoded attachment
+			//TODO:decrease memory usage!!!
+			//TODO:decrease memory usage!!!
+			//TODO:decrease memory usage!!!
+			//TODO:decrease memory usage!!!
+			//TODO:decrease memory usage!!!
 			byte[] f = StorageManager.attachments.readFile(a.groupName, a.fileName);
 			byte[] eFile = Base64.getMimeEncoder(maxLine, nl.getBytes()).encode(f);
 			buf2.append(new String(eFile)).append(nl);
