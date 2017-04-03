@@ -38,7 +38,8 @@ public class NNTPCacheProvider {
         for (Group gr : boards){
         	File grDir = new File(cachePath, gr.getName());
  			grDir.mkdir();
- 			assert(grDir.exists());
+ 			if (! grDir.exists())
+ 				throw new Error("NNTPCache directory "+grDir.getAbsolutePath()+"does not exist");
         }
 	}
 	

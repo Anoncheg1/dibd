@@ -56,8 +56,12 @@ public class AttachmentProvider {
  		for (Group g : boards){
  			File grDir = new File(attachmentDir, g.getName());
  			grDir.mkdir();
- 			new File(grDir, Atype.img.toString()).mkdir();
- 			new File(grDir, Atype.thm.toString()).mkdir();
+ 			File gi = new File(grDir, Atype.img.toString());
+ 			gi.mkdir();
+ 			File gt = new File(grDir, Atype.thm.toString());
+ 			gt.mkdir();
+ 			if (! gi.exists() || ! gt.exists())
+ 				throw new Error("Attachment directory "+grDir.getAbsolutePath()+"does not exist");
  		}
 	}
 	

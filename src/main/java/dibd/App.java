@@ -161,8 +161,9 @@ public final class App {
         	StorageManager.enableAttachmentProvider(
         			new AttachmentProvider(Config.inst().get(Config.ATTACHDIR, "attachments"), IMpath));
         			//new AttachmentProvider(Config.inst().get(Config.ATTACHMENTSPATH, "attachments/"), IMpath));
-        	StorageManager.enableNNTPCacheProvider(
-        			new NNTPCacheProvider(Config.inst().get(Config.NNTPCACHEDIR, "nntpcache")));
+        	if (Config.inst().get(Config.PEERING, false) == true)
+        		StorageManager.enableNNTPCacheProvider(
+        				new NNTPCacheProvider(Config.inst().get(Config.NNTPCACHEDIR, "nntpcache")));
 		} catch (Exception e) {
 			e.printStackTrace();
 			System.exit(1);
