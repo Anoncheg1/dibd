@@ -130,17 +130,10 @@ class ReceivingService{
 		bufHead.write(NNTPConnection.NEWLINE.getBytes(charset)); //UTF-8
 		//utf-8 subject without word encoding for nntpchan
 		if (line.length() > 10 && line.substring(0,9).equalsIgnoreCase("subject: ")
-<<<<<<< HEAD
 				&& ! line.contains("=?UTF-")){ //&& line.length() <= 256+9
 			int end = line.length() >= 256+9 ? 256+9 : line.length();  
 			subject = line.substring(9, end).trim();
 		}
-			
-=======
-				&& ! line.contains("=?UTF-")) //&& line.length() <= 256+9
-			subject = line.substring(9, 256+9).trim();
->>>>>>> 48aa226530036e90656757153b44b2e65e745fc5
-		
 
 		if (".".equals(line)) //end of the article
 			return "No body for article.";//No body
