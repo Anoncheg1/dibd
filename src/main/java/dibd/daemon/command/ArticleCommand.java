@@ -170,7 +170,7 @@ public class ArticleCommand implements Command {
         	if (fs != null){
         		conn.println(ok);
         		try{
-        		conn.print(fs, article.getMessageId());
+        			conn.print(fs, article.getMessageId());
         		}finally{
         			if (fs != null)
         			fs.close();
