@@ -66,48 +66,47 @@ public class PullAtStart extends Thread {
      * @throws StorageBackendException
      * @return -1 if error or articles pulled
      */
-    private int pull(Set<Group> groups, String host, int port, int retries, int sleep) throws StorageBackendException {
+    private int pullLoop(Set<Group> groups, String host, int port, int retries, int sleep) throws StorageBackendException {
     	for(int retry =1; retry<retries;retry++){
     		ArticlePuller ap = null;
-    		try {
-    			boolean TLSenabled = Config.inst().get(Config.TLSENABLED, false);
-    			//Connecting
+
+    		boolean TLSenabled = Config.inst().get(Config.TLSENABLED, false);
+    		//Connecting
+    		try{
     			try{
-    				try{
-    					ap = new ArticlePuller(proxy, host, port, TLSenabled);
-    				} catch (IOException ex) { //second try
-    					Log.get().warning(ex.toString()+" to host "+host);
-    					break;
-    				}
-    				Log.get().log(
-    						Level.INFO, "{0}: pulling from {1} groups:{2}", //his groups {1}",
-    						new Object[]{Thread.currentThread().getName(), host, groups.size()});
-    				//new Object[]{host, "["+groupsTime.keySet().stream().map(g -> g.getName()).collect(Collectors.joining(","))+"]"});
-
-    				//Scrap message-ids
-    				Map<String, List<String>> mIDs = ap.scrap(groups);
-    				if (mIDs.isEmpty()){
-    					Log.get().log(Level.FINE,"{0}: no new articles found at host:{1}:{2}",
-    							new Object[]{Thread.currentThread().getName(), host, port});
-    					return 0;
-    				}else
-    					return ap.toItself(mIDs); //return received number
-
-
-    			}catch (IOException ex) {
-    				Log.get().log(Level.INFO,"{0}: try {1} for host:{2}:{3} {4}",
-    						new Object[]{Thread.currentThread().getName(), retry, host, port, ex.toString()});
-    			}catch (NullPointerException e) {
-    				Log.get().log(Level.WARNING,"No error if it is shutdown {0}", e);
-    				return -1;
-    			}finally{
-    				//Log.get().log(Level.WARNING, "Finally host: {0}:{1} can not pull from.", new Object[]{host, port});
-    				if (ap != null)
-    					ap.close();
+    				ap = new ArticlePuller(proxy, host, port, TLSenabled);
+    			} catch (IOException ex) { //second try
+    				Log.get().warning(ex.toString()+" to host "+host);
+    				break;
     			}
-    		}catch (OutOfMemoryError e) { //let's retry maybe?
-    			Log.get().log(Level.SEVERE, e.getLocalizedMessage(), e);
+    			Log.get().log(
+    					Level.INFO, "{0}: pulling from {1} groups:{2}", //his groups {1}",
+    					new Object[]{Thread.currentThread().getName(), host, groups.size()});
+    			//new Object[]{host, "["+groupsTime.keySet().stream().map(g -> g.getName()).collect(Collectors.joining(","))+"]"});
+
+    			//Scrap message-ids
+    			Map<String, List<String>> mIDs = ap.scrap(groups);
+    			if (mIDs.isEmpty()){
+    				Log.get().log(Level.FINE,"{0}: no new articles found at host:{1}:{2}",
+    						new Object[]{Thread.currentThread().getName(), host, port});
+    				return 0;
+    			}else{
+    				return ap.toItself(mIDs.entrySet().iterator(), 0); //return received number
+    			}
+
+
+    		}catch (IOException ex) {
+    			Log.get().log(Level.INFO,"{0}: try {1} for host:{2}:{3} {4}",
+    					new Object[]{Thread.currentThread().getName(), retry, host, port, ex.toString()});
+    		}catch (NullPointerException e) {
+    			Log.get().log(Level.WARNING,"No error if it is shutdown {0}", e);
+    			return -1;
+    		}finally{
+    			//Log.get().log(Level.WARNING, "Finally host: {0}:{1} can not pull from.", new Object[]{host, port});
+    			if (ap != null)
+    				ap.close();
     		}
+
 
     		try {
     			Thread.sleep(sleep*retry*retry);//geometric progression 
@@ -147,7 +146,7 @@ public class PullAtStart extends Thread {
     			}
         	}
     		*/
-    		int res = pull(groups, host, port, 21, 60*1000);
+    		int res = pullLoop(groups, host, port, 21, 60*1000);
     		Log.get().log(Level.INFO, "Pull {0} from {1} sucessfully completed, {2} articles reseived.",
     				new Object[]{
     						groups.stream().map(e -> e.getName()).reduce( (e1, e2) -> e1+", "+e2).get(), host, res});

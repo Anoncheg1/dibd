@@ -240,6 +240,8 @@ public class ArticlePuller {
 	private Response conn = new Response(); //hook for loopback
 	
 	
+	private int retryes = 1;
+	
 	/**
 	 * Pull articles from carefully sorted list of threads and rLeft message-ids. 
 	 * 
@@ -248,24 +250,41 @@ public class ArticlePuller {
 	 * @throws IOException
 	 * @throws StorageBackendException
 	 */
-	public int toItself(Map<String, List<String>> mIDs) throws IOException, StorageBackendException{
-		int reseived = 0;
+	public int toItself(Iterator<Entry<String, List<String>>> iterator, int resived) throws StorageBackendException, IOException{
+		int reseived = resived;
+		try{
 		//we pass rLeft for accepted thread only
 		//If thread was corrupted then we reject his rLeft
 		//it will prevent "getting missing threads".
+		while (iterator.hasNext()){
+			Entry<String, List<String>> mId = iterator.next();
 		
-		for (Entry<String, List<String>> mId : mIDs.entrySet()){
 			int res = transferToItself(new IhaveCommand(), mId.getKey());
 			if (res == 0)//thread accepted?
 				reseived ++;
 			else if (res == 1) //error in thread
-				continue; 
+				continue;
 				
 			for(String replay : mId.getValue())
 				if (transferToItself(new IhaveCommand(), replay) == 0)
 					reseived ++;
-					
+			
+			iterator.remove();
 		}
+		
+		}catch(IOException e){
+			if (this.retryes > 3){
+				Log.get().log(Level.WARNING, "Pull brake up with {0} becouse unexpected responses.", this.host );
+				return reseived;
+			}else{
+				Log.get().log(Level.INFO, "Pull {0} some error happen, we reconnect at {1} time.", new Object[]{this.host, this.retryes} );
+				close();//lines recycled in close()
+				lineBuffers.getInputBuffer().clear();//clear input
+				connect();
+				return toItself(iterator, resived); //recursion
+			}
+		}
+		
 		return reseived;
 	}
 	
@@ -281,100 +300,98 @@ public class ArticlePuller {
 	 * @throws StorageBackendException
 	 */
 	public int transferToItself(IhaveCommand ihavec, String messageId)
-			throws StorageBackendException {
+			throws StorageBackendException, IOException {
 		//we do not need to push pulled articles. we will push pushed articles.
 		//and we don't need log messages.
 		ihavec.setPullMode(); 
-		
+
 		String s = "IHAVE "+ messageId;
-		try {
-			ihavec.processLine(conn, s, s.getBytes(charset));
 
-			String line = conn.readLine();
-			if (line == null || !line.startsWith("335")) {
-				if (line != null && line.startsWith("435")){
-					return 2;
-				}else
-					Log.get().log(Level.WARNING, "From {0} {1} we ihave:{2}", new Object[]{this.host, messageId, line} );
-				return 1; //some error
-			}
+		ihavec.processLine(conn, s, s.getBytes(charset));
 
-			//ARTICLE
-			this.out.print("ARTICLE " + messageId + NL);
-			this.out.flush();
-			/**	220 0|n message-id    Article follows (multi-line)
-			 *	430                   No article with that message-id
-			 */
-			line = getIS();//this.in.readLine();
-			if (line == null) {
-				Log.get().warning("Unexpected null reply from remote host or timeout");
-				return 1;
-			}
-			if (line.startsWith("430 ")) {
-				Log.get().log(Level.WARNING, "Message {0} not available at {1}",
-						new Object[]{messageId, this.host});
-				return 3;
-			}
-			if (!line.startsWith("220 ")) {
-				throw new IOException("Unexpected reply to ARTICLE "+messageId+" "+line);
-			}
+		String line = conn.readLine();
+		if (line == null || !line.startsWith("335")) {
+			if (line != null && line.startsWith("435")){
+				return 2;
+			}else
+				Log.get().log(Level.WARNING, "From {0} {1} we ihave:{2}", new Object[]{this.host, messageId, line} );
+			return 1; //some error
+		}
 
-
-			//OK Lets rock!
-			Log.get().log(Level.FINE, "Pulling article {0} from {1} ", new Object[]{messageId, this.host} );
-
-
-			read_article:{
-				do{ //read from ARTICLE response and write to loopback IHAVE
-
-					//System.out.println("READ FILE " + messageId+ " readed:"+line.length());
-					String ihaveline = conn.readLine();
-					if ( ihaveline != null){//error
-						conn.println(ihaveline);
-
-						//any message in the middle of transfer is error or success that required to finish
-						for(int i = 0; i<15 ; i++){ //wait 15 lines for end then interrupt.
-							line = getIS();//this.in.readLine();
-							if(line == null || line.equals("."))
-								break read_article;
-						} //wait for 20 lines
-						
-						Log.get().log(Level.INFO, "{0} Reconnect, clear buffers", messageId);
-						lineBuffers.getInputBuffer().clear();//clear input
-						close();//lines recycled in close()
-						
-						connect();
-
-						break;
-					}
-
-					byte[] raw = read();
-					if (raw == null){
-						Log.get().log(Level.WARNING, "{0} null line resived or timeout during reading from {1} ", new Object[]{messageId, this.host} );
-						return 1;
-					}
-					line = new String(raw, this.charset);
-					ihavec.processLine(conn, line, raw); //send ihave
-
-				}while(!".".equals(line));
-			}
-
-
-
-			line = conn.readLine();//IHAVE response
-			if (line != null)
-				if(line.startsWith("235")) {
-					Log.get().log(Level.INFO, "{0} successfully received", messageId);
-					return 0;
-				} else if (line.equals(IhaveCommand.noRef)){//may happen if thread is refering to another thread....
-					Log.get().log(Level.SEVERE, "PULL from {0} {1} THIS THREAD refering another thread!", new Object[]{this.host, messageId} );
-					return 1;
-				}else
-					Log.get().log(Level.WARNING, "Pulling {0} from {1} self IHAVE: {2}", new Object[]{messageId, this.host, line});
-		} catch (IOException e) {
-			Log.get().log(Level.WARNING, "Pulling {0} from {1} : {2}", new Object[]{messageId, this.host, e.getLocalizedMessage()});
+		//ARTICLE
+		this.out.print("ARTICLE " + messageId + NL);
+		this.out.flush();
+		/**	220 0|n message-id    Article follows (multi-line)
+		 *	430                   No article with that message-id
+		 */
+		line = getIS();//this.in.readLine();
+		if (line == null) {
+			Log.get().warning("Unexpected null reply from remote host or timeout");
 			return 1;
-		} //send ihave	
+		}
+		if (line.startsWith("430 ")) {
+			Log.get().log(Level.WARNING, "Message {0} not available at {1}",
+					new Object[]{messageId, this.host});
+			return 3;
+		}
+		if (!line.startsWith("220 ")) {
+			throw new IOException("Unexpected reply to ARTICLE "+messageId+" "+line);
+		}
+
+
+		//OK Lets rock!
+		Log.get().log(Level.FINE, "Pulling article {0} from {1} ", new Object[]{messageId, this.host} );
+
+
+		read_article:{
+			do{ //read from ARTICLE response and write to loopback IHAVE
+
+				//System.out.println("READ FILE " + messageId+ " readed:"+line.length());
+				String ihaveline = conn.readLine();
+				if ( ihaveline != null){//error
+					conn.println(ihaveline);
+
+					//any message in the middle of transfer is error or success that required to finish
+					for(int i = 0; i<15 ; i++){ //wait 15 lines for end then interrupt.
+						line = getIS();//this.in.readLine();
+						if(line == null || line.equals("."))
+							break read_article;
+					} //wait for 20 lines
+
+					Log.get().log(Level.INFO, "{0} Reconnect, clear buffers", messageId);
+					close();//lines recycled in close()
+
+					lineBuffers.getInputBuffer().clear();//clear input
+
+					connect();
+
+					break;
+				}
+
+				byte[] raw = read();
+				if (raw == null){
+					Log.get().log(Level.WARNING, "{0} null line resived or timeout during reading from {1} ", new Object[]{messageId, this.host} );
+					return 1;
+				}
+				line = new String(raw, this.charset);
+				ihavec.processLine(conn, line, raw); //send ihave
+
+			}while(!".".equals(line));
+		}
+
+
+
+		line = conn.readLine();//IHAVE response
+		if (line != null)
+			if(line.startsWith("235")) {
+				Log.get().log(Level.INFO, "{0} successfully received", messageId);
+				return 0;
+			} else if (line.equals(IhaveCommand.noRef)){//may happen if thread is refering to another thread....
+				Log.get().log(Level.SEVERE, "PULL from {0} {1} THIS THREAD refering another thread!", new Object[]{this.host, messageId} );
+				return 1;
+			}else
+				Log.get().log(Level.WARNING, "Pulling {0} from {1} self IHAVE: {2}", new Object[]{messageId, this.host, line});
+
 		return 1;
 	}
 
@@ -426,9 +443,9 @@ public class ArticlePuller {
 	//throw ioexception if want to repeat.
 	boolean getThread(String threadMId, String gname) throws IOException, StorageBackendException{
 		
-		int received=0;
+		//int received=0;
 		//First lets try to get thread
-		int res = transferToItself(new IhaveCommand(), threadMId);
+		/*int res = transferToItself(new IhaveCommand(), threadMId);
 		if (res == 1){
 			Log.get().log(Level.WARNING, "From host {0} can not get thread {1} group {2}", new Object[]{this.host, threadMId, gname});
 			throw new IOException(); //we will retry
@@ -440,7 +457,7 @@ public class ArticlePuller {
 			return false;
 		}else if (res == 0)
 			received++;
-		
+		*/
 		List<String> capabilties = getCapabilities();
 		if ( ! capabilties.contains("READER")){ //case sensitive!
 			Log.get().log(Level.WARNING, "From host: {0} CAPABILITIES do not contain: READER", this.host);
@@ -498,12 +515,18 @@ public class ArticlePuller {
 			return false;
 		}
 		
+		
+		
 		//receive replays
-		for (String mId : replays){
+		Map<String, List<String>> mIDs = new LinkedHashMap<>(1);
+		mIDs.put(threadMId, replays);
+		int received = this.toItself(mIDs.entrySet().iterator(), 0);
+		
+		/*for (String mId : replays){
 			res = transferToItself(new IhaveCommand(), mId);	
 			if (res == 0)//thread accepted?
 				received ++;
-		}
+		}*/
 		
 		if (received > 0){
 			Log.get().log(Level.FINE, "Missing thread {0} reseived in articles {1}", new Object[]{threadMId, received});
@@ -661,14 +684,17 @@ public class ArticlePuller {
 				//this.lastActivity = System.currentTimeMillis();
 				//getIS();
 				this.in.readLine(); //we are polite
+				this.in.close();
 				//lineBuffers.recycleBuffers();
 				instream.close();
 				out.close();
 			}
-		}catch(IOException ex){}
-		try{
-			this.socket.close();
-		}catch(IOException ex){}
+		}catch(IOException ex){}finally{
+			try{
+				this.socket.close();
+			}catch(IOException ex){}
+		}
+
 	}
 	
 	/**
