@@ -213,7 +213,6 @@ public class PullDaemon extends DaemonThread {
     						&& sub.getFeedtype() != FeedType.PUSH)
     					subs.add(sub);
 
-    			int res = 0;
     			for (Subscription sub : subs){ //we query every peer in group
     				
     				//TODO: make proxy configurable for every peer

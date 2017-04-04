@@ -11,10 +11,12 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.text.ParseException;
 import java.util.Base64;
+import java.util.Base64.Decoder;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -570,24 +572,29 @@ class ReceivingService{
 	 * @return
 	 * @throws IOException
 	 */
-	private File decodeTmpFile( File tf1) throws IOException{
+	static private File decodeTmpFile( File tf1) throws IOException{
 		InputStream i = null;
-		InputStream is = null;
 		BufferedInputStream isb = null;
 		//second file
 		//createtmp
-		File attachFile2 = File.createTempFile(cMessageId+ "decodedattachment", "");//second tmp file with decoded data. will be moved later.
+		File attachFile2 = File.createTempFile("decodedattachment", "");//second tmp file with decoded data. will be moved later.
 		FileOutputStream fos = new FileOutputStream(attachFile2);
 		
 		try{
 			i = new FileInputStream(tf1);
-			is = Base64.getDecoder().wrap(i);
-			isb = new BufferedInputStream(is, 1024*512); //encoded to decoded
+			//is = Base64.getDecoder().wrap(i);
+			Decoder dec = Base64.getDecoder();
+			isb = new BufferedInputStream(i, 1024*256); //encoded to decoded
+			//isbr = new InputStreamReader(isb, StandardCharsets.UTF_8);
 			int read = 0;
-			byte[] bytes = new byte[1024*512];//write
+			byte[] src = new byte[1024*256];//write
+			byte[] dst = new byte[1024*512];//write
 
-			while ((read = isb.read(bytes)) != -1) {
-				fos.write(bytes, 0, read);
+			while ((read = isb.read(src)) != -1) {
+				byte[] rd = new byte[read];
+				System.arraycopy(src, 0, rd, 0, read);
+				int n = dec.decode(rd, dst);
+				fos.write(dst, 0, n);
 			}
 			
 			fos.flush();
@@ -597,8 +604,6 @@ class ReceivingService{
 		}finally{
 			if (i != null)
 				i.close();
-			if (is != null) //if first stream closed are wrappers close too?
-				is.close();
 			if (isb != null)
 				isb.close();
 			if (fos != null)
@@ -607,6 +612,45 @@ class ReceivingService{
 		tf1.delete();
 		return attachFile2;
 	}
+	
+	//very slow idk why
+	/*private File decodeTmpFile( File tf1) throws IOException{
+	InputStream i = null;
+	InputStream is = null;
+	BufferedInputStream isb = null;
+	//second file
+	//createtmp
+	File attachFile2 = File.createTempFile(cMessageId+ "decodedattachment", "");//second tmp file with decoded data. will be moved later.
+	FileOutputStream fos = new FileOutputStream(attachFile2);
+	
+	try{
+		i = new FileInputStream(tf1);
+		is = Base64.getDecoder().wrap(i);
+		isb = new BufferedInputStream(is, 1024*512); //encoded to decoded
+		int read = 0;
+		byte[] bytes = new byte[1024*512];//write
+
+		while ((read = isb.read(bytes)) != -1) {
+			fos.write(bytes, 0, read);
+		}
+		
+		fos.flush();
+	}catch(IOException e){
+		attachFile2.delete();
+		throw e;
+	}finally{
+		if (i != null)
+			i.close();
+		if (is != null) //if first stream closed are wrappers close too?
+			is.close();
+		if (isb != null)
+			isb.close();
+		if (fos != null)
+			fos.close();
+	}
+	tf1.delete();
+	return attachFile2;
+} */
 	
 	
 	/**
