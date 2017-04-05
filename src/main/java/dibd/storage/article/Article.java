@@ -17,6 +17,7 @@
  */
 package dibd.storage.article;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
@@ -32,6 +33,7 @@ import javax.mail.internet.MimeUtility;
 
 import dibd.config.Config;
 import dibd.daemon.NNTPConnection;
+import dibd.storage.AttachmentProvider;
 import dibd.storage.GroupsProvider.Group;
 import dibd.storage.Headers;
 import dibd.storage.StorageBackendException;
@@ -113,6 +115,7 @@ public class Article { //extends ArticleHead
 
 	/**
 	 * Creates a new Article object OUTPUT. groupId no need, hash no need.
+	 * Only this constructor may be used with buildNNTPMessage and JDBCDatabase.createThread,replay output.
 	 * Output
 	 * @param id 1
 	 * @param thread_id 2
@@ -386,6 +389,37 @@ public class Article { //extends ArticleHead
 		return a.status;
 	}
 	
+	
+	
+	
+	public class NNTPArticle {
+		/**
+		 * if not multipart may contain full article 
+		 * if command HEAD only head
+		 */
+		final public String before_attach;
+		/**
+		 * if multipart it must be file.
+		 */
+		final public File attachment;
+		/**
+		 * may be null
+		 */
+		final public String after_attach;
+		
+		/**
+		 * @param before_attach
+		 * @param attachment
+		 * @param after_attach
+		 */
+		public NNTPArticle(String before_attach, File attachment, String after_attach) {
+			this.before_attach = before_attach;
+			this.attachment = attachment;
+			this.after_attach = after_attach;
+		}
+	}
+	
+	
 	/**
 	 * If we several times query buildNNTPMessage() we need to save boundary for all of them. 
 	 */
@@ -397,21 +431,22 @@ public class Article { //extends ArticleHead
 	//NNTP output
 	/**
 	 * Get headers or body(or both) for NNTP output.
+	 * File without \r\n ant the end! you must place it by yourself
 	 * no "." at the end.
 	 * BEFORE WRITING MUST BE ENCODED with daemon.LineEncoder!(for buffers recycling)
 	 * 
-	 *Side effect - boundary. it is static.
+	 * Side effect - boundary. it is static.
 	 * 
-	 * what 0 - both(without "\r\n" at the end.)
+	 * what 0 - full(with "\r\n" at the end.)
 	 * 		1 - header								-for articleCommand,ArticlePusher
-	 * 		2 - body(without "\r\n" at the end.)	-for articleCommand,ArticlePusher
+	 * 		
 	 * 
 	 * @param charset used for base64 encoding
 	 * @param what
 	 * @return article 
 	 * @throws IOException 
 	 */
-	public String buildNNTPMessage(Charset charset, int what) throws IOException {
+	public NNTPArticle buildNNTPMessage(Charset charset, int what) throws IOException {
 		assert (Config.inst().get(Config.HOSTNAME, null) != null);
 		//TODO: www input must not allow getSource()
 		
@@ -523,7 +558,7 @@ public class Article { //extends ArticleHead
 		buf.append(nl);
 
 		if (what == 1) //head
-			return buf.toString();
+			return new NNTPArticle(buf.toString(), null, null); //only head
 		
 
 		
@@ -539,6 +574,7 @@ public class Article { //extends ArticleHead
 		//else a.message will be used.
 		//////////////////// Body ///////////////////////////////
 		StringBuilder buf2 = new StringBuilder();
+		StringBuilder buf3 = null;
 		if(a.fileName == null){ //text/plain
 			if (maxLength > lengthLimit) //base64 encoded message
 				buf2.append(messsageB64); //the end, no need new line
@@ -580,20 +616,24 @@ public class Article { //extends ArticleHead
 			//TODO:decrease memory usage!!!
 			//TODO:decrease memory usage!!!
 			//TODO:decrease memory usage!!!
-			byte[] f = StorageManager.attachments.readFile(a.groupName, a.fileName);
-			byte[] eFile = Base64.getMimeEncoder(maxLine, nl.getBytes()).encode(f);
-			buf2.append(new String(eFile)).append(nl);
-			//empty line
-			//buf2.append(nl);
-			//final boundary
-			buf2.append(b).append(boundary).append(b); //the end, no need new line!
+			//byte[] f = StorageManager.attachments.readFile(a.groupName, a.fileName);
+			//byte[] eFile = Base64.getMimeEncoder(maxLine, nl.getBytes()).encode(f);
+			buf3 = new StringBuilder();
+			//buf3.append(new String(eFile)).append(nl);
+			//buf3.append(nl);
+			buf3.append(b).append(boundary).append(b); //the end, no need new line!
 		}
 
 
-		if (what == 2) //body
-			return buf2.toString();
-		else //full
-			return buf.append(buf2).toString();
+		//if (what == 2) //body
+			//return buf2.toString();
+		//else //full
+		if (buf3 != null)
+			return new NNTPArticle(buf.append(buf2).toString(),
+					StorageManager.attachments.getPath(a.groupName, a.fileName, AttachmentProvider.Atype.img), 
+					buf3.append(nl).toString());
+		else
+			return new NNTPArticle(buf.append(buf2).append(nl).toString(), null, null); //full
 
 	}
 	

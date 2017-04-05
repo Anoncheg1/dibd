@@ -32,7 +32,11 @@ import dibd.util.Log;
 
 /**
  * Pushes new articles to remote newsservers. This feeder sleeps until a new
- * message is posted to the sonews instance.
+ * message is posted to the sonews instance or if remote server is not respond.
+ * 
+ * That is why we need many pushDaemons.
+ * PushDaemons MUST NOT use Database.
+ * 
  *
  * @author Christian Lins
  * @since sonews/0.5.0
@@ -136,7 +140,7 @@ public class PushDaemon extends DaemonThread {
 				}
 				
 				try {
-	    			Thread.sleep(5*1000*retry*retry*retry);//geometric progression from 5 sec to 42 min 
+	    			Thread.sleep(5*1000*retry*retry);//geometric progression from 5 sec to 5 min 
 	    		} catch (InterruptedException e) {
 	    			return;
 	    		}

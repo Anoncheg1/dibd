@@ -23,7 +23,7 @@ import dibd.util.Log;
 public class AttachmentProvider {
 	private final File attachmentDir;
 	
-	public enum Atype {img, thm};//original attachments and thumbnails
+	public static enum Atype {img, thm};//original attachments and thumbnails
 	
 	/**
 	 * Get path to attachment file.
@@ -165,11 +165,11 @@ public class AttachmentProvider {
 		Files.move(file.toPath(), fdest.toPath(), StandardCopyOption.REPLACE_EXISTING);
 	}
 	
-	public byte[] readFile (String groupName, String fileName) throws IOException{
+	/*public byte[] readFile (String groupName, String fileName) throws IOException{
 		File ftoread = getPath(groupName, fileName, Atype.img);
 		assert(ftoread.exists());
 		return Files.readAllBytes(ftoread.toPath());
-	}
+	}*/
 	
 	/**
 	 * Delete attachment and thumbnail if exist

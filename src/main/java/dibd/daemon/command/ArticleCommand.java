@@ -29,6 +29,7 @@ import dibd.storage.StorageBackendException;
 import dibd.storage.StorageManager;
 import dibd.storage.GroupsProvider.Group;
 import dibd.storage.article.Article;
+import dibd.storage.article.Article.NNTPArticle;
 import dibd.util.Log;
 
 /**
@@ -70,7 +71,8 @@ public class ArticleCommand implements Command {
 
     @Override
     public String[] getSupportedCommandStrings() {
-        return new String[] { "ARTICLE", "BODY", "HEAD" };
+        //return new String[] { "ARTICLE", "BODY", "HEAD" };
+    	return new String[] { "ARTICLE", "HEAD" };
     }
 
     @Override
@@ -181,7 +183,7 @@ public class ArticleCommand implements Command {
         				.equals(Config.inst().get(Config.HOSTNAME, null))){
         			conn.println(ok);
         			//we build our article if it was not received by partial threads.
-        			conn.println(article.buildNNTPMessage(conn.getCurrentCharset(), 0));
+        			conn.print(article.buildNNTPMessage(conn.getCurrentCharset(), 0), article.getMessageId());
         		}else{ //message is not ours and we do not have cache.
         			Log.get().log(Level.SEVERE, "{0} article was not found in cache and do not have our hostname. NNPTCache is corrupted",
         					article.getMessageId());
@@ -194,13 +196,13 @@ public class ArticleCommand implements Command {
         	conn.println("221 " + article.getId() + " " + article.getMessageId()
         	+ " Headers follow (multi-line)");
 
-        	conn.println(article.buildNNTPMessage(conn.getCurrentCharset(), 1));
-        }else if (command[0].equalsIgnoreCase("BODY")) {
+        	conn.println(article.buildNNTPMessage(conn.getCurrentCharset(), 1).before_attach);
+        }/*else if (command[0].equalsIgnoreCase("BODY")) {
         	conn.println("222 " + article.getId() + " " + article.getMessageId()
         	+ " Body follows (multi-line)");
         	
         	conn.println(article.buildNNTPMessage(conn.getCurrentCharset(), 2));
-        }
+        }*/
         conn.println(".");
     }
 }

@@ -297,7 +297,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 	 * 
 	 * @param id
 	 * @param groupName
-	 * @param bfile if null we assume status = 0;
+	 * @param file no exist we assume status = 0;
 	 * @param content_type we can not trust it
 	 * @param file_name may be absent for nntp. we will use .xxx if exist.
 	 * @throws SQLException
@@ -310,7 +310,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			throw new StorageBackendException("Too long media-type");
 		
 		String fileNameForSave;
-		if (file != null)
+		if (file.exists())
 			fileNameForSave = String.valueOf(id);
 		else
 			fileNameForSave = "No File(was too large)";
@@ -321,8 +321,8 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 				fileNameForSave = fileNameForSave + "." + nameparts[nameparts.length-1];
 		}
 		
-		if (file != null)
-			StorageManager.attachments.saveFile(groupName, fileNameForSave, file);//if exist just carry on.
+		if (file.exists())
+			StorageManager.attachments.saveFile(groupName, fileNameForSave, file);//if exist we MUST replace!
 		//save database record
 		this.pstmtAttachmentSaving.setInt(1, id);
 		this.pstmtAttachmentSaving.setString(2, fileNameForSave);

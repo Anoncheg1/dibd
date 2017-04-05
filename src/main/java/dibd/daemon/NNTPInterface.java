@@ -7,6 +7,7 @@ import java.nio.charset.Charset;
 
 import dibd.storage.GroupsProvider.Group;
 import dibd.storage.article.Article;
+import dibd.storage.article.Article.NNTPArticle;
 
 
 /**
@@ -38,6 +39,8 @@ public interface NNTPInterface{
 	 * @throws IOException
 	 */
 	void print(FileInputStream fs, String mId) throws IOException;
+	
+	void print(NNTPArticle nart, String mId) throws IOException;
 	
 	//void println(byte[] source)  throws IOException; unsafe for buffers recycling
 

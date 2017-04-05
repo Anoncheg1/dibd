@@ -17,6 +17,8 @@
  */
 package dibd.daemon;
 
+import java.io.BufferedInputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -29,19 +31,25 @@ import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.Base64.Decoder;
+import java.util.Base64.Encoder;
 import java.util.logging.Level;
 
 import dibd.daemon.command.Command;
 import dibd.storage.StorageBackendException;
 import dibd.storage.GroupsProvider.Group;
 import dibd.storage.article.Article;
+import dibd.storage.article.Article.NNTPArticle;
 import dibd.util.Log;
 
 /**
  * For every SocketChannel (so TCP/IP connection) there is an instance of this
- * class.
+ * class for UTF-8.
  *
  * @author Christian Lins
  * @since sonews/0.5.0
@@ -348,7 +356,81 @@ public class NNTPConnection implements NNTPInterface{
     		return;
     	}
     	
+    }
+    
+    
+    public interface BiConsumerMy{
+    	public void accept(String str, String mId) throws IOException;
+    }
+    
+    private class BiConsumit implements BiConsumerMy{
+    	public void accept(String str, String mId) throws ClosedChannelException{
+    		lineEncoder.encode(CharBuffer.wrap(str));
+    		enableWriteEvents(mId+" attachment encoded and processed");
+    	}
+    }
+    
+    /**
+     * file to encode to Base64 and utf-8
+     * 
+     * After file you must place \r\n !!!!!!!
+     * 
+     * Consumer cStrMid must encode from default charset to utf-8 and send
+     * 
+     * @param attachment
+     * @param mId
+     * @param cStrMid
+     * @throws IOException
+     */
+    public static void print(File attachment, String mId, BiConsumerMy cStrMid) throws IOException{
+    	FileInputStream i = new FileInputStream(attachment);
+    	BufferedInputStream isb = null;
     	
+    	try{
+    		Encoder enc = Base64.getMimeEncoder(998, NEWLINE.getBytes());
+			isb = new BufferedInputStream(i, 1024*256); //encoded to decoded
+			
+			byte[] src = new byte[1024*256];//read
+			//byte[] dst = new byte[1024*512];//write
+			
+			int read = 0;
+			//we must add \r\n at the last line
+			if ((read = isb.read(src)) != -1)	//read
+			while (true) {
+				byte[] rd = new byte[read];
+				System.arraycopy(src, 0, rd, 0, read);
+				String str = enc.encodeToString(rd);
+				if ((read = isb.read(src)) == -1){	//read
+					cStrMid.accept(str + NEWLINE, mId); //last line write
+					break;
+				}
+				cStrMid.accept(str, mId); //write
+			}
+    	}finally{
+			if (i != null)
+				i.close();
+			if (isb != null)
+				isb.close();
+		}
+    }
+  
+    //must be with \r\n at the end.
+    public void print(NNTPArticle nart, String mId) throws IOException{
+    	if (nart.attachment != null){
+    		lineEncoder.encode(CharBuffer.wrap(nart.before_attach));
+        	enableWriteEvents(mId+" before attachment sent");
+        	
+        	//in default need to encode to Base64 and utf-8
+        	print(nart.attachment, mId, new BiConsumit());
+        	
+        	lineEncoder.encode(CharBuffer.wrap(nart.after_attach));
+        	enableWriteEvents(mId+" after attachment sent");
+    			
+    	}else{
+    		lineEncoder.encode(CharBuffer.wrap(nart.before_attach));
+    		enableWriteEvents(mId+" article sent");
+    	}
+    		
     }
 
     private void enableWriteEvents(CharSequence debugLine) {

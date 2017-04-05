@@ -67,9 +67,7 @@ public class FeedManager extends Thread{
 		return proxy;
 	}
 	
-	// TODO Make configurable
-	public static final int QUEUE_SIZE = 64; //queue length for every sub
-
+	
 	/**
 	 * Fixed running push daemons list per subscription with shared queue.
 	 */
@@ -81,7 +79,7 @@ public class FeedManager extends Thread{
 		if (Config.inst().get(Config.PEERING, true)) {
 			
 			//1) Pull daemon for getting missing threads 
-			final int pullThreadsAmount = 3; //TODO:make configurable
+			final int pullThreadsAmount = 5; //TODO:make configurable
 			for(int i = 0; i < pullThreadsAmount; i++){
         		(new PullDaemon()).start();
         	}
@@ -110,7 +108,8 @@ public class FeedManager extends Thread{
 
 	
 	
-	
+	// TODO Make configurable
+		public static final int PUSH_QUEUE_SIZE = 512; //queue length for every sub
 	/**
 	 * Start pushing
 	 * 
@@ -129,11 +128,17 @@ public class FeedManager extends Thread{
 							subGood = true;
 							break;
 						}
-				if(subGood){
-					//two threads her subscription. with shared LinkedBlockingQueue
-					LinkedBlockingQueue<Article> articleQueue = new LinkedBlockingQueue<>(QUEUE_SIZE);
-					List<PushDaemon> pds= Arrays.asList(new PushDaemon[]{
-							new PushDaemon(sub, articleQueue), new PushDaemon(sub, articleQueue)});
+				if(subGood){ //TODO: we require many push daemons. how to do it in static thread model?
+					//shared LinkedBlockingQueue between one subscription
+					LinkedBlockingQueue<Article> articleQueue = new LinkedBlockingQueue<>(PUSH_QUEUE_SIZE);
+					//PushDaemon did not use storage, that is why we can easily create many.
+					int pushThreads = 30;
+					List<PushDaemon> pds= new ArrayList<>(pushThreads); 
+					for( int i = 0; i < pushThreads; i++){
+						pds.add(new PushDaemon(sub, articleQueue));
+					}
+					//List<PushDaemon> pds = Arrays.asList(new PushDaemon[]{
+						//	new PushDaemon(sub, articleQueue), new PushDaemon(sub, articleQueue)});
 					pushDaemons.put(sub.getHost(), pds);
 					pds.forEach( (e) -> e.start() );
 					//Log.get().info("pushDaemons for " +sub.getHost()+" started");

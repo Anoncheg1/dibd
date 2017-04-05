@@ -582,14 +582,14 @@ class ReceivingService{
 		
 		try{
 			i = new FileInputStream(tf1);
-			//is = Base64.getDecoder().wrap(i);
 			Decoder dec = Base64.getDecoder();
 			isb = new BufferedInputStream(i, 1024*256); //encoded to decoded
-			//isbr = new InputStreamReader(isb, StandardCharsets.UTF_8);
-			int read = 0;
-			byte[] src = new byte[1024*256];//write
+			
+			byte[] src = new byte[1024*256];//read
 			byte[] dst = new byte[1024*512];//write
-
+			
+			int read = 0;
+			
 			while ((read = isb.read(src)) != -1) {
 				byte[] rd = new byte[read];
 				System.arraycopy(src, 0, rd, 0, read);

@@ -23,6 +23,7 @@ import dibd.storage.StorageBackendException;
 import dibd.storage.StorageManager;
 import dibd.storage.StorageNNTP;
 import dibd.storage.article.Article;
+import dibd.storage.article.Article.NNTPArticle;
 
 public class ArticleTest {
 	
@@ -52,7 +53,7 @@ public class ArticleTest {
 		//test file attachment
 		String group = "local.test";
 		String fileName = "fakefakefakefakefakefakefakefake";
-		when(this.aprov.readFile(group, fileName)).thenReturn(fileName.getBytes());//file contains fileName
+		//when(this.aprov.readFile(group, fileName)).thenReturn(fileName.getBytes());//file contains fileName
 
 		int thread_id = 777;
 		Article resa1 = new Article(null, thread_id, "<message-id@host.com>", "host.com", null, "сабджект", "фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы", 
@@ -67,8 +68,8 @@ public class ArticleTest {
 			when(storage.getMessageId(thread_id)).thenReturn("<refmessageid@foo.bar>");
 		} catch (StorageBackendException e) {e.printStackTrace();}
 				
-		String res = null; //without image 1)
-		String resWF = null;//with image 2)
+		NNTPArticle res = null; //without image 1)
+		NNTPArticle resWF = null;//with image 2)
         try {
 			res = resa1.buildNNTPMessage(Charset.forName("UTF-8"),0);
 			resWF = resa2.buildNNTPMessage(Charset.forName("UTF-8"),0);
@@ -90,15 +91,17 @@ public class ArticleTest {
         buf.append("Content-Type: text/plain; charset=utf-8").append("\r\n");
         buf.append("Content-Transfer-Encoding: 8bit").append("\r\n\r\n");
         buf.append("фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы");
+        buf.append("\r\n");
         //String ss= "фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы";
-        //System.out.println(new String(res));
-        //System.out.println(buf.toString());
-        assertTrue(buf.toString().equalsIgnoreCase(new String(res)));
+        assertTrue(buf.toString().equalsIgnoreCase(res.before_attach));
+        
+        
+        
         
         //TEST FOR ARTICLE WITH FILE 2)
         
         //split resWF to parts
-        String wf = new String(resWF);
+        String wf = resWF.before_attach;
         String boundary = null;
         Pattern pattern = Pattern.compile("boundary=\"(.*)\"");
         Matcher matcher = pattern.matcher(wf);
@@ -134,8 +137,8 @@ public class ArticleTest {
         buf.append("content-type: img/png").append("\r\n");
         buf.append("content-disposition: attachment; filename=\""+fileName+"\"").append("\r\n");
         buf.append("content-transfer-encoding: base64").append("\r\n\r\n"); //empty line between headers and body
-        buf.append("ZmFrZWZha2VmYWtlZmFrZWZha2VmYWtlZmFrZWZha2U=").append("\r\n"); // no need empty line
-        buf.append("----"); //left after removing boundary (not important at all)
+        //buf.append("ZmFrZWZha2VmYWtlZmFrZWZha2VmYWtlZmFrZWZha2U=").append("\r\n"); // no need empty line
+        //buf.append("----"); //left after removing boundary (not important at all)
         
         assertTrue(buf.toString().equalsIgnoreCase(part[2].replace(boundary, ""))); //image part
         

@@ -62,6 +62,7 @@ import dibd.storage.StorageBackendException;
 import dibd.storage.GroupsProvider.Group;
 import dibd.storage.Headers;
 import dibd.storage.article.Article;
+import dibd.storage.article.Article.NNTPArticle;
 import dibd.util.Log;
 
 /**
@@ -209,6 +210,7 @@ public class ArticlePuller {
 		public void setCurrentGroup(Group group) {}
 		public void close() {}
 		public void print(FileInputStream fs, String mId){}
+		public void print(NNTPArticle nart, String mId){}
 		public TLS getTLS() {return null;}
 		public void setTLS(TLS tls) {}
 		public boolean isTLSenabled() {
@@ -235,7 +237,10 @@ public class ArticlePuller {
 				host = socket.getRemoteSocketAddress().toString();
 
 			return host;
-		}	
+		}
+
+		
+			
 	}
 	private Response conn = new Response(); //hook for loopback
 	
@@ -374,6 +379,7 @@ public class ArticlePuller {
 					return 1;
 				}
 				line = new String(raw, this.charset);
+				Log.get().log(Level.FINEST, "<< {0}", line);
 				ihavec.processLine(conn, line, raw); //send ihave
 
 			}while(!".".equals(line));

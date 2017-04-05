@@ -20,6 +20,7 @@ package dibd.feed;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -37,8 +38,10 @@ import javax.net.ssl.SSLSocket;
 import dibd.daemon.ChannelLineBuffers;
 import dibd.daemon.LineEncoder;
 import dibd.daemon.NNTPConnection;
+import dibd.daemon.NNTPConnection.BiConsumerMy;
 import dibd.storage.StorageManager;
 import dibd.storage.article.Article;
+import dibd.storage.article.Article.NNTPArticle;
 import dibd.util.Log;
 
 /**
@@ -80,7 +83,7 @@ public class ArticlePusher {
 			this.out.flush();
 			this.inr.readLine();//we are polite
 			this.socket.close();
-		} catch (IOException e) {} 
+		} catch (Exception e) {} 
 	}
 
 	//true no have
@@ -183,6 +186,14 @@ public class ArticlePusher {
 	}
 	
 	
+	private class BiConsumit implements BiConsumerMy{
+    	public void accept(String str, String mId) throws IOException{
+    		lineEncoder.encode(CharBuffer.wrap(str));
+			writeLines();
+    	}
+    }
+	
+	
 	/**
 	 * Write article
 	 * for local - build nntp message
@@ -202,24 +213,29 @@ public class ArticlePusher {
 		FileInputStream fis = StorageManager.nntpcache.getFileStream(art);
 		try{
 			if(fis == null){//local
-				//header
-				this.lineEncoder.encode(CharBuffer.wrap(art.buildNNTPMessage(this.charset, 1)));//(), this.charset).encode(lineBuffers);
-				writeLines();
-
-
-
-
-				//good working for diboard
-				try {Thread.sleep(2000);} catch (InterruptedException e) {} //2 sec is enough 
-				if(inr.ready()){	//(My invention)
-					if (checkErrors())
-						return false;
+				NNTPArticle nart = art.buildNNTPMessage(this.charset, 0);
+				
+				if (nart.attachment != null){ //multipart
+					lineEncoder.encode(CharBuffer.wrap(nart.before_attach));
+					writeLines();
+					
+					//good working for diboard
+					try {Thread.sleep(2000);} catch (InterruptedException e) {} //2 sec is enough 
+					if(inr.ready()){	//(My invention)
+						if (checkErrors())
+							return false;
+					}
+					
+					NNTPConnection.print(nart.attachment, null, new BiConsumit());
+					
+					lineEncoder.encode(CharBuffer.wrap(nart.after_attach));
+					writeLines();
+					
+				}else{ //not multipart
+					lineEncoder.encode(CharBuffer.wrap(nart.before_attach));
+					writeLines();
 				}
-
-				//body
-				this.lineEncoder.encode(CharBuffer.wrap(art.buildNNTPMessage(charset, 2)));
-				writeLines();
-				this.out.write((NNTPConnection.NEWLINE).getBytes(charset));//it's add "\r\n" at the end of the body
+				
 			}else //NNTP cache
 				pushFileStream(fis);
 		}finally{

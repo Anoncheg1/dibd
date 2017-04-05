@@ -49,7 +49,7 @@ import dibd.util.Log;
 public class PullDaemon extends DaemonThread {
 
 	// TODO Make configurable
-	public static final int QUEUE_SIZE = 128;
+	public static final int QUEUE_SIZE = 512;
 	
 	private static class MissingThread{
 		Group g; //groupt to query to
