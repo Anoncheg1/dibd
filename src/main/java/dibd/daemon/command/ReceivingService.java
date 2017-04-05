@@ -575,26 +575,25 @@ class ReceivingService{
 	static private File decodeTmpFile( File tf1) throws IOException{
 		InputStream i = null;
 		BufferedInputStream isb = null;
+		InputStream bis = null;
 		//second file
 		//createtmp
 		File attachFile2 = File.createTempFile("decodedattachment", "");//second tmp file with decoded data. will be moved later.
 		FileOutputStream fos = new FileOutputStream(attachFile2);
 		
 		try{
+			//input
 			i = new FileInputStream(tf1);
-			Decoder dec = Base64.getDecoder();
-			isb = new BufferedInputStream(i, 1024*256); //encoded to decoded
+			isb = new BufferedInputStream(i, 1024*512); //encoded to decoded
+			bis = Base64.getDecoder().wrap(isb);
 			
-			byte[] src = new byte[1024*256];//read
-			byte[] dst = new byte[1024*512];//write
+			byte[] src = new byte[1024];//read
 			
 			int read = 0;
-			
-			while ((read = isb.read(src)) != -1) {
+			while ((read = bis.read(src)) != -1) {
 				byte[] rd = new byte[read];
 				System.arraycopy(src, 0, rd, 0, read);
-				int n = dec.decode(rd, dst);
-				fos.write(dst, 0, n);
+				fos.write(rd);
 			}
 			
 			fos.flush();
@@ -608,6 +607,8 @@ class ReceivingService{
 				isb.close();
 			if (fos != null)
 				fos.close();
+			if (bis != null)
+				bis.close();
 		}
 		tf1.delete();
 		return attachFile2;

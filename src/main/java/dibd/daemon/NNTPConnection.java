@@ -18,9 +18,13 @@
 package dibd.daemon;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.nio.ByteBuffer;
@@ -371,9 +375,9 @@ public class NNTPConnection implements NNTPInterface{
     }
     
     /**
-     * file to encode to Base64 and utf-8
+     * local attachment encode to Base64 (in memory).
      * 
-     * After file you must place \r\n !!!!!!!
+     * \r\n after file added in Article.build
      * 
      * Consumer cStrMid must encode from default charset to utf-8 and send
      * 
@@ -385,40 +389,44 @@ public class NNTPConnection implements NNTPInterface{
     public static void print(File attachment, String mId, BiConsumerMy cStrMid) throws IOException{
     	FileInputStream i = new FileInputStream(attachment);
     	BufferedInputStream isb = null;
-    	
+    	PipedInputStream buf = null;
+    	PipedOutputStream pos = null;
+    	OutputStream bos = null;
     	try{
-    		Encoder enc = Base64.getMimeEncoder(980, NEWLINE.getBytes(StandardCharsets.ISO_8859_1));
-			isb = new BufferedInputStream(i, 1024*256); //encoded to decoded
+    		//input
+			isb = new BufferedInputStream(i, 1024*512); //encoded to decoded
+			//output buffer without file
+			buf = new PipedInputStream(1024*8); //8k but 800b is enough
+			pos = new PipedOutputStream(buf);  
+			bos = Base64.getEncoder().wrap(pos);
 			
-			byte[] src = new byte[1024*256];//read
-			//byte[] dst = new byte[1024*512];//write
+			byte[] src = new byte[600];//read. encoded to 800 exactly
+			byte[] pinp = new byte[980];//write
 			
 			int read = 0;
-			//we must add \r\n at the last line
-			/*if ((read = isb.read(src)) != -1)	//read
-			while (true) {
-				byte[] rd = new byte[read];
+			while ((read = isb.read(src)) != -1) {
+				byte[] rd = new byte[read]; //tmp buf
 				System.arraycopy(src, 0, rd, 0, read);
-				String str = enc.encodeToString(rd);
-				if ((read = isb.read(src)) == -1){	//read
-					cStrMid.accept(str + NEWLINE, mId); //last line write
-					break;
-				}else
-					cStrMid.accept(str, mId); //write
-			}*/
-			//read
-				while ((read = isb.read(src)) != -1) {
-					byte[] rd = new byte[read];
-					System.arraycopy(src, 0, rd, 0, read);
-					String str = enc.encodeToString(rd);
-					cStrMid.accept(str, mId); //write
-				}
+				bos.write(rd);
+				if ((read = buf.read(pinp)) != -1){
+					rd = new byte[read]; //tmp buf
+					System.arraycopy(pinp, 0, rd, 0, read); 
+					//we dont knew which encoding is rd, we create string and pass to encoder to UTF-8
+					cStrMid.accept(new String(rd), mId); //write
+				}	
+			}
 			
     	}finally{
 			if (i != null)
 				i.close();
 			if (isb != null)
 				isb.close();
+			if (buf != null)
+				buf.close();
+			if (pos != null)
+				pos.close();
+			if (bos != null)
+				bos.close();
 		}
     }
   

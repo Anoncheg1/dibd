@@ -165,7 +165,7 @@ public class ArticlePuller {
 					}catch(SocketTimeoutException e)
 					{
 						
-						if (i++ >= 5){
+						if (i++ >= 6){
 							Log.get().log(Level.INFO, "From {0} connection timeout. return null.", this.host);
 							return null; //connection timeout
 						}
@@ -286,7 +286,7 @@ public class ArticlePuller {
 			}
 
 		}catch(IOException e){
-			if (this.retryes++ > 3){
+			if (this.retryes++ > 5){
 				Log.get().log(Level.WARNING, "Pull brake up with {0} becouse unexpected responses.", this.host );
 				return reseived;
 			}else{

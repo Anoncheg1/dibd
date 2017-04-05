@@ -18,6 +18,7 @@
 
 package dibd.daemon;
 
+import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.channels.ClosedChannelException;
@@ -90,6 +91,9 @@ public class LineEncoder {
               //  break;
         }
     }
+	
+	
+	
 	
 	/*
 	public void encode(InputStream fs) throws IOException {
