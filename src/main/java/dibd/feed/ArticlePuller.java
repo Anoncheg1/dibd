@@ -269,8 +269,8 @@ public class ArticlePuller {
 				if (res == 0)//thread accepted?
 					reseived ++;
 				else if (res == 1){ //error in thread
-					if(errors++ >= 2)
-						throw new IOException("2 errors"); 
+					if(errors++ >= 3)
+						throw new IOException("3 errors"); 
 					continue;
 				}
 
@@ -278,15 +278,15 @@ public class ArticlePuller {
 					int re = transferToItself(new IhaveCommand(), replay);
 					if (re == 0)
 						reseived ++;
-					else if (re == 1 && errors++ >= 2)
-							throw new IOException("2 errors");//error
+					else if (re == 1 && errors++ >= 3)
+							throw new IOException("3 errors");//error
 				}
 
 				iterator.remove();
 			}
 
 		}catch(IOException e){
-			if (this.retryes++ > 5){
+			if (this.retryes++ > 7){
 				Log.get().log(Level.WARNING, "Pull brake up with {0} becouse unexpected responses.", this.host );
 				return reseived;
 			}else{
