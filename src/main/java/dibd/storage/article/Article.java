@@ -620,7 +620,7 @@ public class Article { //extends ArticleHead
 			//byte[] eFile = Base64.getMimeEncoder(maxLine, nl.getBytes()).encode(f);
 			buf3 = new StringBuilder();
 			//buf3.append(new String(eFile)).append(nl);
-			//buf3.append(nl);
+			buf3.append(nl);
 			buf3.append(b).append(boundary).append(b); //the end, no need new line!
 		}
 

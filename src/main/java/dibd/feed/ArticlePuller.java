@@ -257,28 +257,36 @@ public class ArticlePuller {
 	 */
 	public int toItself(Iterator<Entry<String, List<String>>> iterator, int resived) throws StorageBackendException, IOException{
 		int reseived = resived;
+		int errors = 0;
 		try{
 		//we pass rLeft for accepted thread only
 		//If thread was corrupted then we reject his rLeft
 		//it will prevent "getting missing threads".
-		while (iterator.hasNext()){
-			Entry<String, List<String>> mId = iterator.next();
-		
-			int res = transferToItself(new IhaveCommand(), mId.getKey());
-			if (res == 0)//thread accepted?
-				reseived ++;
-			else if (res == 1) //error in thread
-				continue;
-				
-			for(String replay : mId.getValue())
-				if (transferToItself(new IhaveCommand(), replay) == 0)
+			while (iterator.hasNext()){
+				Entry<String, List<String>> mId = iterator.next();
+
+				int res = transferToItself(new IhaveCommand(), mId.getKey());
+				if (res == 0)//thread accepted?
 					reseived ++;
-			
-			iterator.remove();
-		}
-		
+				else if (res == 1){ //error in thread
+					if(errors++ >= 2)
+						throw new IOException("2 errors"); 
+					continue;
+				}
+
+				for(String replay : mId.getValue()){
+					int re = transferToItself(new IhaveCommand(), replay);
+					if (re == 0)
+						reseived ++;
+					else if (re == 1 && errors++ >= 2)
+							throw new IOException("2 errors");//error
+				}
+
+				iterator.remove();
+			}
+
 		}catch(IOException e){
-			if (this.retryes > 3){
+			if (this.retryes++ > 3){
 				Log.get().log(Level.WARNING, "Pull brake up with {0} becouse unexpected responses.", this.host );
 				return reseived;
 			}else{

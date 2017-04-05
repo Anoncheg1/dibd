@@ -387,7 +387,7 @@ public class NNTPConnection implements NNTPInterface{
     	BufferedInputStream isb = null;
     	
     	try{
-    		Encoder enc = Base64.getMimeEncoder(998, NEWLINE.getBytes());
+    		Encoder enc = Base64.getMimeEncoder(980, NEWLINE.getBytes(StandardCharsets.ISO_8859_1));
 			isb = new BufferedInputStream(i, 1024*256); //encoded to decoded
 			
 			byte[] src = new byte[1024*256];//read
@@ -395,7 +395,7 @@ public class NNTPConnection implements NNTPInterface{
 			
 			int read = 0;
 			//we must add \r\n at the last line
-			if ((read = isb.read(src)) != -1)	//read
+			/*if ((read = isb.read(src)) != -1)	//read
 			while (true) {
 				byte[] rd = new byte[read];
 				System.arraycopy(src, 0, rd, 0, read);
@@ -403,9 +403,17 @@ public class NNTPConnection implements NNTPInterface{
 				if ((read = isb.read(src)) == -1){	//read
 					cStrMid.accept(str + NEWLINE, mId); //last line write
 					break;
+				}else
+					cStrMid.accept(str, mId); //write
+			}*/
+			//read
+				while ((read = isb.read(src)) != -1) {
+					byte[] rd = new byte[read];
+					System.arraycopy(src, 0, rd, 0, read);
+					String str = enc.encodeToString(rd);
+					cStrMid.accept(str, mId); //write
 				}
-				cStrMid.accept(str, mId); //write
-			}
+			
     	}finally{
 			if (i != null)
 				i.close();
