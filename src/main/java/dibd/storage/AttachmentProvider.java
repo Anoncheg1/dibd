@@ -152,7 +152,7 @@ public class AttachmentProvider {
 					cmd.run(op);
 				}
 			} catch (Exception e) {
-				Log.get().log(Level.WARNING, "Can not create thumbnail: {0}", e);
+				Log.get().log(Level.WARNING, "Can not create thumbnail: {0}", e.getLocalizedMessage());
 			}
 		}
 	}
