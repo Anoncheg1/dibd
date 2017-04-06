@@ -426,8 +426,6 @@ public class NNTPConnection implements NNTPInterface{
 				buf.close();
 			if (pos != null)
 				pos.close();
-			if (bos != null)
-				bos.close();
 		}
     }
   

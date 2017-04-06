@@ -130,7 +130,7 @@ public class PushDaemon extends DaemonThread {
 					break;
 				} catch (IOException ex) {
 					Log.get().log(Level.INFO, "PushDaemon {0} {1} {2} , retry {3} I/O Exception: {4}", 
-							new Object[] { sub.getHost(), article.getMessageId(), article.getGroupName(), retry, ex.getLocalizedMessage()});//contitune
+							new Object[] { sub.getHost(), article.getMessageId(), article.getGroupName(), retry, ex});//contitune
 				}catch (Exception e) {
 					Log.get().log(Level.SEVERE, e.getLocalizedMessage(), e);
 					break;
