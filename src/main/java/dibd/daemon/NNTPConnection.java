@@ -392,6 +392,7 @@ public class NNTPConnection implements NNTPInterface{
     	PipedInputStream buf = null;
     	PipedOutputStream pos = null;
     	OutputStream bos = null;
+    	
     	try{
     		//input
 			isb = new BufferedInputStream(i, 1024*512); //encoded to decoded

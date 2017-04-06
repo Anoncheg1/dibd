@@ -65,7 +65,7 @@ class ShutdownHook implements Runnable {
     		for (Thread thread : threads) {  //3) ChannelWriter NNTPDaemon  Connections 
     			if (thread instanceof DaemonThread && thread.isAlive()) {
 
-    				System.err.println("sonews: Waiting for " + thread.getName()
+    				System.err.println("dibd: Waiting for " + thread.getName()
     				+ " to exit...");
     				((DaemonThread) thread).requestShutdown();
     				((DaemonThread) thread).join(500);

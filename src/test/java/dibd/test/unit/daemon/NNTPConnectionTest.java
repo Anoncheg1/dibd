@@ -18,17 +18,26 @@
 
 package dibd.test.unit.daemon;
 
+import static org.junit.Assert.*;
+
 import java.io.IOException;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.nio.CharBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+
+import org.junit.Test;
+
 import junit.framework.TestCase;
 
 import dibd.daemon.CommandSelector;
 import dibd.daemon.NNTPConnection;
+import dibd.daemon.NNTPConnection.BiConsumerMy;
 import dibd.daemon.command.ArticleCommand;
 import dibd.daemon.command.CapabilitiesCommand;
 import dibd.daemon.command.Command;
@@ -43,8 +52,9 @@ import dibd.util.Log;
  * @since sonews/0.5.0
  */
 
-public class NNTPConnectionTest extends TestCase {
+public class NNTPConnectionTest{
 
+	@Test
 	public void testLineReceived() throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
 		NNTPConnection conn = null;
 
@@ -129,5 +139,7 @@ public class NNTPConnectionTest extends TestCase {
 		assertTrue(result instanceof GroupCommand);
 		
 	}
+	
+	
 
 }
