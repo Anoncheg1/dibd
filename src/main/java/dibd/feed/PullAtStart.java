@@ -129,31 +129,38 @@ public class PullAtStart extends Thread {
     	
     	Set<Group> groups = new HashSet<Group>(set); //modifiable
     	//Map<Group, Long> groupsTime = new HashMap<Group, Long>();//groups with last post time (not ordered)
-    	 
-    	try {
-    		
-    		for (Iterator<Group> iterator = groups.iterator(); iterator.hasNext();) {
-    			Group g = iterator.next();
-    			assert(g != null);
-    			if(g.isDeleted())
-    				iterator.remove();
-    		}
-    		/*for (Group g : groups){// we save post_time at the beginning to protect it from changing.
+    	while(true){
+    		try {
+
+    			for (Iterator<Group> iterator = groups.iterator(); iterator.hasNext();) {
+    				Group g = iterator.next();
+    				assert(g != null);
+    				if(g.isDeleted())
+    					iterator.remove();
+    			}
+    			/*for (Group g : groups){// we save post_time at the beginning to protect it from changing.
     			assert (g != null);
     			if(!g.isDeleted()){
     				long t = StorageManager.current().getLastPostOfGroup(g);
     				groupsTime.put(g, t);
     			}
         	}
-    		*/
-    		int res = pullLoop(groups, host, port, 21, 60*1000);
-    		Log.get().log(Level.INFO, "Pull {0} from {1} sucessfully completed, {2} articles reseived.",
-    				new Object[]{
-    						groups.stream().map(e -> e.getName()).reduce( (e1, e2) -> e1+", "+e2).get(), host, res});
-    	}catch (StorageBackendException e) {
-    		Log.get().log(Level.WARNING, e.getLocalizedMessage(), e);
-    	}catch (Exception e) {
-    		Log.get().log(Level.SEVERE, e.getLocalizedMessage(), e);
+    			 */
+    			int res = pullLoop(groups, host, port, 21, 60*1000);
+    			Log.get().log(Level.INFO, "Pull {0} from {1} sucessfully completed, {2} articles reseived.",
+    					new Object[]{
+    							groups.stream().map(e -> e.getName()).reduce( (e1, e2) -> e1+", "+e2).get(), host, res});
+    		}catch (StorageBackendException e) {
+    			Log.get().log(Level.WARNING, e.getLocalizedMessage(), e);
+    		}catch (Exception e) {
+    			Log.get().log(Level.SEVERE, e.getLocalizedMessage(), e);
+    		}
+    		try {
+    			//TODO:make configurable
+				Thread.sleep(1000*60*60*5);//xover every 5 hours. nntpchan do relay at push...
+			} catch (InterruptedException e) {
+				Log.get().log(Level.FINEST, "PullAtStart "+sub.getHost()+" interrupted: {0}", e.getLocalizedMessage());
+			}
     	}
     }
 }

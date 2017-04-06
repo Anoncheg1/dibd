@@ -162,11 +162,13 @@ public class ShortRefParser {
 							Sha1AndMID.put(st, mId);
 						}
 					}
-
+					System.out.println(matcher.group(3));
 					//main work
 					for(Entry<String, String> sha : Sha1AndMID.entrySet())
 						if (sha.getKey().startsWith(matcher.group(4))){
+							try{
 							message = message.replaceFirst(matcher.group(3), sha.getValue()); //nntpchan link to message-id
+							}catch(IndexOutOfBoundsException e){/*may happen i dont knew why*/}
 							break;
 						}
 					}
