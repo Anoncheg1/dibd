@@ -40,55 +40,29 @@ public class Config extends AbstractConfig {
     public static final String MAX_ARTICLE_SIZE = "dibd.article.maxsize"; //MB. attachment size for web, article size for article
     public static final String MAX_MESSAGE_SIZE = "dibd.article.maxmessagesize"; //limit = dibd.article.maxsize*dibd.maxsize_multiplier
     /**
-     * BackendConfig key constant. Value: Amount of news that are feeded per
-     * run.
+     * log
      */
     public static final String LOGDIR = "dibd.log.dir";
     public static final String LOGLEVEL = "dibd.log.level";
-
+    /**
+     * Feed
+     */
     public static final String PEERING = "dibd.feed";
-    public static final String FEED_NEWSPERRUN = "dibd.feed.newsperrun";//notused
-    public static final String FEED_PULLINTERVAL = "dibd.feed.pullinterval";//notused
+    public static final String PULLINTERVAL = "dibd.feed.pullinterval";//pullat start will run again after ? hours
     //TODO:configurable for every peer
     public static final String PROXYHTTP = "dibd.feed.proxy.http";
     public static final String PROXYSOCKS = "dibd.feed.proxy.socks";
     public static final String TLSENABLED = "dibd.feed.tlsenabled"; //TLS or public globally. No variants for now.
-
+    /**
+     * Core socket
+     */
     public static final String HOSTNAME = "dibd.hostname";
     public static final String PORT = "dibd.port";
     public static final String TIMEOUT = "dibd.timeout";
     
-    //It can be increased or decreased without lose. VALUES 1-7
-    public static final String ID_F_COUNT = "dibd.id_f_count"; //count of F symbol in hex internal article Id
-     
-
-    /*
-    public static final String MLPOLL_DELETEUNKNOWN = "dibd.mlpoll.deleteunknown";
-    public static final String MLPOLL_HOST = "dibd.mlpoll.host";
-    public static final String MLPOLL_PASSWORD = "dibd.mlpoll.password";
-    public static final String MLPOLL_USER = "dibd.mlpoll.user";
-
-    public static final String MLSEND_ADDRESS = "dibd.mlsend.address";
-    public static final String MLSEND_RW_FROM = "dibd.mlsend.rewrite.from";
-    public static final String MLSEND_RW_SENDER = "dibd.mlsend.rewrite.sender";
-    public static final String MLSEND_HOST = "dibd.mlsend.host";
-    public static final String MLSEND_PASSWORD = "dibd.mlsend.password";
-    public static final String MLSEND_PORT = "dibd.mlsend.port";
-    public static final String MLSEND_USER = "dibd.mlsend.user";
-    public static final String MLSEND_AUTH = "dibd.mlsend.auth";
-    */
-    public static final String NNTPALLOW_UNAUTORIZED = "dibd.nntp.allow_unautorized_post";
-    public static final String IMAGEMAGICPATH = "dibd.path.imagemagic";
-    public static final String ATTACHDIR = "dibd.attach.dir";
-    public static final String NNTPCACHEDIR = "dibd.nntpcache.dir";
-    
-
     /**
-     * Key constant. If value is "true" every I/O is written to logfile (which
-     * is a lot!)
+     * Core database
      */
-    public static final String DEBUG = "dibd.debug";
-
     /** Key constant. Value is classname of the JDBC driver */
     public static final String STORAGE_DBMSDRIVER = "dibd.storage.dbmsdriver";
     /** Key constant. Value is JDBC connect String to the database. */
@@ -100,6 +74,15 @@ public class Config extends AbstractConfig {
     public static final String STORAGE_PASSWORD = "dibd.storage.password";
     public static final String STORAGE_PORT     = "dibd.storage.port";
     public static final String STORAGE_PROVIDER = "dibd.storage.provider";
+    public static final String ID_F_COUNT = "dibd.id_f_count"; //count of F symbol in hex internal article Id
+
+    
+    public static final String NNTPALLOW_UNAUTORIZED = "dibd.nntp.allow_unautorized_post";
+    public static final String IMAGEMAGICPATH = "dibd.path.imagemagic";
+    public static final String ATTACHDIR = "dibd.attach.dir";
+    public static final String NNTPCACHEDIR = "dibd.nntpcache.dir";
+    
+    
     
     /** Web used in JDBCDatabase */
     public static final String THREADS_PER_PAGE = "dibd.web.threads_per_page";
