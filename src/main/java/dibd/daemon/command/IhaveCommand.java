@@ -245,7 +245,6 @@ public class IhaveCommand implements Command{
 			} catch (UnsupportedEncodingException e) {
 				conn.println("437 Something wrong with message");
 			} catch (StorageBackendException ex) {
-				ex.printStackTrace();
 				conn.println("500 Internal server error");
 			} catch (MessagingException|ParseException e) {
 				conn.println("437 Wrong MIME headers");

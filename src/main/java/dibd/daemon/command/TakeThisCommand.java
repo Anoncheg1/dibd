@@ -228,7 +228,6 @@ if(! error){
 			} catch (UnsupportedEncodingException e) {
 				conn.println("439 "+cMessageId+" Something wrong with message");
 			} catch (StorageBackendException ex) {
-				ex.printStackTrace();
 				conn.println("500 "+cMessageId+" Internal server error");
 			} catch (MessagingException|ParseException e) {
 				conn.println("439 "+cMessageId+" Wrong MIME headers");
