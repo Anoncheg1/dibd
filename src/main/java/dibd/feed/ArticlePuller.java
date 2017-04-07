@@ -671,19 +671,24 @@ public class ArticlePuller {
 			thTime.put(th.getKey(),tdate); //thread with date
 		}
 		
-		//sort threads by time
-		List<Entry<String, Long>> thTimeList = thTime.entrySet().stream().sorted( (e1, e2) -> Long.compare(e1.getValue(), e2.getValue()) ).collect(Collectors.toList());
+		//sort threads by time. reversed order larger at top
+		List<Entry<String, Long>> thTimeList = thTime.entrySet().stream().sorted( (e1, e2) -> Long.compare(e2.getValue(), e1.getValue()) ).collect(Collectors.toList());
 		//left max threads per group threads
 		int threads_per_page = Config.inst().get(Config.THREADS_PER_PAGE, 5);
 		int pages = Config.inst().get(Config.PAGE_COUNT, 6)+1; //from 0
-		int maxth =  threads_per_page * pages;
+		/*
+		 * threads count we pull.
+		 * When pull in process some new or missing threads may bump up
+		 * that is why we remove several oldest threads from pull request
+		 */
+		int maxth =  threads_per_page * pages - 4; 
 		int size = thTimeList.size();
 		Map<String, List<String>> messageIDs2 = new LinkedHashMap<>(maxth);
-		int i = (size - maxth)>0 ? (size - maxth) : 0; //last maxth threads
+		//int i = (size - maxth)>0 ? (size - maxth) : 0; //last maxth threads
 		
-		for(; i<size; i++){
-			String mid = thTimeList.get(i).getKey();
-			List<String> val = messageIDs.get(mid);
+		for(int i = 0; i < maxth; i++){
+			String mid = thTimeList.get(i).getKey(); //thread mid
+			List<String> val = messageIDs.get(mid); //replays
 			//if (thTimeList.get(i).getValue().longValue() >= last_post) //will be problem if peer was off and we had new messages. not very old peer threads will be rejected.
 				messageIDs2.put(mid, val);
 		}
