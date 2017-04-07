@@ -681,12 +681,12 @@ public class ArticlePuller {
 		 * When pull in process some new or missing threads may bump up
 		 * that is why we remove several oldest threads from pull request
 		 */
-		int maxth =  threads_per_page * pages - 4; 
+		int req =  threads_per_page * pages - 4; 
 		int size = thTimeList.size();
-		Map<String, List<String>> messageIDs2 = new LinkedHashMap<>(maxth);
-		//int i = (size - maxth)>0 ? (size - maxth) : 0; //last maxth threads
+		Map<String, List<String>> messageIDs2 = new LinkedHashMap<>(req);
+		int max = (size - req) >= 0 ? req : size ; //last maxth threads
 		
-		for(int i = 0; i < maxth; i++){
+		for(int i = 0; i < max; i++){
 			String mid = thTimeList.get(i).getKey(); //thread mid
 			List<String> val = messageIDs.get(mid); //replays
 			//if (thTimeList.get(i).getValue().longValue() >= last_post) //will be problem if peer was off and we had new messages. not very old peer threads will be rejected.
