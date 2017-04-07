@@ -35,6 +35,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.cert.X509Certificate;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -44,6 +45,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -635,23 +638,37 @@ public class ArticlePuller {
 		//remove rLeft without threads
 		messageIDs = FeedManager.sortThreadsReplays(threads, replays, this.host, group); //ordered LinkedHashMap
 		
-		//replay with larger date should be after replay with earlier date
+		//replay with larger date should be after replay with earlier date (but it is not for nntpchan)
 		//Log.get().log(Level.F, "BEFORE: {0} ", messageIDs.size());
 		Map<String, Long> thTime = new LinkedHashMap<>();
-		for(Entry<String, List<String>> th : messageIDs.entrySet()){
+		for(Entry<String, List<String>> th : messageIDs.entrySet()){ //loop 1
 			//check post date of last replay
-			String rdate;
+			Long tdate;
 			List<String> re = th.getValue();
-			if ( ! re.isEmpty()) //thread is not empty
-				rdate = aReplTime.get(re.get(re.size()-1)); //time of last
-			else
-				rdate = aThreads.get(th.getKey());
-			
-			try {
-				thTime.put(th.getKey(), Headers.ParseRawDate(rdate));
-			} catch (ParseException e) {
-				Log.get().log(Level.WARNING, "cannot parse date: {0} ", e.getLocalizedMessage());
+			if ( ! re.isEmpty()){ //thread is not empty
+				//find out date of last replay
+				TreeSet<Long> repT = new TreeSet<Long>();
+				for ( String r : re){						//loop 2
+					Long rtime;
+					try {
+						rtime = Headers.ParseRawDate(aReplTime.get(r));
+					} catch (ParseException e) {
+						continue; //replay broken, skip replay, not thread.
+					}
+					repT.add(rtime);
+				}
+				
+				tdate = repT.last(); //time of last replay
+			}else{
+				try {
+					tdate = Headers.ParseRawDate(aThreads.get(th.getKey())); //time of of thread without replays
+				} catch (ParseException e) {
+					Log.get().log(Level.WARNING, "cannot parse date: {0} ", e.getLocalizedMessage());
+					continue; //thread broken continue
+				}
 			}
+			
+			thTime.put(th.getKey(),tdate); //thread with date
 		}
 		
 		//sort threads by time

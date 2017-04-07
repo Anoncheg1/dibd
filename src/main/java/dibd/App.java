@@ -55,7 +55,7 @@ import dibd.util.io.Resource;
 public final class App {
 
     /** Version information of the dibd daemon */
-    public static final String VERSION = "dibd/1.0.5";
+    public static final String VERSION = "dibd/1.0.6";
 
     /** The server's startup date */
     public static final Date STARTDATE = new Date();
