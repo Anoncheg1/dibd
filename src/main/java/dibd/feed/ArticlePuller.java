@@ -165,7 +165,7 @@ public class ArticlePuller {
 					}catch(SocketTimeoutException e)
 					{
 						
-						if (i++ >= 6){
+						if (i++ >= 9){
 							Log.get().log(Level.INFO, "From {0} connection timeout. return null.", this.host);
 							return null; //connection timeout
 						}
@@ -267,7 +267,7 @@ public class ArticlePuller {
 
 				int res = transferToItself(new IhaveCommand(), mId.getKey());
 				if (res == 0)//thread accepted?
-					reseived ++;
+					reseived++;
 				else if (res == 1){ //error in thread
 					if(errors++ >= 3)
 						throw new IOException("3 errors"); 
@@ -287,14 +287,14 @@ public class ArticlePuller {
 
 		}catch(IOException e){
 			if (this.retryes++ > 7){
-				Log.get().log(Level.WARNING, "Pull brake up with {0} becouse unexpected responses.", this.host );
-				return reseived;
+				Log.get().log(Level.WARNING, "Pull brake up with {0} becouse of repeated unexpected responses.", this.host );
+				return -1;
 			}else{
 				Log.get().log(Level.INFO, "Pull {0} some error happen, we reconnect at {1} time.", new Object[]{this.host, this.retryes} );
 				close();//lines recycled in close()
 				lineBuffers.getInputBuffer().clear();//clear input
 				connect();
-				return toItself(iterator, resived); //recursion
+				return toItself(iterator, reseived); //recursion
 			}
 		}
 		
