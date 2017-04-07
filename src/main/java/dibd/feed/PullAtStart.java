@@ -85,15 +85,19 @@ public class PullAtStart extends Thread {
     			//new Object[]{host, "["+groupsTime.keySet().stream().map(g -> g.getName()).collect(Collectors.joining(","))+"]"});
 
     			//Scrap message-ids
-    			Map<String, List<String>> mIDs = ap.scrap(groups);
-    			if (mIDs.isEmpty()){
-    				Log.get().log(Level.FINE,"{0}: no new articles found at host:{1}:{2}",
-    						new Object[]{Thread.currentThread().getName(), host, port});
-    				return 0;
-    			}else{
-    				return ap.toItself(mIDs.entrySet().iterator(), 0); //return received number
+    			int ret = 0;
+    			List<String> ca = ap.getCapabilities();
+    			for (Group group : groups){
+    				Map<String, List<String>> mIDs = ap.scrap(group, ca);
+    				if (mIDs.isEmpty()){
+    					Log.get().log(Level.FINE,"{0}: no new articles in {1} at host:{2}:{3}",
+    							new Object[]{Thread.currentThread().getName(), group.getName(), host, port});
+    				}else{
+    					ret += ap.toItself(mIDs.entrySet().iterator(), 0); //return received number
+    				}
     			}
 
+    			return ret;
 
     		}catch (IOException ex) {
     			Log.get().log(Level.INFO,"{0}: try {1} for host:{2}:{3} {4}",

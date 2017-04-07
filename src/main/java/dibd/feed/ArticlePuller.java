@@ -25,7 +25,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
 import java.net.Proxy;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
@@ -35,7 +34,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.cert.X509Certificate;
 import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -44,8 +42,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Queue;
-import java.util.Set;
-import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
@@ -92,6 +88,10 @@ public class ArticlePuller {
 	private final String host; //for log messages
 	private int port;
 	private final boolean TLSEnabled; //for private class Response
+	
+	
+	//for toItself() recursion
+	private int retryes = 1;
 	/**
 	 * Check connection to remote peer.
 	 * host name required for log messages.
@@ -248,7 +248,7 @@ public class ArticlePuller {
 	private Response conn = new Response(); //hook for loopback
 	
 	
-	private int retryes = 1;
+	
 	
 	/**
 	 * Pull articles from carefully sorted list of threads and rLeft message-ids. 
@@ -413,7 +413,7 @@ public class ArticlePuller {
 	}
 
 	
-	private List<String> getCapabilities() throws IOException{
+	List<String> getCapabilities() throws IOException{
 		this.out.print("CAPABILITIES"+NL);
 		this.out.flush();
 
@@ -442,17 +442,17 @@ public class ArticlePuller {
 	 * @throws IOException
 	 * @throws StorageBackendException
 	 */
-	public Map<String, List<String>> scrap(final Set<Group> groups) throws StorageBackendException, IOException{
-		List<String> capabilties = getCapabilities();
+	Map<String, List<String>> scrap(final Group group, List<String> capabilties) throws StorageBackendException, IOException{
+		retryes = 1; //for transfer restart to start
 		if ( ! capabilties.contains("READER")){ //case sensitive!
 			Log.get().log(Level.WARNING, "From host: {0} CAPABILITIES do not contain: READER", this.host);
 			throw new IOException(); //this is too strange we will not skip
 		}
 		
 		Map<String, List<String>> messageIDs = new LinkedHashMap<>(100);
-		for (Group g : groups){
-			messageIDs.putAll(oldFashionScrap(g));
-		}
+		//for (Group g : groups){
+			messageIDs.putAll(oldFashionScrap(group));
+		//}
 		return messageIDs;
 		
 	}
