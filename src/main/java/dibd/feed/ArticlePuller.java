@@ -719,8 +719,10 @@ public class ArticlePuller {
 
 				//this.lastActivity = System.currentTimeMillis();
 				//getIS();
-				this.in.readLine(); //we are polite
-				this.in.close();
+				if (this.in != null){
+					this.in.readLine(); //we are polite
+					this.in.close();
+				}
 				//lineBuffers.recycleBuffers();
 				instream.close();
 				out.close();

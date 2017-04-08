@@ -392,7 +392,7 @@ public class Article { //extends ArticleHead
 	
 	
 	
-	public class NNTPArticle {
+	public static class NNTPArticle {
 		/**
 		 * if not multipart may contain full article 
 		 * if command HEAD only head
