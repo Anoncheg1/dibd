@@ -148,12 +148,16 @@ public interface StorageNNTP {
 	/**
 	 * Scrap threads with status = 0 only. 1 rejected
 	 * 
+	 * Groups and articles are sorted by date (for postgresql tested)
+	 * 
+	 * never null
+	 * 
 	 * @param group
-	 * @param limit
-	 * @return
+	 * @param limit thread amount
+	 * @return threads with his articles, all sorted by last_post_time first and post_time second
 	 * @throws StorageBackendException
 	 */
-	Map<Integer, String> scrapThreadIds(Group group, int limit) throws StorageBackendException;
+	List<ScrapLine> scrapGroup(Group group, int limit) throws StorageBackendException;
 	
 	
 	

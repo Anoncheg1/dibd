@@ -28,6 +28,8 @@ import javax.mail.internet.MimeUtility;
 
 import dibd.daemon.NNTPInterface;
 import dibd.storage.GroupsProvider.Group;
+import dibd.storage.Headers;
+import dibd.storage.ScrapLine;
 import dibd.storage.StorageBackendException;
 import dibd.storage.StorageManager;
 import dibd.storage.article.Article;
@@ -145,45 +147,53 @@ public class OverCommand implements Command {
         } else {
         	conn.println("224 Overview information follows (multi-line)");
         	//int allThreads = Config.inst().get(Config.THREADS_PER_PAGE, 5) * Config.inst().get(Config.PAGE_COUNT, 6);
-        	Map<Integer, String> th_ids = StorageManager.current().scrapThreadIds(group, Integer.MAX_VALUE);//no limit
-        	if ( ! th_ids.isEmpty()){
+        	List<ScrapLine> slist = StorageManager.current().scrapGroup(group, Integer.MAX_VALUE);//no limit
+        	if ( ! slist.isEmpty()){
         		int i = 1;
-        		for (Entry<Integer, String> tIdAndMid : th_ids.entrySet()){
-        			try{
-        				List<Article> thread = StorageManager.current().getOneThread(tIdAndMid.getKey(), group.getName(), 0);
-        				if ( ! thread.isEmpty()){
-        					for( Article art: thread)
-        						conn.println(buildOverview(art, i++, tIdAndMid.getValue()));
-        				}
-        			}catch(StorageBackendException ex){	/*no thread, skip*/ }
+        		int thread_id=-1;
+        		String thread_mid=null;
+        		//int thread_id=slist.get(0).thread_id;
+        		//String thread_mid=slist.get(0).message_id;
+        		for (ScrapLine sl: slist){
+        			if (thread_id != sl.thread_id){
+        				//new thread
+        				thread_id = sl.thread_id;
+        				thread_mid = sl.message_id;
+        				conn.println(buildOverview(sl, i++, null));
+        			}else
+        				//replay
+        				conn.println(buildOverview(sl, i++, thread_mid));
+        			
         		}
         	}
         	conn.println(".");
         }
+        	
+        
     }
 
-    private String buildOverview(Article art, long nr, String threadMId) throws StorageBackendException, UnsupportedEncodingException {
+    private String buildOverview(ScrapLine sl, long i, String thread_mid){
         StringBuilder overview = new StringBuilder();
         //1) number
-        overview.append(nr)
+        overview.append(i)
         .append('\t');
         //2) Subject
-        String subject = art.getSubject();
+        /*String subject = art.getSubject();
         if (subject != null)
-        	overview.append(MimeUtility.encodeWord(escapeString(subject)));
+        	overview.append(MimeUtility.encodeWord(escapeString(subject)));*/
         overview.append('\t');
         //3) from
-        String name = art.getA_name();
+        /*String name = art.getA_name();
         if (name != null)
-        	overview.append(escapeString(MimeUtility.encodeWord(name)));
+        	overview.append(escapeString(MimeUtility.encodeWord(name)));*/
         overview.append('\t');
         //4)date
-        overview.append(escapeString(art.getDate())).append('\t');
+        overview.append(Headers.formatDate(sl.article_post_time)).append('\t');
         //5)message-Id
-        overview.append(escapeString(art.getMessageId())).append('\t');
+        overview.append(sl.message_id.trim()).append('\t');
         //6) thread-Id
-        if( ! art.getId().equals(art.getThread_id())) //if replay
-        	overview.append(threadMId);
+        if( thread_mid != null) //if replay
+        	overview.append(thread_mid);
         //overview.append('\t');
 
         //String bytes = art.getHeader(Headers.BYTES)[0];
@@ -207,10 +217,10 @@ public class OverCommand implements Command {
         return overview.toString().trim();
     }
 
-    private String escapeString(String str) {
+    /*private String escapeString(String str) {
         String nstr = str.replace("\r", "");
         nstr = nstr.replace('\n', ' ');
         nstr = nstr.replace('\t', ' ');
         return nstr.trim();
-    }
+    }*/
 }

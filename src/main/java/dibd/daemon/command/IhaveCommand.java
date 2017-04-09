@@ -81,9 +81,12 @@ public class IhaveCommand implements Command{
 	
 	//For ArticlePuller
 	public boolean pullMode = false;
+	public String pullThreadMidnow = null;
 	
-	public void setPullMode(){
+	public IhaveCommand setPullMode(String thmid){
 		this.pullMode = true;
+		this.pullThreadMidnow = thmid;
+		return this;
 	}
 	
 	/**
@@ -161,7 +164,7 @@ public class IhaveCommand implements Command{
 				//if(!rs.checkSender3()){//3) third check for new senders in group
 					//isHeadersOK = false;
 				//}
-				if(!rs.checkRef()){
+				if(!rs.checkRef(pullThreadMidnow)){
 					conn.println(IhaveCommand.noRef); //437 no such thread for replay.
 					error = true;
 				}

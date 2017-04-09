@@ -267,8 +267,10 @@ public class ArticlePuller {
 		//it will prevent "getting missing threads".
 			while (iterator.hasNext()){
 				Entry<String, List<String>> mId = iterator.next();
-
-				int res = transferToItself(new IhaveCommand(), mId.getKey());
+				
+				
+				
+				int res = transferToItself(new IhaveCommand().setPullMode(null), mId.getKey());
 				if (res == 0)//thread accepted?
 					reseived++;
 				else if (res == 1){ //error in thread
@@ -278,7 +280,7 @@ public class ArticlePuller {
 				}
 
 				for(String replay : mId.getValue()){
-					int re = transferToItself(new IhaveCommand(), replay);
+					int re = transferToItself(new IhaveCommand().setPullMode(mId.getKey()), replay);
 					if (re == 0)
 						reseived ++;
 					else if (re == 1 && errors++ >= 3)
@@ -319,7 +321,7 @@ public class ArticlePuller {
 			throws StorageBackendException, IOException {
 		//we do not need to push pulled articles. we will push pushed articles.
 		//and we don't need log messages.
-		ihavec.setPullMode(); 
+		 
 
 		String s = "IHAVE "+ messageId;
 
@@ -610,6 +612,12 @@ public class ArticlePuller {
 			//6 7 - lines,bytes - old RFC format.  We do not allow such format and will crash
 			
 			//sorted by replay post date. threads are disrupted
+			
+			if (part[4].contains("<a1d551491631958@ucavviu7wl6azuw7.onion>"))
+				System.out.println(line);
+			if (part[4].contains("<fce9b1491320916@2hu.tld>"))
+				System.out.println(line);
+			
 			
 			if(part[4].matches(NNTPConnection.MESSAGE_ID_PATTERN)){
 				if (part.length == 5 || !part[5].matches(NNTPConnection.MESSAGE_ID_PATTERN)){

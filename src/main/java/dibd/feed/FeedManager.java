@@ -302,7 +302,7 @@ public class FeedManager extends Thread{
 	 * Replays order should be save.
 	 * 
 	 * @param threads
-	 * @param rLeft
+	 * @param replays (mid, thmid)
 	 * @param host just for log
 	 * @param group 
 	 * @return sorted threads with his rLeft followed right after it. true - thread, false - replay
@@ -311,12 +311,11 @@ public class FeedManager extends Thread{
 
 		Map<String, List<String>> messageIDs = new LinkedHashMap<>(50);
 
-
 		for(String th: threads){
 			List<String> trepl = new ArrayList<String>();
 
 			Iterator<Entry<String, String>> rit = replays.entrySet().iterator();
-
+			
 			//search rLeft for this threads
 			while(rit.hasNext()){
 				Map.Entry<String, String> rep = rit.next();
@@ -330,22 +329,42 @@ public class FeedManager extends Thread{
 		}
 
 
-		//replays without threads. May happen for nntpchan only
+		//(not shure if this working.) replays without threads or linked to another replays. May happen for nntpchan only (and nntp tree with we don't support)
 		if (! replays.isEmpty()){
-			//get threads
-			Set<String> thmiss = new HashSet<>();
-			for (Map.Entry<String,String> re : replays.entrySet())
-				thmiss.add(re.getValue());
+			//second sort replay which refer to replays will be added to thread ( for nntpnchan)
+			Iterator<Entry<String, String>> rit = replays.entrySet().iterator();
+			while(rit.hasNext()){
+				Entry<String, String> unbRepl = rit.next();
+
+				threads:
+					for(String th2: threads){
+						List<String> goodreps = new ArrayList<>(); 
+						goodreps.addAll(messageIDs.get(th2));
+						for(String rep : goodreps){ //replays for every sorted thread
+							if(unbRepl.getValue().equals(rep)){ //replay reference to replay in another thread.
+								System.out.println("wtf");
+								//messageIDs.get(th2)
+								goodreps.add(unbRepl.getKey());
+								messageIDs.remove(th2, goodreps);
+								rit.remove();
+								break threads;
+							}
+						}
+				}
+			}
+			
+			
+			
 			//log
-			if (thmiss.size() < 15){
+			if (replays.size() < 15){
 				/*StringBuilder restreplays= new StringBuilder();
 				replays.entrySet().forEach(e -> restreplays.append(e).append(" "));
 				Log.get().log(Level.FINE, "From: {0} NEWNEWS or XOVER replays without thread: {1}", new Object[]{host, restreplays.toString()});*/
 				StringBuilder thm = new StringBuilder();
-				thmiss.forEach(e -> thm.append(e).append(" "));
-				Log.get().log(Level.INFO, "{0} disappeared threads: {1} at {2}", new Object[]{group.getName(), thm.toString(), host});
+				replays.forEach((e1,e2) -> thm.append(e1).append(" "));
+				Log.get().log(Level.INFO, "{0} broken replays: {1} at {2}", new Object[]{group.getName(), thm.toString(), host});
 			}else
-				Log.get().log(Level.INFO, "{0} untied replays {1} without threads: {2} at {3}", new Object[]{group.getName(), replays.size(), thmiss.size(), host});
+				Log.get().log(Level.INFO, "{0} broken replays: {1} at {2}", new Object[]{group.getName(), replays.size(), host});
 		}
 
 		return messageIDs;

@@ -80,10 +80,11 @@ public class AttachmentProvider {
 		return fileName;
 	}
 	
-	public String[] res = null; //used only in createThumbnail. must be locked with 
+	public String[] res = null; //used only in createThumbnail. must be locked with
+	public String form = null; //used only in createThumbnail. must be locked with
 	
 	public void createThumbnail(String groupName, String fileName, String media_type){
-		if (media_type.substring(0, 6).equals("image/")){//we will add other formats later
+		if (media_type.substring(0, 6).equals("image/") || ! fileName.contains(".")){//we will add other formats later
 			try{
 				File sourceFile = getPath(groupName, fileName, Atype.img);   //1
 				File thumbNailFile = getPath(groupName, fileName, Atype.thm);    //2
@@ -104,7 +105,9 @@ public class AttachmentProvider {
 							java.util.Scanner scanner = sc.useDelimiter("\\A");
 							///home/user/nogirls.jpg JPEG 960x887 960x887+0+0 8-bit sRGB 137KB 0.000u 0:00.000
 							String theString = scanner.hasNext() ? scanner.next() : "";
-							res = theString.split(" ")[2].split("x");
+							String[] ident = theString.split(" ");
+							res = ident[2].split("x");
+							form = ident[3];
 						}finally{
 							if(sc != null)
 								sc.close();
@@ -113,8 +116,12 @@ public class AttachmentProvider {
 				};
 				icmd.setOutputConsumer(ocanon);
 				
+				if (thumbNailFile.exists())
+					thumbNailFile.delete(); //may be from old deletet thread
+				
 				boolean gif = media_type.toLowerCase().contains("gif");
 				
+				String forml;
 				synchronized(this){ //rez lock
 					icmd.run(op);
 					
@@ -133,23 +140,26 @@ public class AttachmentProvider {
 							}
 					}
 					res = null;
+					forml = this.form;
+					this.form = null;
 				}
-				
-				///////   creating thumbnail  ////// 
-				ConvertCmd cmd = new ConvertCmd();
-				
-				if (sourceFile.exists() && !thumbNailFile.exists() ) {
-					
-					op = new IMOperation();
-					op.addImage(sourceFile.getCanonicalPath());
-					
-					if (gif)
-						op.thumbnail(null,50);//horizontal and vertical density
-					else
-						op.thumbnail(null,200);//horizontal and vertical density
-					op.addImage(thumbNailFile.getCanonicalPath());
-					//System.out.println(op.getCmdArgs());
-					cmd.run(op);
+				if (! forml.contains("no decode delegate for this image format")){
+					///////   creating thumbnail  ////// 
+					ConvertCmd cmd = new ConvertCmd();
+
+					if (sourceFile.exists() && !thumbNailFile.exists() ) {
+
+						op = new IMOperation();
+						op.addImage(sourceFile.getCanonicalPath());
+
+						if (gif)
+							op.thumbnail(null,50);//horizontal and vertical density
+						else
+							op.thumbnail(null,200);//horizontal and vertical density
+						op.addImage(thumbNailFile.getCanonicalPath());
+						//System.out.println(op.getCmdArgs());
+						cmd.run(op);
+					}
 				}
 			} catch (Exception e) {
 				Log.get().log(Level.WARNING, "Can not create thumbnail: {0}", e.getLocalizedMessage());

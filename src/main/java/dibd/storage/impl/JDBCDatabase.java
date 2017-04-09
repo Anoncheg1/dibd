@@ -39,6 +39,7 @@ import java.util.logging.Level;
 
 import dibd.config.Config;
 import dibd.storage.GroupsProvider.Group;
+import dibd.storage.ScrapLine;
 import dibd.storage.StorageBackendException;
 import dibd.storage.StorageManager;
 import dibd.storage.StorageNNTP;
@@ -96,7 +97,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 	protected PreparedStatement pstmtGetArticleCountGroup = null;
 	protected PreparedStatement pstmtGetNewArticleIDs = null;
 	//protected PreparedStatement pstmtGetLastPostOfGroup = null;
-	protected PreparedStatement pstmtScrapThreadIds = null;
+	protected PreparedStatement pstmtScrapGroup = null;
 	
 	/** How many times the database connection was reinitialized */
 	protected int restarts = 0;
@@ -206,9 +207,9 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			// Prepare simple statements for method getLastPostOfGroup
 				//		this.pstmtGetLastPostOfGroup = conn.prepareStatement("SELECT MAX(last_post_time) FROM thread WHERE group_id = ?;");
 			// Prepare simple statements for method getLastPostOfGroup
-						this.pstmtScrapThreadIds = conn.prepareStatement("SELECT thread.thread_id, article.message_id FROM thread "
-								+ "LEFT JOIN article ON article.id = thread.thread_id "
-								+ "WHERE thread.group_id = ? AND article.status = 0 ORDER BY thread.last_post_time DESC LIMIT ?");
+						this.pstmtScrapGroup = conn.prepareStatement("SELECT article.thread_id, article.id, article.message_id, article.post_time FROM article "
+								+"WHERE article.thread_id IN ( Select thread_id from thread " 
+								+"WHERE thread.group_id = ? AND article.status = 0 ORDER BY thread.last_post_time, article.post_time ASC LIMIT ?);");
 						
 						
 		} catch (Exception ex) {
@@ -966,24 +967,24 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 		
 	}
 
-		
-	public Map<Integer, String> scrapThreadIds(Group group, int limit) throws StorageBackendException{
+	
+	public List<ScrapLine> scrapGroup(Group group, int limit) throws StorageBackendException{
 		assert(group != null);
 		ResultSet rs = null;
-		Map<Integer, String> tm = new TreeMap<>(Collections.reverseOrder());   //reversed order
+		List<ScrapLine> sl = new ArrayList<>();   //reversed order
 		try {
-			
-			pstmtScrapThreadIds.setInt(1, group.getInternalID());
-			pstmtScrapThreadIds.setInt(2, limit);
-			rs = pstmtScrapThreadIds.executeQuery(); //reversed order
+			//article.thread_id, article.id, article.message_id, article.post_time
+			pstmtScrapGroup.setInt(1, group.getInternalID());
+			pstmtScrapGroup.setInt(2, limit);//limit threads
+			rs = pstmtScrapGroup.executeQuery(); //reversed order
 			while (rs.next())
-				tm.put(rs.getInt(1), rs.getString(2)); //now in normal order
+				sl.add(new ScrapLine(rs.getInt(1), rs.getInt(2), rs.getString(3), rs.getLong(4))); //now in normal order
 			
 			this.restarts = 0; // Reset error count
-			return tm;
+			return sl;
 		} catch (SQLException ex) {
 			restartConnection(ex);
-			return scrapThreadIds(group, limit);
+			return scrapGroup(group, limit);
 		} finally {
 			closeResultSet(rs);
 		}
