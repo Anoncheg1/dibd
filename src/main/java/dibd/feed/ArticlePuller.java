@@ -613,12 +613,6 @@ public class ArticlePuller {
 			
 			//sorted by replay post date. threads are disrupted
 			
-			if (part[4].contains("<a1d551491631958@ucavviu7wl6azuw7.onion>"))
-				System.out.println(line);
-			if (part[4].contains("<fce9b1491320916@2hu.tld>"))
-				System.out.println(line);
-			
-			
 			if(part[4].matches(NNTPConnection.MESSAGE_ID_PATTERN)){
 				if (part.length == 5 || !part[5].matches(NNTPConnection.MESSAGE_ID_PATTERN)){
 					threads.add(part[4]);
