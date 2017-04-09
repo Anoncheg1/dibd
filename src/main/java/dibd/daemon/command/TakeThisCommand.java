@@ -143,7 +143,7 @@ public class TakeThisCommand implements Command {
 				//if(!rs.checkSender3()){//3) third check for new senders in group
 					//isHeadersOK = false;
 				//}
-				if(!rs.checkRef(null)){
+				if(!rs.checkRef()){
 					conn.println(" 439 "+cMessageId+" There is no such thread for replay.");
 					error = true;
 				}

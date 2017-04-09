@@ -270,7 +270,7 @@ public class ArticlePuller {
 				
 				
 				
-				int res = transferToItself(new IhaveCommand().setPullMode(null), mId.getKey());
+				int res = transferToItself(new IhaveCommand(), mId.getKey());
 				if (res == 0)//thread accepted?
 					reseived++;
 				else if (res == 1){ //error in thread
@@ -280,7 +280,7 @@ public class ArticlePuller {
 				}
 
 				for(String replay : mId.getValue()){
-					int re = transferToItself(new IhaveCommand().setPullMode(mId.getKey()), replay);
+					int re = transferToItself(new IhaveCommand(), replay);
 					if (re == 0)
 						reseived ++;
 					else if (re == 1 && errors++ >= 3)
@@ -322,7 +322,7 @@ public class ArticlePuller {
 		//we do not need to push pulled articles. we will push pushed articles.
 		//and we don't need log messages.
 		 
-
+		ihavec.setPullMode();
 		String s = "IHAVE "+ messageId;
 
 		ihavec.processLine(conn, s, s.getBytes(charset));

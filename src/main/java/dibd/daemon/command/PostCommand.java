@@ -125,7 +125,7 @@ public class PostCommand implements Command {
 			if (res == null)
 				return; //continue
 			else if(res.equals("ok")){//ok, reseived
-				if(!rs.checkRef(null)){
+				if(!rs.checkRef()){
 					conn.println("441 no such thread for replay.");
 					error = true;
 				}

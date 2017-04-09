@@ -329,9 +329,9 @@ public class FeedManager extends Thread{
 		}
 
 
-		//(not shure if this working.) replays without threads or linked to another replays. May happen for nntpchan only (and nntp tree with we don't support)
+		
 		if (! replays.isEmpty()){
-			//second sort replay which refer to replays will be added to thread ( for nntpnchan)
+			/*//(not shure if this working.)	//second sort replay which refer to replays will be added to thread ( for nntpnchan)
 			Iterator<Entry<String, String>> rit = replays.entrySet().iterator();
 			while(rit.hasNext()){
 				Entry<String, String> unbRepl = rit.next();
@@ -351,7 +351,7 @@ public class FeedManager extends Thread{
 							}
 						}
 				}
-			}
+			}*/
 			
 			
 			
