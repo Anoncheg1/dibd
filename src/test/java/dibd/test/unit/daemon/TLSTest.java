@@ -36,7 +36,7 @@ import dibd.daemon.TLS;
  * @author user
  *
  */
-
+@Ignore
 public class TLSTest {
 
 	static ChannelLineBuffers clBuffers;

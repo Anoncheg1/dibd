@@ -46,6 +46,7 @@ import dibd.util.Log;
  * @author user
  *
  */
+@Ignore
 public class IHAVEandTAKETHISTest {
 	
 	
