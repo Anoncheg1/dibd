@@ -28,6 +28,7 @@ import java.sql.Driver;
 import java.sql.DriverManager;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.Observer;
 import java.util.logging.Level;
 
 import dibd.config.Config;
@@ -52,10 +53,24 @@ import dibd.util.io.Resource;
  * @author 
  * @since dibd/1.0.1
  */
-public final class App {
+public final class App{
+	
+	//for web-frontend observers constructors.
+	private static Observer ob = null;
+	
+	public static synchronized void setObserver(Observer o) {
+        if (o == null)
+            throw new NullPointerException();
+        ob = o;
+    }
+	
+    private static void notifyObservers() {
+    	if (ob != null)
+    		ob.update(null, null);
+    }
 
     /** Version information of the dibd daemon */
-    public static final String VERSION = "dibd/1.0.6";
+    public static final String VERSION = "dibd/1.0.7";
 
     /** The server's startup date */
     public static final Date STARTDATE = new Date();
@@ -168,6 +183,9 @@ public final class App {
 			e.printStackTrace();
 			System.exit(1);
 		}
+        
+        //web initialization
+        notifyObservers();
         
         //if TLS enabled
         try {

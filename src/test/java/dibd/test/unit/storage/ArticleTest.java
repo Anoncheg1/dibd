@@ -57,10 +57,10 @@ public class ArticleTest {
 
 		int thread_id = 777;
 		Article resa1 = new Article(null, thread_id, "<message-id@host.com>", "host.com", null, "сабджект", "фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы", 
-				1466589502, "host!host2", group, null, null); //without image
+				1466589502, "host!host2", group, null, null, 0); //without image
 		
 		Article resa2 = new Article(null, thread_id, "<message-id@host.com>", "host.com", "петрик <собака@бфка>", "сабджект", "message", 
-				1466589502, "host!host2", group, fileName, "img/png");//with image
+				1466589502, "host!host2", group, fileName, "img/png", 0);//with image
 		
 		//Article retA= new Article(thread_id, thread_id, "<ref-message-id@foo.bar>", "foo.bar", null, "subject", "message", 
 			//	1466589502, "", group, null, null);

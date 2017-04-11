@@ -80,8 +80,8 @@ public class AttachmentProvider {
 		return fileName;
 	}
 	
-	public String[] res = null; //used only in createThumbnail. must be locked with
-	public String form = null; //used only in createThumbnail. must be locked with
+	public volatile String[] res = null; //used only in createThumbnail. must be locked with
+	public volatile String form = null; //used only in createThumbnail. must be locked with
 	
 	public void createThumbnail(String groupName, String fileName, String media_type){
 		if (media_type.substring(0, 6).equals("image/") || ! fileName.contains(".")){//we will add other formats later
@@ -143,7 +143,7 @@ public class AttachmentProvider {
 					forml = this.form;
 					this.form = null;
 				}
-				if (! forml.contains("no decode delegate for this image format")){
+				if (forml != null && ! forml.contains("no decode delegate for this image format")){
 					///////   creating thumbnail  ////// 
 					ConvertCmd cmd = new ConvertCmd();
 

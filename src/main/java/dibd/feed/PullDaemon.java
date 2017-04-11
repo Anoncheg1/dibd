@@ -29,8 +29,6 @@ import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
 
-import javax.net.ssl.SSLPeerUnverifiedException;
-
 import dibd.config.Config;
 import dibd.daemon.DaemonThread;
 import dibd.storage.StorageBackendException;

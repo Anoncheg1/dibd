@@ -27,8 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
-import javax.net.ssl.SSLPeerUnverifiedException;
-
 import dibd.storage.StorageBackendException;
 import dibd.storage.StorageManager;
 import dibd.config.Config;

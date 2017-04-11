@@ -18,7 +18,6 @@
 package dibd.daemon;
 
 import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -38,10 +37,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-import java.util.Base64.Decoder;
-import java.util.Base64.Encoder;
 import java.util.logging.Level;
 
 import dibd.daemon.command.Command;

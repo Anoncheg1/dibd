@@ -131,7 +131,7 @@ public class Article { //extends ArticleHead
 	 * @param fileFormat 12
 	 * @throws ParseException 
 	 */
-	public Article(Integer id, Integer thread_id, String messageId, String msgID_host, String a_name, String subject, String message, long post_time, String path_header, String groupName, String fileName, String fileFormat){
+	public Article(Integer id, Integer thread_id, String messageId, String msgID_host, String a_name, String subject, String message, long post_time, String path_header, String groupName, String fileName, String fileFormat, int status){
 		super();
 		
 		a = new Art();
@@ -147,6 +147,7 @@ public class Article { //extends ArticleHead
 		a.fileName = fileName;
 		a.groupName = groupName;
 		a.fileFormat = fileFormat;
+		a.status = status;
 	}
 
 
@@ -367,9 +368,9 @@ public class Article { //extends ArticleHead
 		return a.groupId;
 	}
 
-	//public String getFileName() {
-		//return a.fileName;
-	//}
+	public String getFileName() {
+		return a.fileName;
+	}
 
 	public String getGroupName() {
 		return a.groupName;
@@ -514,7 +515,7 @@ public class Article { //extends ArticleHead
 			//buf.append(Headers.SUBJECT).append(c).append(MimeUtility.fold(8, MimeUtility.encodeWord(a.subject))).append(nl);//256
 			buf.append(Headers.SUBJECT).append(c).append(a.subject).append(nl);//256 //UTF-8 headers
 		//References
-		if(a.thread_id != null){
+		if(a.thread_id != null && a.thread_id != a.id){
 			String refArtMid = null;
 			try{
 				refArtMid = StorageManager.current().getMessageId(a.thread_id);

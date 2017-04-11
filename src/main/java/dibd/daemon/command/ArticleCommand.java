@@ -29,7 +29,6 @@ import dibd.storage.StorageBackendException;
 import dibd.storage.StorageManager;
 import dibd.storage.GroupsProvider.Group;
 import dibd.storage.article.Article;
-import dibd.storage.article.Article.NNTPArticle;
 import dibd.util.Log;
 
 /**

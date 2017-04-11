@@ -18,7 +18,6 @@
 
 package dibd.daemon;
 
-import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.channels.ClosedChannelException;
@@ -92,44 +91,4 @@ public class LineEncoder {
         }
     }
 	
-	
-	
-	
-	/*
-	public void encode(InputStream fs) throws IOException {
-		BufferedReader in = new BufferedReader(new InputStreamReader(fs, Charset.forName("UTF-8")), ChannelLineBuffers.BUFFER_SIZE);
-    	String line;
-    	while ((line = in.readLine()) != null) {//we remove \r\n here
-    		//TODO: becouse of nntpchan, line may be any size. It will low performance
-    		encode(CharBuffer.wrap(line+NNTPConnection.NEWLINE));
-        }
-    }*/
-
-    /**
-     * Encodes the characters of this instance to the given ChannelLineBuffers
-     * using the Charset of this instance.
-     * 
-     * @param buffer
-     * @throws java.nio.channels.ClosedChannelException
-     */
-    /*public void encode(ChannelLineBuffers buffer) throws ClosedChannelException {
-        CharsetEncoder encoder = charset.newEncoder();
-        while (characters.hasRemaining()) {
-            ByteBuffer buf = ChannelLineBuffers.newLineBuffer();
-            assert buf.position() == 0;
-            assert buf.capacity() >= 512;
-
-//            CoderResult res = 
-            encoder.encode(characters, buf, true);
-
-            // Set limit to current position and current position to 0;
-            // means make ready for read from buffer
-            buf.flip();
-            buffer.addOutputBuffer(buf);
-
-            //Do we need it?
-            //if (res.isUnderflow()) // All input processed
-              //  break;
-        }
-    }*/
 }

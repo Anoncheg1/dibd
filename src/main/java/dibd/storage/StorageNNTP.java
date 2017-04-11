@@ -161,6 +161,15 @@ public interface StorageNNTP {
 	
 	
 	
-	
+	/**
+	 * For index page used in ObservableDatabase
+	 * 
+	 * 
+	 * @param status
+	 * @param limit
+	 * @return
+	 * @throws StorageBackendException
+	 */
+	List<Article> indexLastArts(int status, int limit) throws StorageBackendException;
 	
 }

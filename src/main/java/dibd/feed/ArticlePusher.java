@@ -20,7 +20,6 @@ package dibd.feed;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -28,11 +27,8 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
-import java.nio.channels.ClosedChannelException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.logging.Level;
-
 import javax.net.ssl.SSLSocket;
 
 import dibd.daemon.ChannelLineBuffers;
@@ -42,7 +38,6 @@ import dibd.daemon.NNTPConnection.BiConsumerMy;
 import dibd.storage.StorageManager;
 import dibd.storage.article.Article;
 import dibd.storage.article.Article.NNTPArticle;
-import dibd.util.Log;
 
 /**
  * Posts an Article to a NNTP server using the IHAVE command with 1 sec waiting between header and body.

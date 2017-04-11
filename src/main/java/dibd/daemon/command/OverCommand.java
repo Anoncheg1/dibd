@@ -19,20 +19,13 @@
 package dibd.daemon.command;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
-import javax.mail.internet.MimeUtility;
-
 import dibd.daemon.NNTPInterface;
 import dibd.storage.GroupsProvider.Group;
 import dibd.storage.Headers;
 import dibd.storage.ScrapLine;
 import dibd.storage.StorageBackendException;
 import dibd.storage.StorageManager;
-import dibd.storage.article.Article;
 
 /**
  * Class handling the OVER/XOVER command.

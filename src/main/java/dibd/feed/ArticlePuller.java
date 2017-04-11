@@ -613,11 +613,11 @@ public class ArticlePuller {
 			
 			//sorted by replay post date. threads are disrupted
 			
-			if(part[4].matches(NNTPConnection.MESSAGE_ID_PATTERN)){
-				if (part.length == 5 || !part[5].matches(NNTPConnection.MESSAGE_ID_PATTERN)){
+			if(part[4].matches(NNTPConnection.MESSAGE_ID_PATTERN)){//mid
+				if (part.length == 5 || !part[5].matches(NNTPConnection.MESSAGE_ID_PATTERN) || part[5].equals(part[4])){ //thread
 					threads.add(part[4]);
 					aThreads.put(part[4], part[3]);
-				}else if ( part.length == 6 && part[5].matches(NNTPConnection.MESSAGE_ID_PATTERN)){
+				}else if ( part.length >= 6 && part[5].matches(NNTPConnection.MESSAGE_ID_PATTERN) && ! part[5].equals(part[4])){ //replay
 					replays.put(part[4], part[5]);
 					aReplTime.put(part[4], part[3]);
 				}else
