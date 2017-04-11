@@ -79,10 +79,10 @@ public class OverTest {
 		
 		//we sort in jdbc
 		List<ScrapLine> slist = new ArrayList<>();
-		slist.add(new ScrapLine(1, 1, "<mid@host>", 4));
-		slist.add(new ScrapLine(1, 2, "<mid2@host>", 5));
-		slist.add(new ScrapLine(3, 2, "<mid3@host>", 2));
-		slist.add(new ScrapLine(3, 3, "<mid4@host>", 3));
+		slist.add(new ScrapLine(1, "<mid@host>", 4));
+		slist.add(new ScrapLine(1, "<mid2@host>", 5));
+		slist.add(new ScrapLine(3, "<mid3@host>", 2));
+		slist.add(new ScrapLine(3, "<mid4@host>", 3));
 		when(storage.scrapGroup(group, Integer.MAX_VALUE)).thenReturn(slist);
 		
 		/*Article art = new Article(1, 1, "<aa@host.com>", "host.com", "петрик <foo@bar.ano>", "subject", "message", 

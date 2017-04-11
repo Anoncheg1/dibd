@@ -141,9 +141,8 @@ public final class NNTPDaemon extends DaemonThread{
                     //TODO: add 201 NNTP Service Ready, posting prohibited
                     //201 is not supported by nntpchan.
                     conn.println("200 "
-                            + Config.inst().get(Config.HOSTNAME, null)
                             + " " + App.VERSION
-                            + " news server ready - (posting allowed = "+Config.inst().get(Config.NNTPALLOW_UNAUTORIZED, false)+").");
+                            + " Hello - (POST allowed = "+Config.inst().get(Config.NNTPALLOW_UNAUTORIZED, false)+").");
                 } catch (CancelledKeyException cke) {
                     Log.get().log(
                             Level.WARNING, "CancelledKeyException {0} was thrown: {1}",

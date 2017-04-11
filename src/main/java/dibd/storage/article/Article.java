@@ -515,7 +515,7 @@ public class Article { //extends ArticleHead
 			//buf.append(Headers.SUBJECT).append(c).append(MimeUtility.fold(8, MimeUtility.encodeWord(a.subject))).append(nl);//256
 			buf.append(Headers.SUBJECT).append(c).append(a.subject).append(nl);//256 //UTF-8 headers
 		//References
-		if(a.thread_id != null && a.thread_id != a.id){
+		if(a.thread_id != null && ! a.thread_id.equals(a.id)){
 			String refArtMid = null;
 			try{
 				refArtMid = StorageManager.current().getMessageId(a.thread_id);

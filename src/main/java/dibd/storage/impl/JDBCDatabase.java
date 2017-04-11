@@ -986,7 +986,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			pstmtScrapGroup.setInt(2, limit);//limit threads
 			rs = pstmtScrapGroup.executeQuery(); //reversed order
 			while (rs.next())
-				sl.add(new ScrapLine(rs.getInt(1), rs.getInt(2), rs.getString(3), rs.getLong(4))); //now in normal order
+				sl.add(new ScrapLine(rs.getInt(1), rs.getString(3), rs.getLong(4))); //now in normal order
 			
 			this.restarts = 0; // Reset error count
 			return sl;
