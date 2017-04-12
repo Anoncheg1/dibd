@@ -82,6 +82,7 @@ public class AttachmentProvider {
 	
 	public volatile String[] res = null; //used only in createThumbnail. must be locked with
 	public volatile String form = null; //used only in createThumbnail. must be locked with
+	public volatile boolean multi = false; //for gif if true multiframe 
 	
 	public void createThumbnail(String groupName, String fileName, String media_type){
 		if (media_type.substring(0, 6).equals("image/") || ! fileName.contains(".")){//we will add other formats later
@@ -108,6 +109,9 @@ public class AttachmentProvider {
 							String[] ident = theString.split(" ");
 							res = ident[2].split("x");
 							form = ident[3];
+							if (ident[0].contains("["))
+								multi = true;
+								
 						}finally{
 							if(sc != null)
 								sc.close();
@@ -122,6 +126,7 @@ public class AttachmentProvider {
 				boolean gif = media_type.toLowerCase().contains("gif");
 				
 				String forml;
+				boolean multi; 
 				synchronized(this){ //rez lock
 					icmd.run(op);
 					
@@ -142,6 +147,8 @@ public class AttachmentProvider {
 					res = null;
 					forml = this.form;
 					this.form = null;
+					multi = this.multi;
+					this.multi = false;
 				}
 				if (forml != null && ! forml.contains("no decode delegate for this image format")){
 					///////   creating thumbnail  ////// 
@@ -152,7 +159,7 @@ public class AttachmentProvider {
 						op = new IMOperation();
 						op.addImage(sourceFile.getCanonicalPath());
 
-						if (gif)
+						if (gif && multi)
 							op.thumbnail(null,50);//horizontal and vertical density
 						else
 							op.thumbnail(null,200);//horizontal and vertical density

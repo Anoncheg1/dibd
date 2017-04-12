@@ -496,7 +496,7 @@ public class Article { //extends ArticleHead
 			}
 			boundary = "=-=-=_"+buffer.toString()+"_=-=-=";
 		}
-		
+
 		///////////////////      NNTP ARTICLE BUILDING      ///////////////////
 		//Mime-Version
 		buf.append(Headers.MIME_VERSION).append(nl);
