@@ -159,7 +159,7 @@ public class TakeThisCommand implements Command {
 			
 		}
 		case ReadingBody: {
-if(! error){
+			if(! error){
 				
 				int res = rs.readingBody(line, raw);
 				switch(res){

@@ -368,13 +368,12 @@ class ReceivingService{
 			}else{//////////// not multipart ////////////
 				
 					messageB.append(line).append("\n");//stringbuilder.setlength to remove last \n
-			}
-			
-			//check message size
-			if (messageB.length() > maxMessageSize){//error
-				cacheOs.close();
-				cacheFile.delete();
-				return 3;//fail
+					//check message size
+					if (messageB.length() > maxMessageSize){//error
+						cacheOs.close();
+						cacheFile.delete();
+						return 3;//fail
+					}
 			}
 			
 			
