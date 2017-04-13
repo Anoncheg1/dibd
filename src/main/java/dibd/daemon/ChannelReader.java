@@ -166,8 +166,8 @@ class ChannelReader extends DaemonThread {
                 // Read the data into the appropriate one buffer
                 ByteBuffer buf = connection.getInputBuffer();
                 int read = -1;
+                TLS tls = connection.getTLS(); //TLS mode?
                 try {
-                	TLS tls = connection.getTLS(); //TLS mode?
                 	if(tls != null)//TLS mode
                 		read = tls.readTLS(); 
                 	else // normal mode

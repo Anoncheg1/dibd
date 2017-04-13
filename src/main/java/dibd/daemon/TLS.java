@@ -643,7 +643,7 @@ needIO:
 						// Reset the application buffer size.
 						int newInAppSize = engine.getSession().getApplicationBufferSize();
 						if (inAppBB.remaining() < newInAppSize)
-							resizeInAppBB(newInAppSize);    // expected room for unwrap
+							resizeInAppBB();    // expected room for unwrap
 						break;
 
 					default: //CLOSED:
@@ -713,6 +713,8 @@ needIO:
 		int tmpSize =0;
 		if (inAppBB.hasRemaining()){
 			ByteBuffer inputBuffer = lineBuffers.getInputBuffer();
+			//inAppBB.remaining() - 0 to limit for output,  
+			//inputBuffer.remaining() - post to limit(capasity) for input 
 			tmpSize = inAppBB.remaining() < inputBuffer.remaining() ?
 					inAppBB.remaining() : inputBuffer.remaining(); //the lesser of two
 			byte[] tmp = new byte[tmpSize];
@@ -758,7 +760,6 @@ needIO:
 	 * @throws IOException 
 	 */
 	int readTLS() throws IOException{
-
 		/*
 				Log.get().log(Level.WARNING,
 						"ChannelReader.unwrapTLS(): ApplicationBufferSize > BUFFER_SIZE*2 for {0}",
@@ -800,7 +801,7 @@ needIO:
 				}*/
 				result = engine.unwrap(inNetBB, inAppBB); //UNWRAP
 				inNetBB.compact(); //reset as it was minus consumed
-
+		
 				switch (result.getStatus()) {
 				case OK:
 					processed += clearInAppBB(); //for call ConnectionWorker;
@@ -814,13 +815,13 @@ needIO:
 					//System.out.println("readTLS BUFFER_OVERFLOW bytes consumed:"+result.bytesConsumed());
 					// Reset application data buffer.
 					int newAppSize = engine.getSession().getApplicationBufferSize();
-					if (newAppSize > inAppBB.capacity())
-						resizeInAppBB(newAppSize);
+					if (inAppBB.remaining() < newAppSize)
+						resizeInAppBB();
 					else
 						processed += clearInAppBB();
 					// retry the operation
 					break;
-
+					
 				case BUFFER_UNDERFLOW:
 					// Reset peer network packet buffer. Buffers was not modified. Just need to reed more.
 					int newNetSize = engine.getSession().getPacketBufferSize();
@@ -834,13 +835,13 @@ needIO:
 					//...
 				case CLOSED:
 					//System.out.println("ChannelReader.unwrapTLS state CLOSED");
-					//TODO:do something
-					break;
+					return -1;
+					//break;
 				default:
 					throw new IOException("sslEngine error during data read: " +
 							result.getStatus());
 				}
-
+		
 			} while ((inNetBB.position() != 0) &&
 					result.getStatus() != Status.BUFFER_UNDERFLOW);
 		}
@@ -963,7 +964,7 @@ needIO:
 		inNetBB = bb;
 	}
 
-	private void resizeInAppBB(int appBBsize) {
+	private void resizeInAppBB() {
 		// Expand buffer for large request
 		ByteBuffer bb = ByteBuffer.allocate(inAppBB.capacity() * 2);
 		inAppBB.flip();

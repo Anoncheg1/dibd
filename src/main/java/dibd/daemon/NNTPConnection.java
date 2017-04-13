@@ -474,6 +474,9 @@ public class NNTPConnection implements NNTPInterface{
         shutdownOutput();
     }
     
+	/**
+	 * @return null if it is not TLS connection.
+	 */
 	public TLS getTLS() {
 		return this.tls;
 	}
