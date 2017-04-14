@@ -31,6 +31,7 @@ import dibd.storage.StorageBackendException;
 import dibd.storage.StorageManager;
 import dibd.config.Config;
 import dibd.storage.GroupsProvider.Group;
+import dibd.storage.SubscriptionsProvider.FeedType;
 import dibd.storage.SubscriptionsProvider.Subscription;
 import dibd.util.Log;
 
@@ -42,15 +43,15 @@ import dibd.util.Log;
  */
 public class PullAtStart extends Thread {
 
-    private final Subscription sub;
+    
     //TODO: make proxy configurable for every peer
-    private final Proxy proxy;
+    //private final Proxy proxy;
 
-    public PullAtStart(Subscription sub) throws NumberFormatException, UnknownHostException{
+    public PullAtStart(){
     	super();
     	super.setName(getClass().getSimpleName());
-    	this.sub = sub;
-    	proxy = FeedManager.getProxy(sub);
+    	
+    	;
     }
     
     /**
@@ -64,7 +65,7 @@ public class PullAtStart extends Thread {
      * @throws StorageBackendException
      * @return -1 if error or articles pulled
      */
-    private int pullLoop(Set<Group> groups, String host, int port, int retries, int sleep) throws StorageBackendException {
+    private int pullLoop(Set<Group> groups, String host, int port, Proxy proxy, int retries, int sleep) throws StorageBackendException {
     	for(int retry =1; retry<retries;retry++){
     		ArticlePuller ap = null;
 
@@ -122,47 +123,52 @@ public class PullAtStart extends Thread {
     
     @Override
     public void run() {
-    	String host = sub.getHost();
-    	int port = sub.getPort();
-    	
-    	Set<Group> set = StorageManager.groups.groupsPerPeer(sub);
-    	if (set== null || set.isEmpty())
-    		return;
-    	
-    	Set<Group> groups = new HashSet<Group>(set); //modifiable
-    	//Map<Group, Long> groupsTime = new HashMap<Group, Long>();//groups with last post time (not ordered)
     	while(true){
-    		try {
+    		for (Subscription sub : StorageManager.peers.getAll()) {
+    			if (sub.getFeedtype() != FeedType.PUSH){
+    				String host = sub.getHost();
+    				int port = sub.getPort();
+    				Proxy proxy;
+    				try {
+    					proxy = FeedManager.getProxy(sub);
+    				} catch (NumberFormatException | UnknownHostException e3) {
+    					Log.get().log(Level.SEVERE, "Wrong proxy configuration: {0}", e3);
+    					continue;
+    				}
 
-    			for (Iterator<Group> iterator = groups.iterator(); iterator.hasNext();) {
-    				Group g = iterator.next();
-    				assert(g != null);
-    				if(g.isDeleted())
-    					iterator.remove();
+    				Set<Group> set = StorageManager.groups.groupsPerPeer(sub);
+    				if (set== null || set.isEmpty())
+    					return;
+
+    				Set<Group> groups = new HashSet<Group>(set); //modifiable
+
+    				try {
+
+    					for (Iterator<Group> iterator = groups.iterator(); iterator.hasNext();) {
+    						Group g = iterator.next();
+    						assert(g != null);
+    						if(g.isDeleted())
+    							iterator.remove();
+    					}
+
+
+    					int res = pullLoop(groups, host, port, proxy, 21, 60*1000);
+    					Log.get().log(Level.INFO, "Pull {0} from {1} sucessfully completed, {2} articles reseived.",
+    							new Object[]{
+    									groups.stream().map(e -> e.getName()).reduce( (e1, e2) -> e1+", "+e2).get(), host, res});
+    				}catch (StorageBackendException e) {
+    					Log.get().log(Level.WARNING, e.getLocalizedMessage(), e);
+    				}catch (Exception e) {
+    					Log.get().log(Level.SEVERE, e.getLocalizedMessage(), e);
+    				}
+    				try {
+    					//TODO:make configurable
+    					Thread.sleep(1000*60*60*Config.inst().get(Config.PULLINTERVAL, 5));//xover every 5 hours. nntpchan do not relay at push so 1 will be better.
+    				} catch (InterruptedException e) {
+    					Log.get().log(Level.FINEST, "PullAtStart "+sub.getHost()+" interrupted: {0}", e.getLocalizedMessage());
+    				}
     			}
-    			/*for (Group g : groups){// we save post_time at the beginning to protect it from changing.
-    			assert (g != null);
-    			if(!g.isDeleted()){
-    				long t = StorageManager.current().getLastPostOfGroup(g);
-    				groupsTime.put(g, t);
-    			}
-        	}
-    			 */
-    			int res = pullLoop(groups, host, port, 21, 60*1000);
-    			Log.get().log(Level.INFO, "Pull {0} from {1} sucessfully completed, {2} articles reseived.",
-    					new Object[]{
-    							groups.stream().map(e -> e.getName()).reduce( (e1, e2) -> e1+", "+e2).get(), host, res});
-    		}catch (StorageBackendException e) {
-    			Log.get().log(Level.WARNING, e.getLocalizedMessage(), e);
-    		}catch (Exception e) {
-    			Log.get().log(Level.SEVERE, e.getLocalizedMessage(), e);
     		}
-    		try {
-    			//TODO:make configurable
-				Thread.sleep(1000*60*60*Config.inst().get(Config.PULLINTERVAL, 5));//xover every 5 hours. nntpchan do not relay at push so 1 will be better.
-			} catch (InterruptedException e) {
-				Log.get().log(Level.FINEST, "PullAtStart "+sub.getHost()+" interrupted: {0}", e.getLocalizedMessage());
-			}
     	}
     }
 }

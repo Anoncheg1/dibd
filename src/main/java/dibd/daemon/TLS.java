@@ -438,7 +438,7 @@ public class TLS{
 		   Certification Authorities are encouraged to use the dNSName instead.*/
 		//AltNames firts
 		Collection<List<?>> altNames = null;
-		try {
+		try {//Strange, works for CN= too?
 			altNames= cert.getSubjectAlternativeNames();
 		} catch (CertificateParsingException e) {
 			Log.get().log(Level.WARNING, "TLS.connect, error in parsing Subject AlternativeNames: {0}", e);
@@ -461,7 +461,11 @@ public class TLS{
 				subjectAltList.toArray(subjectAlts);
 				
 				this.peerNames = subjectAlts;
-				Log.get().log(Level.FINE, "TLS sucessfully handshaked peerNames extracted from subjectAltName:"+peerNames[0]);
+				String names = new String();
+				for (String san : peerNames)
+					names+=san;
+				Log.get().log(Level.FINE, "TLS sucessfully handshaked peerNames extracted from subjectAltName: " + names);
+				
 				return true;
 			}
 		}

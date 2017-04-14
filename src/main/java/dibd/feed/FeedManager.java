@@ -41,7 +41,7 @@ import dibd.storage.SubscriptionsProvider.Subscription;
 import dibd.storage.article.Article;
 import dibd.util.Log;
 
-public class FeedManager extends Thread{
+public class FeedManager{
 	
 	//TODO:create separate for every peer
 	public static Proxy getProxy(Subscription sub) throws NumberFormatException, UnknownHostException{
@@ -74,7 +74,7 @@ public class FeedManager extends Thread{
 	
 	
 	//Pull At Start and starting Pull daemons for missing threads
-	public void run(){
+	public static void startPullDaemons(){
 		if (Config.inst().get(Config.PEERING, true)) {
 			
 			//1) Pull daemon for getting missing threads 
@@ -85,23 +85,10 @@ public class FeedManager extends Thread{
 
 			
 			//1) Pull new articles at startup
-        	for (Subscription sub : StorageManager.peers.getAll()) {
-        		if (sub.getFeedtype() != FeedType.PUSH){
-        			PullAtStart pf;
-        			try {
-        				pf = new PullAtStart(sub);
+        	
+			Thread pf = new PullAtStart();
 
-        				pf.start(); //thread per subscription
-
-        				pf.join();
-        			} catch (UnknownHostException | NumberFormatException e) {
-						Log.get().log(Level.SEVERE, "Wrong proxy configuration: {0}", e);
-						break;
-					} catch (InterruptedException e) {
-						break;
-					}
-        		}
-        	}
+			pf.start(); //thread per subscription
         }
 	}
 
@@ -178,7 +165,7 @@ public class FeedManager extends Thread{
 						if (check || article.getMsgID_host().equalsIgnoreCase(s))
 							continue;
 
-						plist.get(0).queueForPush(article); //queue shared we can use any of thread to put.
+						plist.get(0).queueForPush(article); //queue shared in group we can use any of thread to put.
 						//plist.forEach( (e) -> e.queueForPush(article));
 					}
 

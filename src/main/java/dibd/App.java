@@ -213,7 +213,7 @@ public final class App{
         
         if (Config.inst().get(Config.PEERING, false)){
         	//Pull new articles. Just before the final start.
-        	(new FeedManager()).start();
+        	FeedManager.startPullDaemons();
 
         	FeedManager.startPushDaemons();
         }
