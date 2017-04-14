@@ -33,6 +33,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
+import java.nio.charset.CharsetEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Timer;
@@ -74,7 +75,7 @@ public class NNTPConnection implements NNTPInterface{
     private final Object readLockGate = new Object();
     private SelectionKey writeSelKey = null;
     private final LineEncoder lineEncoder = new LineEncoder(charset, lineBuffers);
-    
+    private final CharsetEncoder ascii = StandardCharsets.US_ASCII.newEncoder(); 
     private TLS tls = null;
     private boolean tlsenabled = false;
 
@@ -83,7 +84,7 @@ public class NNTPConnection implements NNTPInterface{
         if (channel == null) {
             throw new IllegalArgumentException("channel is null");
         }
-
+        
         this.channel = channel;
     }
 
@@ -248,7 +249,7 @@ public class NNTPConnection implements NNTPInterface{
         // No trailing \r anymore
 
         if (command == null) { //waiting for command
-        	if(line.charAt(0) == '5') //mistaking 5xx responses. TODO:add other codes
+        	if(line.charAt(0) == '5' || ! ascii.canEncode(line)) //mistaking 5xx responses. TODO:add other codes
         		return;
         	
         	Log.get().log(Level.FINER, "<< {0}", line);
