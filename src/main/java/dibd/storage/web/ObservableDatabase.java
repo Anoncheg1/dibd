@@ -51,7 +51,7 @@ public class ObservableDatabase extends Observable implements Runnable{
 			try {
 				Thread.sleep(timeoutMillis);
 				if (this.hasChanged()){
-					List<Article> arts = StorageManager.current().indexLastArts(1, 150); //status 1 
+					List<Article> arts = StorageManager.current().indexLastArts(1, 150); //status 1
 					
 					this.notifyObservers(arts);
 				}

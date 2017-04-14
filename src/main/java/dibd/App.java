@@ -184,9 +184,6 @@ public final class App{
 			System.exit(1);
 		}
         
-        //web initialization
-        notifyObservers();
-        
         //if TLS enabled
         try {
         	//System.out.println("Creating tls");
@@ -203,6 +200,9 @@ public final class App{
         // Add shutdown hook
         Thread downhook = new Thread(new ShutdownHook());
         Runtime.getRuntime().addShutdownHook(downhook);
+        
+        //web initialization
+        notifyObservers();
         
         // Start the listening daemon
         if (port <= 0) {

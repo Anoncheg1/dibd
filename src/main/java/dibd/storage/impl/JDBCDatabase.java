@@ -1009,8 +1009,11 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			
 			//1article.id, 2article.thread_id, 3article.message_id, 4article.subject, 5article.message,
 			//6article.post_time, 7thread.group_id, 8attachment.file_path, 9article.status
-			while (rs.next())
-				arts.add(new Article(rs.getInt(1), rs.getInt(2), rs.getString(3), null, null, rs.getString(4), rs.getString(5), rs.getLong(6), null, StorageManager.groups.getName(rs.getInt(7)), rs.getString(8), null, rs.getInt(9))); //now in normal order
+			while (rs.next()){
+				String gname = StorageManager.groups.getName(rs.getInt(7));
+				if (gname != null)
+					arts.add(new Article(rs.getInt(1), rs.getInt(2), rs.getString(3), null, null, rs.getString(4), rs.getString(5), rs.getLong(6), null, gname, rs.getString(8), null, rs.getInt(9))); //now in normal order
+			}
 			
 			this.restarts = 0; // Reset error count
 			return arts;

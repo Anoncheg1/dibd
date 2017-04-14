@@ -16,6 +16,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -43,6 +44,7 @@ import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
+import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import dibd.config.Config;
 import dibd.util.Log;
@@ -57,6 +59,8 @@ public class TLS{
 
 	private static final String selfChainStore = "SelfKeyStore";
 	private static final String certpassword = "password";
+	
+	private static final boolean dumbdetector = Config.inst().get(Config.TLSDUMBDETECTOR, false);
 
 	public static boolean isContextCreated(){
 		return sslContext != null;
@@ -215,9 +219,26 @@ public class TLS{
 
 			sslContext = SSLContext.getInstance("TLS");
 			//X509ExtendedTrustManager
-			sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), new java.security.SecureRandom());
-			
+			if( dumbdetector ){
+				TrustManager[] trustAllCerts = new TrustManager[] { new TrustManager() {
+					
+					public X509Certificate[] getAcceptedIssuers() {
+						return null;
+					}
 
+
+					public void checkServerTrusted(X509Certificate[] arg0, String arg1)
+							throws CertificateException {}
+
+
+					public void checkClientTrusted(X509Certificate[] arg0, String arg1)
+							throws CertificateException {}
+				} };
+
+
+				sslContext.init(kmf.getKeyManagers(), trustAllCerts, new java.security.SecureRandom());
+			}else
+				sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), new java.security.SecureRandom());
 		}else
 			throw new IOException("TLS.createTLSContext() there is no selfChainStore or peers sertificates.");
 
@@ -388,6 +409,25 @@ public class TLS{
 				try{
 					doHandshake(sk);
 				}catch(SSLException ex){
+					
+					if( dumbdetector ){
+						outNetBB.clear();
+						engine.wrap(hsBB, outNetBB);
+						outNetBB.flip();
+						tryFlush(outNetBB);
+
+
+						if (socketChannel.read(inNetBB) != -1) {
+
+							inNetBB.flip();//ready for output
+
+							String ss = new String(inNetBB.array(), StandardCharsets.US_ASCII).replaceAll("[^\\-0-9a-zA-Z\\.]","");
+							if (ss.length()<300);
+							Log.get().info("TLS before unwrap1: "+ss);
+							inNetBB.clear();
+					
+						}
+					}
 					Log.get().log(Level.WARNING, "TLS.connect, fail in handshake: {0}", ex.getLocalizedMessage());
 
 					return false;
@@ -603,7 +643,14 @@ needIO:
 
 					inNetBB.flip();//ready for output
 					result = engine.unwrap(inNetBB, inAppBB);
-					//System.out.println(new String(inAppBB.array()));
+					
+					/*if( dumbdetector ){
+						String ss = new String(inNetBB.array(), StandardCharsets.US_ASCII).replaceAll("[^\\-0-9a-zA-Z\\.]","");
+						if (ss.length()<300 && ! ss.contains(Config.inst().get(Config.HOSTNAME, null))){
+							Log.get().info("TLS before unwrap: "+ss);
+						}
+					}*/
+						
 					inNetBB.compact();
 					//System.out.println("result"+result);
 					
@@ -612,6 +659,7 @@ needIO:
 					switch (result.getStatus()) {
 
 					case OK:
+						
 						switch (initialHSStatus) {
 						case NOT_HANDSHAKING:
 							throw new IOException(

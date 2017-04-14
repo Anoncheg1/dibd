@@ -53,6 +53,7 @@ public class Config extends AbstractConfig {
     public static final String PROXYHTTP = "dibd.feed.proxy.http";
     public static final String PROXYSOCKS = "dibd.feed.proxy.socks";
     public static final String TLSENABLED = "dibd.feed.tlsenabled"; //TLS or public globally. No variants for now.
+    public static final String TLSDUMBDETECTOR = "dibd.feed.tlsenabled.peerdetection"; //use with caution.
     /**
      * Core socket
      */
