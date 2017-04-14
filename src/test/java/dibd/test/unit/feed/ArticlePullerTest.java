@@ -58,7 +58,6 @@ import dibd.storage.StorageManager;
 import dibd.storage.StorageNNTP;
 
 
-@Ignore
 public class ArticlePullerTest {
 	
 	private Method oldFashionScrap;
@@ -123,7 +122,7 @@ public class ArticlePullerTest {
 				}});
 
 			Map<String, List<String>> res = (Map<String, List<String>>) oldFashionScrap.invoke(ap, g);
-			System.out.println(res.get("<a8ed01491388629@web.oniichan.onion>"));
+			//System.out.println(res.get("<a8ed01491388629@web.oniichan.onion>"));
 		}
 	}
 

@@ -601,8 +601,16 @@ public class ArticlePuller {
 		while (line != null && !(".".equals(line))) {
 			String[] part = line.split("\t");
 			if (part.length < 5){
-				Log.get().log(Level.WARNING, "From host: {0} XOVER 0 for group {1}, Lines have less than 5 parts: {2}", new Object[]{this.host, gname, line});
-				throw new IOException();//we skip this peer
+				line.trim();
+				String line2 = getIS();
+				if (line != null && !(".".equals(line))){
+					line+=line2;
+					part = line.split("\t");
+				}
+				if (part.length < 5){ //\n lets try read next line
+					Log.get().log(Level.WARNING, "From host: {0} XOVER 0 for group {1}, Lines have less than 5 parts: {2}", new Object[]{this.host, gname, line});
+					throw new IOException();//we skip this peer
+				}
 			}
 
 			//0 1 2 - id, subject, from
