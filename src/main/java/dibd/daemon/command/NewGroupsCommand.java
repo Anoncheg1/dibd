@@ -19,6 +19,9 @@
 package dibd.daemon.command;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import dibd.config.Config;
 import dibd.daemon.NNTPInterface;
@@ -71,7 +74,11 @@ public class NewGroupsCommand implements Command {
         				conn.println("231 newgroups not newSgroups damn you!");
         			else
         				conn.println("231 list of new newsgroups follows");
-        			for( Group g : StorageManager.groups.getAll()){
+        			List<Group> groups = new ArrayList<>();
+        			groups.addAll(StorageManager.groups.getAll());
+        			Collections.shuffle(groups);
+        			
+        			for( Group g : groups){
         				String writeable = g.isWriteable() ? " y" : " n";
         				conn.println(g.getName()+" "
         						+ g.getLastArticleNumber() + " "
