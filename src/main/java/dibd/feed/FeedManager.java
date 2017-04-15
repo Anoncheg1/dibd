@@ -85,10 +85,14 @@ public class FeedManager{
 
 			
 			//1) Pull new articles at startup
-        	
-			Thread pf = new PullAtStart();
-
-			pf.start(); //thread per subscription
+			boolean found = false;
+			for (Subscription sub : StorageManager.peers.getAll())
+    			if (sub.getFeedtype() != FeedType.PUSH)
+    				found = true;
+			if(found){ //or will be 100 CPU loop
+				Thread pf = new PullAtStart();
+				pf.start(); //thread per subscription
+			}
         }
 	}
 

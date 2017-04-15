@@ -138,7 +138,7 @@ public class AttachmentProvider {
 						if (width > 11000 || height > 11000) //TODO:make configurable
 							return; //ABORT
 
-						if (gif)
+						if (gif && this.multi)
 							if ((width <= 50) && (height <= 50)){//if small gif just copy
 								Files.copy(sourceFile.toPath(), thumbNailFile.toPath());
 								return;

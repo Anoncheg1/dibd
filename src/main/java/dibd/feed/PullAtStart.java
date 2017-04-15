@@ -51,7 +51,6 @@ public class PullAtStart extends Thread {
     	super();
     	super.setName(getClass().getSimpleName());
     	
-    	;
     }
     
     /**
