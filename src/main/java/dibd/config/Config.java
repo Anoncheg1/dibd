@@ -49,6 +49,8 @@ public class Config extends AbstractConfig {
      */
     public static final String PEERING = "dibd.feed";
     public static final String PULLINTERVAL = "dibd.feed.pullinterval";//pullat start will run again after ? hours
+    public static final String NNTPALLOW_UNAUTORIZED = "dibd.nntp.allow_unautorized_post";
+    public static final String ALLOW_UNAUT_SCRAP = "dibd.nntp.allow_unautorized_scrap";
     //TODO:configurable for every peer
     public static final String PROXYHTTP = "dibd.feed.proxy.http";
     public static final String PROXYSOCKS = "dibd.feed.proxy.socks";
@@ -78,7 +80,7 @@ public class Config extends AbstractConfig {
     public static final String ID_F_COUNT = "dibd.id_f_count"; //count of F symbol in hex internal article Id
 
     
-    public static final String NNTPALLOW_UNAUTORIZED = "dibd.nntp.allow_unautorized_post";
+    
     public static final String IMAGEMAGICPATH = "dibd.path.imagemagic";
     public static final String ATTACHDIR = "dibd.attach.dir";
     public static final String NNTPCACHEDIR = "dibd.nntpcache.dir";

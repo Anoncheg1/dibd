@@ -20,6 +20,8 @@ package dibd.daemon.command;
 
 import java.io.IOException;
 import java.util.List;
+
+import dibd.config.Config;
 import dibd.daemon.NNTPInterface;
 import dibd.storage.GroupsProvider.Group;
 import dibd.storage.Headers;
@@ -104,6 +106,8 @@ import dibd.storage.StorageManager;
  *
  * </pre>
  * 
+ * Consume too many resources.
+ * 
  * @author Christian Lins
  * @since sonews/0.5.0
  */
@@ -137,7 +141,7 @@ public class OverCommand implements Command {
     	Group group = conn.getCurrentGroup();
         if (group == null) {
             conn.println("412 no newsgroup selected");
-        } else {
+        } else if ((Config.inst().get(Config.ALLOW_UNAUT_SCRAP, true) && Math.random()>0.4) || conn.isTLSenabled()){ //slow down xover for nntpchan 
         	conn.println("224 Overview information follows (multi-line)");
         	//int allThreads = Config.inst().get(Config.THREADS_PER_PAGE, 5) * Config.inst().get(Config.PAGE_COUNT, 6);
         	List<ScrapLine> slist = StorageManager.current().scrapGroup(group, Integer.MAX_VALUE);//no limit
@@ -160,7 +164,8 @@ public class OverCommand implements Command {
         		}
         	}
         	conn.println(".");
-        }
+        }else
+        	conn.println("502 no permission");
         	
         
     }

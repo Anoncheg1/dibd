@@ -20,6 +20,7 @@ package dibd.daemon.command;
 
 import java.io.IOException;
 
+import dibd.config.Config;
 import dibd.daemon.NNTPInterface;
 import dibd.storage.GroupsProvider.Group;
 import dibd.storage.StorageBackendException;
@@ -64,17 +65,19 @@ public class NewGroupsCommand implements Command {
         final String[] command = line.split(" ");
 
         if (command.length >= 3) {
-        	if(command[0].equalsIgnoreCase("newsgroups"))
-        		conn.println("231 newgroups not newSgroups damn you!");
-        	else
-        		conn.println("231 list of new newsgroups follows");
-            for( Group g : StorageManager.groups.getAll()){
-            	String writeable = g.isWriteable() ? " y" : " n";
-            	conn.println(g.getName()+" "
-            			+ g.getLastArticleNumber() + " "
-                        + g.getFirstArticleNumber() + writeable);
-            }
-
+        	if(command[0].equalsIgnoreCase("newsgroups") || command[0].equalsIgnoreCase("newgroups"))
+        		if ((Config.inst().get(Config.ALLOW_UNAUT_SCRAP, true) && Math.random()>0.2) || conn.isTLSenabled()){//slow down xover for nntpchan
+        			if (command[0].equalsIgnoreCase("newsgroups"))
+        				conn.println("231 newgroups not newSgroups damn you!");
+        			else
+        				conn.println("231 list of new newsgroups follows");
+        			for( Group g : StorageManager.groups.getAll()){
+        				String writeable = g.isWriteable() ? " y" : " n";
+        				conn.println(g.getName()+" "
+        						+ g.getLastArticleNumber() + " "
+        						+ g.getFirstArticleNumber() + writeable);
+        			}
+        		}
             // Currently we do not store a group's creation date;
             // so we return an empty list which is a valid response
             conn.println(".");
