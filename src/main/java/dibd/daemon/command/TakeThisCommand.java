@@ -98,7 +98,7 @@ public class TakeThisCommand implements Command {
 					
 					cMessageId = command[1];
 					if(Headers.matchMsgId(cMessageId)){
-						Article art = StorageManager.current().getArticle(cMessageId, null, 1);
+						Article art = StorageManager.current().getArticle(cMessageId, null, 99); //anything
 						if (art == null){
 							host = conn.getHost();
 							rs = new ReceivingService("TAKETHIS", conn, false, cMessageId);

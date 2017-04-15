@@ -222,15 +222,14 @@ public class TLS{
 			if( dumbdetector ){
 				TrustManager[] trustAllCerts = new TrustManager[] { new TrustManager() {
 					
-					public X509Certificate[] getAcceptedIssuers() {
-						return null;
-					}
+					@SuppressWarnings("unused")
+					public X509Certificate[] getAcceptedIssuers() {return null;}
 
-
+					@SuppressWarnings("unused")
 					public void checkServerTrusted(X509Certificate[] arg0, String arg1)
 							throws CertificateException {}
 
-
+					@SuppressWarnings("unused")
 					public void checkClientTrusted(X509Certificate[] arg0, String arg1)
 							throws CertificateException {}
 				} };
@@ -242,11 +241,13 @@ public class TLS{
 		}else
 			throw new IOException("TLS.createTLSContext() there is no selfChainStore or peers sertificates.");
 
-
-
-
 	}
 
+	
+	
+	
+	
+	
 
 
 

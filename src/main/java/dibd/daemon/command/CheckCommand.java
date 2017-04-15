@@ -71,7 +71,7 @@ public class CheckCommand implements Command {
     			String messageId = command[1]; 
     			if(Headers.matchMsgId(messageId)){
     				//Message-Id
-    				Article art = StorageManager.current().getArticle(messageId, null, 1);
+    				Article art = StorageManager.current().getArticle(messageId, null, 99); //anything
     				if (art != null){
     					conn.println("438 "+messageId+" Article already exist");
     					return;

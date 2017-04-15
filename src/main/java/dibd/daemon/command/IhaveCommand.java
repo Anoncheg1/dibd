@@ -111,7 +111,7 @@ public class IhaveCommand implements Command{
 						cMessageId = command[1];
 						if(Headers.matchMsgId(cMessageId)){
 							//Message-Id
-							Article art = StorageManager.current().getArticle(cMessageId, null, 1);
+							Article art = StorageManager.current().getArticle(cMessageId, null, 99); //anything
 							if (art != null){
 								conn.println("435 Article already exist");
 								state = PostState.Finished;
