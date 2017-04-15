@@ -256,7 +256,7 @@ public class NNTPConnection implements NNTPInterface{
         	
             command = parseCommandLine(line);
             assert command != null;
-        }else
+        }else if (! ascii.canEncode(line))
         	Log.get().log(Level.FINEST, "<< {0}", line);
 
         try {
