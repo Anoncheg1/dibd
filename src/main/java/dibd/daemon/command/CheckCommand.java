@@ -18,6 +18,7 @@
 package dibd.daemon.command;
 
 import java.io.IOException;
+import java.util.ArrayDeque;
 
 import dibd.config.Config;
 import dibd.daemon.NNTPInterface;
@@ -51,10 +52,13 @@ public class CheckCommand implements Command {
     }
 
     @Override
-    public boolean isStateful() {
+    public boolean isStateful() { //keep stack
         return false;
     }
 
+    
+    private ArrayDeque<String> callhistory = new ArrayDeque<>(10);
+    
     @Override
     public void processLine(NNTPInterface conn, final String line, byte[] raw)
             throws IOException, StorageBackendException {
@@ -71,11 +75,16 @@ public class CheckCommand implements Command {
     			String messageId = command[1]; 
     			if(Headers.matchMsgId(messageId)){
     				//Message-Id
-    				Article art = StorageManager.current().getArticle(messageId, null, 99); //anything
-    				if (art != null){
+    				
+    				//1 check history //2 check database
+    				if (callhistory.contains(messageId) || 
+    						StorageManager.current().getArticle(messageId, null, 99) != null){ //anything
     					conn.println("438 "+messageId+" Article already exist");
     					return;
     				}else{
+    					callhistory.add(messageId);
+    					if (callhistory.size() >=10)
+    						callhistory.removeFirst();
     					conn.println("238 "+messageId+" send article to be transferred");
     					return;
     				}

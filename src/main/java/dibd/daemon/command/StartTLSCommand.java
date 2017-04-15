@@ -46,12 +46,6 @@ import dibd.storage.StorageBackendException;
  */
 public class StartTLSCommand implements Command {
 
-	//enum HandshakeState { WaitForHandshake, Working, Finished };
-	
-	//private HandshakeState internalState = HandshakeState.WaitForHandshake;
-	
-	//private HandshakeState state = HandshakeState.WaitForHandshake;
-	
 	@Override
 	public String[] getSupportedCommandStrings() {
 		return new String[] { "STARTTLS" };

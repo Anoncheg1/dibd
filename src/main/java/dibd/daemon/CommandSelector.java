@@ -107,8 +107,9 @@ public class CommandSelector {
     
     
     
-    private final Map<String, Command> commandMapping = new HashMap<>(); //вызванные команды потока
-    private final Command unsupportedCmd = new UnsupportedCommand();	
+    private final Map<String, Command> commandMapping = new HashMap<>(); //called stack
+    
+    private final Command unsupportedCmd = new UnsupportedCommand();
 
     private CommandSelector() {}
 
@@ -116,22 +117,22 @@ public class CommandSelector {
     public Command get(String commandName) {
         try {
             commandName = commandName.toUpperCase();
-            Command cmd = this.commandMapping.get(commandName); //была ли вызвана уже
+            Command cmd = this.commandMapping.get(commandName); //was called
 
-            if (cmd == null) { //если нет добавляем
+            if (cmd == null) { //was not called before
                 Class<?> clazz = commandClassesMapping.get(commandName);
                 if (clazz == null) {
                     Log.get().log(Level.INFO, "No class found for command: {0}", commandName);
                     cmd = this.unsupportedCmd;
                 } else {
-                    cmd = (Command) clazz.newInstance();
+                    cmd = (Command) clazz.newInstance(); //this
                     this.commandMapping.put(commandName, cmd);
                 }  
             } else if (cmd.isStateful()) {//there is not many: IHAVE,POST,HELP
-                cmd = cmd.getClass().newInstance();
+                cmd = cmd.getClass().newInstance(); //or this
             }
 
-            return cmd;
+            return cmd; //if not stateful and was called - reused.
         } catch (InstantiationException | IllegalAccessException ex) {
             Log.get().log(Level.SEVERE,"Could not load command handling class", ex);
             return this.unsupportedCmd;
