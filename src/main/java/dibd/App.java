@@ -41,6 +41,7 @@ import dibd.feed.FeedManager;
 import dibd.storage.AttachmentProvider;
 import dibd.storage.GroupsProvider;
 import dibd.storage.NNTPCacheProvider;
+import dibd.storage.OfferingHistory;
 import dibd.storage.StorageManager;
 import dibd.storage.StorageProvider;
 import dibd.storage.SubscriptionsProvider;
@@ -70,7 +71,7 @@ public final class App{
     }
 
     /** Version information of the dibd daemon */
-    public static final String VERSION = "dibd/1.0.7";
+    public static final String VERSION = "dibd/1.0.8";
 
     /** The server's startup date */
     public static final Date STARTDATE = new Date();
@@ -159,7 +160,10 @@ public final class App{
                     "dibd.storage.impl.JDBCStorageProvider");
         StorageProvider sprov = StorageManager.loadProvider(provName);
         StorageManager.enableProvider(sprov);
-        StorageManager.enableSubscriptionsProvider(new SubscriptionsProvider());//peers.conf
+        if (Config.inst().get(Config.PEERING, false)){
+        	StorageManager.enableSubscriptionsProvider(new SubscriptionsProvider());//peers.conf
+        	StorageManager.enableOfferingHistory(new OfferingHistory());
+        }
         StorageManager.enableGroupsProvider(new GroupsProvider());//groups.conf
         //ImageMagic initialization
         String IMpath = Config.inst().get(Config.IMAGEMAGICPATH, "/usr/bin/"); 

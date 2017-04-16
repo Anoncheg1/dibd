@@ -29,7 +29,6 @@ import dibd.daemon.NNTPInterface;
 import dibd.storage.Headers;
 import dibd.storage.StorageBackendException;
 import dibd.storage.StorageManager;
-import dibd.storage.article.Article;
 import dibd.util.Log;
 
 /**
@@ -98,8 +97,7 @@ public class TakeThisCommand implements Command {
 					
 					cMessageId = command[1];
 					if(Headers.matchMsgId(cMessageId)){
-						Article art = StorageManager.current().getArticle(cMessageId, null, 99); //anything
-						if (art == null){
+						if (StorageManager.current().getArticle(cMessageId, null, 99) == null){ //anything
 							host = conn.getHost();
 							rs = new ReceivingService("TAKETHIS", conn, false, cMessageId);
 							state = PostState.ReadingHeaders;

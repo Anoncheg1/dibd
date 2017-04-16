@@ -142,7 +142,7 @@ public final class NNTPDaemon extends DaemonThread{
                     //201 is not supported by nntpchan.
                     conn.println("200 "
                             + " " + App.VERSION
-                            + " Hello - (POST allowed = "+Config.inst().get(Config.NNTPALLOW_UNAUTORIZED, false)+").");
+                            + " Hello! (posting without tls allowed = "+Config.inst().get(Config.NNTPALLOW_UNAUTORIZED, false)+").");
                 } catch (CancelledKeyException cke) {
                     Log.get().log(
                             Level.WARNING, "CancelledKeyException {0} was thrown: {1}",

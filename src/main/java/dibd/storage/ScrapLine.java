@@ -1,5 +1,12 @@
 package dibd.storage;
 
+/**
+ * 
+ * XOVER output line
+ * 
+ * @author user
+ *
+ */
 public class ScrapLine {
 
 	public int thread_id;

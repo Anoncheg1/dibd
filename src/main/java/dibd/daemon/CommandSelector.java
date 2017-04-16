@@ -126,7 +126,7 @@ public class CommandSelector {
                     cmd = this.unsupportedCmd;
                 } else {
                     cmd = (Command) clazz.newInstance(); //this
-                    this.commandMapping.put(commandName, cmd);
+                    this.commandMapping.put(commandName, cmd); //not thread-safe maybe several instances. It is not bad.
                 }  
             } else if (cmd.isStateful()) {//there is not many: IHAVE,POST,HELP
                 cmd = cmd.getClass().newInstance(); //or this

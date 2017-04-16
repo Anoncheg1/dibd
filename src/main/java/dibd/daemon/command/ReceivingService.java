@@ -43,15 +43,17 @@ import dibd.util.Log;
  * 
  * No cachefile for POST.
  * 
+ * One-off class or stateful.
+ * 
  * @author user
  *
  */
 class ReceivingService{
 	
 	// Size in bytes:
-	private final int maxMessageSize = Config.inst().get(Config.MAX_MESSAGE_SIZE, 8192); //UTF-8 bytes
+	private final static int maxMessageSize = Config.inst().get(Config.MAX_MESSAGE_SIZE, 8192); //UTF-8 bytes
 	//Very roughly, Base64-encoded binary data is equal to 1.37 times the original data size + headers
-	private final long maxArticleSize = (long) (Config.inst().get(Config.MAX_ARTICLE_SIZE, 1) * 1024 * 1024 * 1.37); //MB
+	private final static long maxArticleSize = (long) (Config.inst().get(Config.MAX_ARTICLE_SIZE, 1) * 1024 * 1024 * 1.37); //MB
 	private final ByteArrayOutputStream bufHead = new ByteArrayOutputStream(); //raw bytes UTF-8 by default
 	//private final ByteArrayOutputStream bufBody = new ByteArrayOutputStream(); //raw bytes UTF-8 by default
 	private File cacheFile = null;

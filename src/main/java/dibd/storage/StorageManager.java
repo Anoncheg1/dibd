@@ -29,6 +29,7 @@ public final class StorageManager {
 	public static SubscriptionsProvider peers;
 	public static AttachmentProvider attachments;
 	public static NNTPCacheProvider nntpcache;
+	public static OfferingHistory offers;
 	
     private static StorageProvider provider;
 	
@@ -102,6 +103,12 @@ public final class StorageManager {
     public static void enableNNTPCacheProvider(NNTPCacheProvider c) {
         synchronized (StorageManager.class) {
             StorageManager.nntpcache = c;
+        }
+    }
+    
+    public static void enableOfferingHistory(OfferingHistory o) {
+        synchronized (StorageManager.class) {
+            StorageManager.offers = o;
         }
     }
 

@@ -20,6 +20,7 @@ package dibd.storage.article;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
@@ -480,7 +481,7 @@ public class Article { //extends ArticleHead
 			for (String s : a.message.split("\n"))
 				if(s.length()> maxLength)
 					maxLength = s.length();
-			ascii = Charset.forName("US-ASCII").newEncoder().canEncode(a.message);
+			ascii = StandardCharsets.US_ASCII.newEncoder().canEncode(a.message);
 			if (ascii)
 				lengthLimit = 992;
 		}

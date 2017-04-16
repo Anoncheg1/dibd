@@ -162,6 +162,7 @@ public class OverCommand implements Command {
         				conn.println(buildOverview(sl, i++, thread_mid));
         			
         		}
+        		slist.clear();//first overcommand class will stay alive in command selector.
         	}
         	conn.println(".");
         }else

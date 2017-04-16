@@ -18,14 +18,12 @@
 package dibd.daemon.command;
 
 import java.io.IOException;
-import java.util.ArrayDeque;
-
 import dibd.config.Config;
 import dibd.daemon.NNTPInterface;
 import dibd.storage.Headers;
 import dibd.storage.StorageBackendException;
 import dibd.storage.StorageManager;
-import dibd.storage.article.Article;
+import dibd.util.Log;
 
 
 /**
@@ -57,7 +55,7 @@ public class CheckCommand implements Command {
     }
 
     
-    private ArrayDeque<String> callhistory = new ArrayDeque<>(10);
+    
     
     @Override
     public void processLine(NNTPInterface conn, final String line, byte[] raw)
@@ -76,21 +74,18 @@ public class CheckCommand implements Command {
     			if(Headers.matchMsgId(messageId)){
     				//Message-Id
     				
-    				//1 check history //2 check database
-    				if (callhistory.contains(messageId) || 
-    						StorageManager.current().getArticle(messageId, null, 99) != null){ //anything
-    					conn.println("438 "+messageId+" Article already exist");
+    					//1 check history //2 check database
+    					if (StorageManager.offers.contains(messageId)) //anything
+    						conn.println("438 "+messageId+" Article already exist");
+    					else{
+    						conn.println("238 "+messageId+" send article to be transferred");
+    					}
+    					
     					return;
-    				}else{
-    					callhistory.add(messageId);
-    					if (callhistory.size() >=10)
-    						callhistory.removeFirst();
-    					conn.println("238 "+messageId+" send article to be transferred");
-    					return;
-    				}
-    			}	
-    		}
-    		conn.println("500 wrong command");
+    				
+    			}//wrong	
+    		}//wrong
+    		conn.println("500 invalid command usage");
     	}else
     		conn.println("483 TLS required");
     }

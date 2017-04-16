@@ -15,7 +15,6 @@ import dibd.daemon.NNTPInterface;
 import dibd.storage.Headers;
 import dibd.storage.StorageBackendException;
 import dibd.storage.StorageManager;
-import dibd.storage.article.Article;
 import dibd.util.Log;
 
 /**
@@ -111,8 +110,7 @@ public class IhaveCommand implements Command{
 						cMessageId = command[1];
 						if(Headers.matchMsgId(cMessageId)){
 							//Message-Id
-							Article art = StorageManager.current().getArticle(cMessageId, null, 99); //anything
-							if (art != null){
+							if (StorageManager.offers.contains(cMessageId)){ //anything
 								conn.println("435 Article already exist");
 								state = PostState.Finished;
 								return;
