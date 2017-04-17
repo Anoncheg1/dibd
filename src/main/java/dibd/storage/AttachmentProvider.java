@@ -33,8 +33,13 @@ public class AttachmentProvider {
 	 * @param attach
 	 * @return
 	 */
-	public File getPath(String groupName, String fileName, Atype attach){
-		return new File(new File(new File(attachmentDir, groupName), attach.toString()),fileName);
+	public File getPath(final String groupName, final String fileName, final Atype attach){
+		String fname;
+		if (attach.equals(Atype.img))
+			fname = fileName.replaceFirst("\\..*", "");
+		else
+			fname = fileName;
+		return new File(new File(new File(attachmentDir, groupName), attach.toString()), fname);
 	}
 	
 	

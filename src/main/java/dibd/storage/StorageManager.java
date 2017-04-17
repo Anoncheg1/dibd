@@ -25,13 +25,18 @@ package dibd.storage;
  */
 public final class StorageManager {
 	
+	private static StorageProvider provider;
+	
+	//all thread-save
+	//immutable objects (replacement for static)
 	public static GroupsProvider groups;
 	public static SubscriptionsProvider peers;
 	public static AttachmentProvider attachments;
 	public static NNTPCacheProvider nntpcache;
+	//mutable
 	public static OfferingHistory offers;
 	
-    private static StorageProvider provider;
+    
 	
 
     /**
