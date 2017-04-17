@@ -21,6 +21,7 @@ package dibd.daemon;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -112,7 +113,7 @@ public class ChannelLineBuffers {
     // inputBuffer - ChannelReader(1 thread) write. ConnectionWorker( many threads) read 
     
     private final ByteBuffer inputBuffer = ByteBuffer.allocateDirect(INPUT_BUFFER_SIZE); //separated from freeSmallBuffers. For TLS we need larger buffer maybe. 
-    private final List<ByteBuffer> outputBuffers = new ArrayList<>();
+    private final List<ByteBuffer> outputBuffers = new LinkedList<>();
     private boolean outputBuffersClosed = false;
     private boolean inputBuffersClosed = false;
 

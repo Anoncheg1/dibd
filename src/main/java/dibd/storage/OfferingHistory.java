@@ -1,6 +1,7 @@
 package dibd.storage;
 
-import java.util.ArrayDeque;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * Keep little history for recent posts.
@@ -12,7 +13,7 @@ import java.util.ArrayDeque;
  */
 public class OfferingHistory {
 	private static int AMOUNT = 20;
-	private ArrayDeque<String> callhistory = new ArrayDeque<>(AMOUNT); //messageIds
+	private List<String> callhistory = new LinkedList<>(); //messageIds
 
 	public OfferingHistory() {
 		// TODO Auto-generated constructor stub
@@ -33,7 +34,7 @@ public class OfferingHistory {
 		}else{
 			callhistory.add(messageId);
 			if (callhistory.size() >= AMOUNT)
-				callhistory.removeFirst();
+				callhistory.remove(0);
 			return false;
 		}
 	}
