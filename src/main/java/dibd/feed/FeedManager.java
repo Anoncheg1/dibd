@@ -99,7 +99,7 @@ public class FeedManager{
 	
 	
 	// TODO Make configurable
-		public static final int PUSH_QUEUE_SIZE = 512; //queue length for every sub
+		public static final int PUSH_QUEUE_SIZE = 1024; //queue length for every sub ( if it overflow we will halt.)
 	/**
 	 * Start pushing
 	 * 
@@ -118,11 +118,12 @@ public class FeedManager{
 							subGood = true;
 							break;
 						}
-				if(subGood){ //TODO: we require many push daemons. how to do it in static thread model?
+				if(subGood){
 					//shared LinkedBlockingQueue between one subscription
 					LinkedBlockingQueue<Article> articleQueue = new LinkedBlockingQueue<>(PUSH_QUEUE_SIZE);
 					//PushDaemon did not use storage, that is why we can easily create many.
-					int pushThreads = 30;
+					//1 articles per 1 min or we will halt if sub unreachable.
+					int pushThreads = 10; //10 threads per sub (every thread retry for 10 minutes if server is unreachable.)
 					List<PushDaemon> pds= new ArrayList<>(pushThreads); 
 					for( int i = 0; i < pushThreads; i++){
 						pds.add(new PushDaemon(sub, articleQueue));
