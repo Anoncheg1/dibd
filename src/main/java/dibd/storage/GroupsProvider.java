@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -184,7 +185,7 @@ public class GroupsProvider {
 	
 	private final List<Group> allGroups = new ArrayList<Group>();
 	private final Map<Integer, String> allGroupId = new HashMap<>();
-	private final Map<String, Group> allGroupNames = new HashMap<>();
+	private final Map<String, Group> allGroupNames = new LinkedHashMap<>();
 	private final Map<Subscription, Set<Group>> groupsPerSubscription = new HashMap<Subscription, Set<Group>>();
 
 	public GroupsProvider() {
