@@ -45,8 +45,8 @@ class FileConfig extends AbstractConfig {
         // Set some default values
         defaultConfig.setProperty(Config.STORAGE_DATABASE, "dibd");
         defaultConfig.setProperty(Config.STORAGE_HOST, "localhost");
-        defaultConfig.setProperty(Config.STORAGE_PORT, "5984");
-        defaultConfig.setProperty(Config.STORAGE_USER, "dibd_user");
+        defaultConfig.setProperty(Config.STORAGE_PORT, "5432");
+        defaultConfig.setProperty(Config.STORAGE_USER, "dibd");
         defaultConfig.setProperty(Config.STORAGE_PASSWORD, "mysecret");
     }
 

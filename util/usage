@@ -7,7 +7,7 @@ java -jar sonews.jar [arguments]
 								articles at startup. Be default we add 1 day.
    -h|-help                    This output
    -mlgw                       Enables the Mailinglist Gateway poller
-   -p <port>                   Forces sonews to listen on the specified port
+   -p <port>                   Forces dibd to listen on the specified NNTP port
    -plugin <name|class|file>   Loads the given plugin.
    -plugin-command <class>     Loads the given class on startup as NNTP command
                                 handler. Can be specified multiple times. The

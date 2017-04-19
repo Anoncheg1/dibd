@@ -111,12 +111,12 @@ public class TLS{
 
 
 		String selfPubCrt = name+"-public.crt";
-		String peersCrtDir = "peersTLSCertificates/";
+		String peersCrtDir = "peersTLSCertificates";
 
 		//Check if two keystores exist and generate or export public key
 		//1) Generate SelfChainKeyStore and export self public key
-		if (!new File(selfChainStore).exists()){
-
+		if ( ! new File(selfChainStore).exists()){
+			
 			//System.out.println(Arrays.asList(keytoolArgs));
 			Process p1 = Runtime.getRuntime().exec(genkeypair);
 			p1.waitFor();
@@ -181,7 +181,7 @@ public class TLS{
 
 
 		//Init SSLContext
-		if (new File(selfChainStore).exists() && pubkeys != null){
+		if (new File(selfChainStore).exists()){
 
 			
 			KeyStore ksKeys = KeyStore.getInstance(KeyStore.getDefaultType());
@@ -192,20 +192,22 @@ public class TLS{
 			KeyStore ksTrust = KeyStore.getInstance(KeyStore.getDefaultType());
 			//ksTrust.load(new FileInputStream(peersPubKeyStore), certpassword.toCharArray());
 			ksTrust.load(null);
-			for (File peerkey : pubkeys) {
-				X509Certificate cert;
-				InputStream inputStream = new FileInputStream(peerkey);
-				try {
-					CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
-					cert = (X509Certificate)certificateFactory.generateCertificate(inputStream);
-				}catch(CertificateException e){
-					Log.get().log(Level.WARNING, "Can not parse peer certificate: {0}", peerkey.getName());
-					continue;
-				} finally {
-					inputStream.close();
+			if (pubkeys != null){
+				for (File peerkey : pubkeys) {
+					X509Certificate cert;
+					InputStream inputStream = new FileInputStream(peerkey);
+					try {
+						CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
+						cert = (X509Certificate)certificateFactory.generateCertificate(inputStream);
+					}catch(CertificateException e){
+						Log.get().log(Level.WARNING, "Can not parse peer certificate: {0}", peerkey.getName());
+						continue;
+					} finally {
+						inputStream.close();
+					}
+					String alias = cert.getSubjectX500Principal().getName();
+					ksTrust.setCertificateEntry(alias, cert);
 				}
-				String alias = cert.getSubjectX500Principal().getName();
-				ksTrust.setCertificateEntry(alias, cert);
 			}
 
 			// KeyManagers decide which key material to use

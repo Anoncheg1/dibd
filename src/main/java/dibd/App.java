@@ -160,18 +160,18 @@ public final class App{
                     "dibd.storage.impl.JDBCStorageProvider");
         StorageProvider sprov = StorageManager.loadProvider(provName);
         StorageManager.enableProvider(sprov);
-        if (Config.inst().get(Config.PEERING, false)){
-        	StorageManager.enableSubscriptionsProvider(new SubscriptionsProvider());//peers.conf
+        StorageManager.enableSubscriptionsProvider(new SubscriptionsProvider());//peers.conf
+        if (Config.inst().get(Config.PEERING, false))
         	StorageManager.enableOfferingHistory(new OfferingHistory());
-        }
         StorageManager.enableGroupsProvider(new GroupsProvider());//groups.conf
         //ImageMagic initialization
-        String IMpath = Config.inst().get(Config.IMAGEMAGICPATH, "/usr/bin/"); 
+        String IMpath = Config.inst().get(Config.IMAGEMAGICPATH, "/usr/bin/");
+        
         File path = new File(IMpath);
         if(!path.exists()){
         	IMpath = "/usr/bin/";
         	if(!new File(IMpath).exists()){
-        		IMpath="C:\\Programs\\ImageMagick;C:\\Programs\\exiftool";
+        		IMpath="C:\\Program Files\\ImageMagick-7.0.5-Q16";
         		if(! new File(IMpath.split(";")[0]).exists())
         			throw new Error("Fail to locate ImageMagic");
         	}
@@ -188,16 +188,16 @@ public final class App{
 			System.exit(1);
 		}
         
-        //if TLS enabled
-        try {
-        	//System.out.println("Creating tls");
-			TLS.createTLSContext(); //initialize
-		} catch (UnrecoverableKeyException | KeyManagementException | KeyStoreException | NoSuchAlgorithmException
-				| CertificateException | IOException e) {
-			
-			Log.get().log(Level.SEVERE, "Cant initialize TLS context: {0}", e);
-            //System.exit(1);
-		}
+        if (Config.inst().get(Config.PEERING, false) == true){
+        	try {
+        		TLS.createTLSContext(); //initialize
+        	} catch (UnrecoverableKeyException | KeyManagementException | KeyStoreException | NoSuchAlgorithmException
+        			| CertificateException | IOException e) {
+
+        		Log.get().log(Level.SEVERE, "Cant initialize TLS context: {0}", e);
+        		//System.exit(1);
+        	}
+        }
 
         ChannelLineBuffers.allocateDirect();        
         
