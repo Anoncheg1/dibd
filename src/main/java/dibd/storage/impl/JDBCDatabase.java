@@ -1,21 +1,3 @@
-/* 
- *   SONEWS News Server
- *   see AUTHORS for the list of contributors
- *
- *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
- *   (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-
 package dibd.storage.impl;
 
 import java.io.File;
@@ -50,8 +32,8 @@ import dibd.util.Log;
  * Storage backend facade class for a relational SQL database using JDBC. The
  * statements used should work for at least PostgreSQL and MySQL.
  *
- * @author 
- * @since sonews/2.0
+ * @author user
+ * 
  */
 public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Storage
 	public static final int MAX_RESTARTS = 3;

@@ -19,6 +19,7 @@ package dibd.storage;
 
 /**
  * Provides access to a storage backend.
+ * Used for thread pools only.
  * 
  * @author Christian Lins
  * @since sonews/1.0
