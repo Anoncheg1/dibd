@@ -18,6 +18,10 @@ import dibd.storage.impl.JDBCDatabase;
 /**
  * Replace StorageManager for dynamically spawn threads.
  * 
+ * Adapter of database StorageWeb interface.
+ * 
+ * Much slower that StorageManager.current()
+ * 
  * @author user
  *
  */
