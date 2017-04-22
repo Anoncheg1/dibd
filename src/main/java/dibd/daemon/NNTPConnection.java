@@ -256,6 +256,7 @@ public class NNTPConnection implements NNTPInterface{
         		return;
         	if(line.equals(nntpchankeepalive)){ //nntpchan required
         		try {
+        			lastActivity = System.currentTimeMillis();
         			this.println("500 keep alive ok.");
         		} catch (IOException e) {
         			Log.get().log(Level.WARNING, e.getLocalizedMessage(), e);
