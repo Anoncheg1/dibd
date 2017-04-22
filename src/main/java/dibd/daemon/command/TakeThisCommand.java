@@ -108,7 +108,7 @@ public class TakeThisCommand implements Command {
 						conn.println("439 " + cMessageId + " wrong message-id format");
 
 				}else
-					conn.println("500 " + cMessageId + " invalid command usage");
+					conn.println("501 " + cMessageId + " invalid command usage");
 			}else
 				conn.println("483 " + cMessageId + " TLS required");
 			conn.close();

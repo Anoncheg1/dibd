@@ -126,7 +126,7 @@ public class IhaveCommand implements Command{
 						}
 					}
 				}
-				conn.println("500 invalid command usage");
+				conn.println("501 invalid command usage");
 			}else
 				conn.println("483 TLS required");
 

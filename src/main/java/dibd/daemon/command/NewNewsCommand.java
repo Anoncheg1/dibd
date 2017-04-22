@@ -145,7 +145,7 @@ public class NewNewsCommand implements Command {
 			conn.println(".");
 			return;
 		}
-		conn.println("500 invalid command usage");
+		conn.println("501 invalid command usage");
 	}
 
 

@@ -18,11 +18,13 @@
 package dibd.daemon.command;
 
 import java.io.IOException;
+import java.util.logging.Level;
 
 import dibd.daemon.NNTPInterface;
 import dibd.storage.StorageBackendException;
 import dibd.storage.StorageManager;
 import dibd.storage.GroupsProvider.Group;
+import dibd.util.Log;
 
 /**
  * Class handling the GROUP command.
@@ -82,13 +84,22 @@ public class GroupCommand implements Command {
                 conn.println("411 no such news group");
             } else {
                 conn.setCurrentGroup(group);
-                conn.println("211 " + group.getPostingsCount() + " "
+                int count = 0;
+                try{
+                	count = StorageManager.current().getArticleCountGroup(group.getInternalID());
+                }catch(Exception e){
+                	if (StorageManager.current() != null)
+                		Log.get().log(Level.WARNING, "GroupCommand, getArticleCountGroup:", e);
+                	conn.println("500 internal error");
+                	
+                }
+                conn.println("211 " + count + " "
                         + group.getFirstArticleNumber() + " "
                         + group.getLastArticleNumber() + " " + group.getName()
                         + " group selected");
             }
         } else {
-            conn.println("500 no group name given");
+            conn.println("501 no group name given");
         }
     }
 }

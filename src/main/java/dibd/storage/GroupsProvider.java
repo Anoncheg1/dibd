@@ -169,9 +169,10 @@ public class GroupsProvider {
 		 * @return Number of posted articles in this group.
 		 * @throws StorageBackendException
 		 */
+		/*
 		public long getPostingsCount() throws StorageBackendException {
 			return StorageManager.current().getArticleCountGroup(id);
-		}
+		}*/
 
 	} //THE END of Group
 	
