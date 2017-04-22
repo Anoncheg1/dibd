@@ -284,7 +284,8 @@ public class ArticlePuller {
 					if (re == 0)
 						reseived ++;
 					else if (re == 1 && errors++ >= 3)
-							throw new IOException("3 errors");//error
+						throw new IOException("3 errors");//error
+					//re == 3 do nothing
 				}
 
 				iterator.remove();
@@ -405,9 +406,9 @@ public class ArticlePuller {
 			if(line.startsWith("235")) {
 				Log.get().log(Level.INFO, "{0} successfully received", messageId);
 				return 0;
-			} else if (line.equals(IhaveCommand.noRef)){//may happen if thread is refering to another thread....
-				Log.get().log(Level.SEVERE, "PULL from {0} {1} THIS THREAD refering another thread!", new Object[]{this.host, messageId} );
-				return 1;
+			} else if (line.equals(IhaveCommand.noRef)){//may happen if thread is refering to
+				Log.get().log(Level.INFO, "PULL from {0} {1} no thread for replay, hidden maybe", new Object[]{this.host, messageId} );
+				return 3;
 			}else
 				Log.get().log(Level.WARNING, "Pulling {0} from {1} self IHAVE: {2}", new Object[]{messageId, this.host, line});
 
@@ -597,20 +598,25 @@ public class ArticlePuller {
 		Map<String, String> aReplTime = new HashMap<>();
 		Map<String, String> aThreads = new HashMap<>();
 		
-		line = getIS();
-		while (line != null && !(".".equals(line))) {
+		int errors = 0;
+		
+		for (;;) {
+			line = getIS();
+			if(line == null){
+				Log.get().log(Level.WARNING, "From host: {0} XOVER 0 got null line in group: {1}", new Object[]{this.host, gname});
+				break;
+			}else if(".".equals(line))
+				break;
+			if (errors >= 5){
+				Log.get().log(Level.WARNING, "From host: {0} XOVER 0 got 5 errors in {1} before this line: {2}", new Object[]{this.host, gname, line});
+				throw new IOException();//we interrupt pull or skip peer
+			}
+
 			String[] part = line.split("\t");
+			
 			if (part.length < 5){
-				line.trim();
-				String line2 = getIS();
-				if (line != null && !(".".equals(line))){
-					line+=line2;
-					part = line.split("\t");
-				}
-				if (part.length < 5){ //\n lets try read next line
-					Log.get().log(Level.WARNING, "From host: {0} XOVER 0 for group {1}, Lines have less than 5 parts: {2}", new Object[]{this.host, gname, line});
-					throw new IOException();//we skip this peer
-				}
+				errors++;
+				continue;
 			}
 
 			//0 1 2 - id, subject, from
@@ -628,17 +634,20 @@ public class ArticlePuller {
 				}else if ( part.length >= 6 && part[5].matches(NNTPConnection.MESSAGE_ID_PATTERN) && ! part[5].equals(part[4])){ //replay
 					replays.put(part[4], part[5]);
 					aReplTime.put(part[4], part[3]);
-				}else
+				}else{
+					errors++;
 					Log.get().log(Level.WARNING, "From: {0} unsupported XOVER format of line or mesage id:\n{1}", new Object[]{this.host, line});
-			}else
+				}
+			}else{
+				errors++;
 				Log.get().log(Level.WARNING, "From: {0} unsupported XOVER format of line or mesage id:\n{1}", new Object[]{this.host, line});
+			}
 
 			if(replays.size() > 999000/2 || threads.size() > 999000/2){
 				Log.get().log(Level.SEVERE, "From host: {0} XOVER 0 for group {1}, there is over 999000 article lines like {2}", new Object[]{this.host, gname, line});
 				throw new IOException();
 			}
 
-			line = getIS();
 		}
 		
 		//500 initial capacity may be anything. 500 is rough min posts count.(just more than default 10)

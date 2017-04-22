@@ -506,16 +506,20 @@ class ReceivingService{
 		//if ref equal mId we assume it is thread
 		if ( ! command.equals("POST")){
 			if (ref != null && !ref[0].isEmpty() && ! ref[0].equals(messageId)){
-				Article art = StorageManager.current().getArticle(ref[0], null, 1); //get thread
-					
+				Article art = StorageManager.current().getArticle(ref[0], null, 99); //any thread
+				
 				if (art != null){
-					if (art.getId().intValue() == art.getThread_id().intValue()){ //check that ref is a thread
-						this.thread_id = art.getThread_id(); //return true
-					}else
+					if (art.getStatus() == 3) //hidden like spam
 						return false;
+					else if (art.getId().intValue() != art.getThread_id().intValue()){ //check that ref is a thread
+						Log.get().log(Level.SEVERE, "{0}: REPLAY {1} reference to REPLAY {2} in group {3} from {4}",
+							    new Object[] {command, messageId, art.getMessageId(), group.getName(), host});
+						return false;
+					}else
+						this.thread_id = art.getThread_id(); //return true
 				}else{
 					//request missed thread:
-					PullDaemon.queueForPull(group, ref[0], messageId+" "+this.host+" "+path);
+					PullDaemon.queueForPull(group, ref[0], messageId+" "+ref[0]+" "+this.host+" "+path);
 					return false; //"no such REFERENCE";
 				}
 

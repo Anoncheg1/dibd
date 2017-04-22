@@ -52,7 +52,7 @@ public class PullDaemon extends DaemonThread {
 	private static class MissingThread{
 		Group g; //groupt to query to
 		String messageId;
-		String messageIdHostPath;
+		String mIdRefHostPath;
 		/**
 		 * @param g
 		 * @param t
@@ -61,7 +61,7 @@ public class PullDaemon extends DaemonThread {
 		MissingThread(Group g, String messageId, String string_for_log){
 			this.g = g;
 			this.messageId = messageId;
-			this.messageIdHostPath = string_for_log;
+			this.mIdRefHostPath = string_for_log;
 		}
 		
 		@Override
@@ -163,7 +163,7 @@ public class PullDaemon extends DaemonThread {
 				}
     			Log.get().log(
     					Level.INFO, "Pull missing thread  {0} group {1} from {2}", //his groups {1}",
-    					new Object[]{mthread.messageIdHostPath, gname, host});
+    					new Object[]{mthread.mIdRefHostPath, gname, host});
 
     			
     			return ap.getThread(mthread.messageId, gname);
