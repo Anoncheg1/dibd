@@ -34,6 +34,8 @@ import dibd.util.Log;
  */
 public class CheckCommand implements Command {
 	
+	static private String keepalive = "<keepalive@dummy.tld>"; //nntpchan shit
+	
 	@Override
     public String[] getSupportedCommandStrings() {
         return new String[] { "CHECK" };

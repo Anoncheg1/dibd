@@ -224,6 +224,9 @@ public class NNTPConnection implements NNTPInterface{
         return this.lastActivity;
     }
 
+    
+    static private String nntpchankeepalive = "CHECK <keepalive@dummy.tld>"; //nntpchan shit
+    
     /**
      * Due to the readLockGate there is no need to synchronize this method.
      *
@@ -249,8 +252,16 @@ public class NNTPConnection implements NNTPInterface{
         // No trailing \r anymore
 
         if (command == null) { //waiting for command
-        	if(line.charAt(0) == '5' || ! ascii.canEncode(line)) //mistaking 5xx responses. TODO:add other codes
+        	if(line.charAt(0) == '5' || ! ascii.canEncode(line)) //mistaking 5xx responses, not ascii
         		return;
+        	if(line.equals(nntpchankeepalive)){ //nntpchan required
+        		try {
+        			this.println("500 keep alive ok.");
+        		} catch (IOException e) {
+        			Log.get().log(Level.WARNING, e.getLocalizedMessage(), e);
+        		}
+        		return;
+        	}
         	
         	Log.get().log(Level.FINER, "<< {0}", line);
         	

@@ -69,7 +69,7 @@ public class NewGroupsCommand implements Command {
 
         if (command.length >= 3) {
         	if(command[0].equalsIgnoreCase("newsgroups") || command[0].equalsIgnoreCase("newgroups"))
-        		if ((Config.inst().get(Config.ALLOW_UNAUT_SCRAP, true) && Math.random()>0.2) || conn.isTLSenabled()){//slow down xover for nntpchan
+        		if ((Config.inst().get(Config.ALLOW_UNAUT_SCRAP, true) && Math.random()>0.3) || conn.isTLSenabled()){//slow down xover for nntpchan
         			if (command[0].equalsIgnoreCase("newsgroups"))
         				conn.println("231 newgroups not newSgroups damn you!");
         			else
