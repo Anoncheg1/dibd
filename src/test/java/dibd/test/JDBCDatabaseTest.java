@@ -16,6 +16,7 @@ import java.util.Set;
 
 import org.mockito.Mockito;
 import dibd.storage.GroupsProvider;
+import dibd.storage.Headers;
 import dibd.storage.StorageBackendException;
 import dibd.storage.StorageManager;
 import dibd.storage.StorageNNTP;
@@ -66,9 +67,9 @@ public class JDBCDatabaseTest {
 		
 		JDBCDatabase db0 = new JDBCDatabase();
 		db0.arise();
-		StorageNNTP db = db0;
+		
 		Article art = new Article(null, "23458@host.com", "host.com", "петрик <foo@bar.ano>", "ффывфыв фыв фыв фыв фыв фыв фыв фыв фыв фыв фыв фы", "message2",
-				"Thu, 02 May 2013 12:37:44 +0000", null, "local.test", 23, 0);
+				Headers.ParseRawDate("Thu, 02 May 2013 12:37:44 +0000"), null, "local.test", 23, 0);
 		//db0.createThread(art, Base64.getDecoder().decode("R0lGODlhAQABAIAAAP///wAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw=="), "image/gif");
 		Article art2 = db0.getArticle("<23458@host.com>", null, 1);
 		System.out.println(null+"!");

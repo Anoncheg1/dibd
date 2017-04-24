@@ -14,6 +14,7 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.text.ParseException;
+import java.time.Instant;
 import java.util.Base64;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
@@ -107,7 +108,7 @@ class ReceivingService{
 	private String subject;
 	private String[] ref = null; //may be null (used for checkRef)
 	
-	private String date = null;
+	private long date = 0;
 	private String path = null;
 	private String messageId = null;//null if POST
 	private String lastSender;
@@ -169,7 +170,13 @@ class ReceivingService{
 						return "No date or path or messageId in headers.";//error
 					}
 					
-					date = dateH[0];
+					//date test
+					date = Headers.ParseRawDate(dateH[0]);
+					if (date > (Instant.now().getEpochSecond()+10) ){
+						if( ! this.pullMode)
+							Log.get().log(Level.WARNING, "{0}:{1} time of Date header is larger than current time. {2}", new Object[]{command, cMessageId, host});
+					}
+						
 					path = pathH[0];
 					messageId = mId[0];
 					lastSender = path.split("!")[0];
@@ -179,7 +186,7 @@ class ReceivingService{
 				if(ref != null && !ref[0].isEmpty())
 					if (! Headers.matchMsgId(ref[0])){
 						if( ! this.pullMode)
-							Log.get().log(Level.INFO, "{0} wrong reference {1} format in {2} from {3}", new Object[] {command, ref[0], this.cMessageId, host});
+							Log.get().log(Level.WARNING, "{0} wrong reference {1} format in {2} from {3}", new Object[] {command, ref[0], this.cMessageId, host});
 						return "Wrong format of reference in headers"; //error in header references
 					}
 					
@@ -189,7 +196,7 @@ class ReceivingService{
 					group = StorageManager.groups.get(groupHeader[0].split(",")[0].trim());
 				
 				if (groupHeader == null || group == null || group.isDeleted())//check that we have such group
-						return "No such news group.";//error
+					return "No such news group.";//error
 				
 				
 				
@@ -204,7 +211,8 @@ class ReceivingService{
 				}
 
 				
-				
+			} catch (ParseException e) {
+				return "Date header error";
 			} catch (MessagingException ex) {
 				if( ! this.pullMode)
 					Log.get().log(Level.INFO, ex.getLocalizedMessage(), ex);

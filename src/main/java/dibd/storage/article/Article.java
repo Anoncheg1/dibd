@@ -94,7 +94,7 @@ public class Article { //extends ArticleHead
 	 * @param status 10
 	 * @throws ParseException 
 	 */
-	public Article(Integer thread_id, String messageId, String msgID_host, String a_name, String subject, String message, String date_raw, String path_header, String groupName, int groupId, int status) throws ParseException{
+	public Article(Integer thread_id, String messageId, String msgID_host, String a_name, String subject, String message, long date, String path_header, String groupName, int groupId, int status) throws ParseException{
 		super();
 		
 		a = new Art();
@@ -105,7 +105,7 @@ public class Article { //extends ArticleHead
 		a.a_name = a_name;
 		a.subject = subject;
 		a.message = message;
-		a.post_time = Headers.ParseRawDate(date_raw);
+		a.post_time = date;
 		a.path_header = path_header;
 		a.groupName = groupName;
 		a.groupId = groupId;
@@ -286,26 +286,7 @@ public class Article { //extends ArticleHead
 		//String msgID = "<" + randomString + post_time*128 + "@"
 		//        + msgID_origin + ">";
 	}
-
-	//NNTP new functions
-
-	/**
-	 * Loads the Article identified by the given ID from the JDBCDatabase.
-	 *
-	 * @param messageID
-	 * @return null if Article is not found or if an error occurred.
-	 */
-	/*
-    public static Article getByMessageID(final String messageID) {
-        try {
-            return StorageManager.current().getArticle(messageID, null);
-        } catch (StorageBackendException ex) {
-            Log.get().log(Level.WARNING, ex.getLocalizedMessage(), ex);
-            return null;
-        }
-    }
-	 */
-	//*****
+		
 
 	public Integer getId() {
 		return a.id;

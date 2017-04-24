@@ -27,7 +27,9 @@ package dibd.storage;
 //@SuppressWarnings("serial")
 public class StorageBackendException extends Exception {
 
-    public StorageBackendException(Throwable cause) {
+    private static final long serialVersionUID = -7764886355378823974L;
+
+	public StorageBackendException(Throwable cause) {
         super(cause);
     }
 
