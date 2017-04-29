@@ -13,7 +13,8 @@ import java.util.List;
 import java.util.logging.Level;
 
 import dibd.storage.GroupsProvider.Group;
-import dibd.storage.article.Article;
+import dibd.storage.article.ArticleForPush;
+import dibd.storage.article.ArticleOutput;
 import dibd.util.Log;
 
 /**
@@ -91,7 +92,16 @@ public class NNTPCacheProvider {
 	 * @param article
 	 * @return null if not exist
 	 */
-	public FileInputStream getFileStream(Article article) {
+	public FileInputStream getFileStream(ArticleOutput article) {
+		File f = buildPath(article.getGroupName(), article.getMessageId());
+		try {
+			return new FileInputStream(f);
+		} catch (FileNotFoundException e) {
+			return null;
+		}		
+	}
+	
+	public FileInputStream getFileStream(ArticleForPush article) {
 		File f = buildPath(article.getGroupName(), article.getMessageId());
 		try {
 			return new FileInputStream(f);

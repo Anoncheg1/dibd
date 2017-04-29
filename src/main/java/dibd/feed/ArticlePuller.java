@@ -58,10 +58,9 @@ import dibd.daemon.NNTPInterface;
 import dibd.daemon.TLS;
 import dibd.daemon.command.IhaveCommand;
 import dibd.storage.StorageBackendException;
+import dibd.storage.article.NNTPArticle;
 import dibd.storage.GroupsProvider.Group;
 import dibd.storage.Headers;
-import dibd.storage.article.Article;
-import dibd.storage.article.Article.NNTPArticle;
 import dibd.util.Log;
 
 /**
@@ -207,9 +206,9 @@ public class ArticlePuller {
 		};
 
 		public Charset getCurrentCharset() {return charset;}
-		public Article getCurrentArticle() {return null;}
+		//public Article getCurrentArticle() {return null;}
 		public Group getCurrentGroup() {return null;}
-		public void setCurrentArticle(Article article) {}
+		//public void setCurrentArticle(Article article) {}
 		public void setCurrentGroup(Group group) {}
 		public void close() {}
 		public void print(FileInputStream fs, String mId){}

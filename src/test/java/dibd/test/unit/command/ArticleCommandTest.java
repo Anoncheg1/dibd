@@ -20,8 +20,8 @@ import dibd.storage.NNTPCacheProvider;
 import dibd.storage.StorageBackendException;
 import dibd.storage.StorageManager;
 import dibd.storage.StorageNNTP;
-import dibd.storage.article.Article;
-import dibd.storage.article.Article.NNTPArticle;
+import dibd.storage.article.ArticleOutput;
+import dibd.storage.article.NNTPArticle;
 
 public class ArticleCommandTest {
 	
@@ -43,10 +43,11 @@ public class ArticleCommandTest {
 	public void articleTest() throws UnsupportedEncodingException, IOException, StorageBackendException, ParseException{
        
 		ArticleCommand a = new ArticleCommand();
-		a.processLine(conn, "article", "article".getBytes("UTF-8"));
-		verify(conn, atLeastOnce()).println(startsWith("420")); //Current article is invalid
+		//current article disabled
+		/*a.processLine(conn, "article", "article".getBytes("UTF-8"));
+		verify(conn, atLeastOnce()).println(startsWith("420"));*/ //Current article is invalid
 		
-		Article art0 = Mockito.mock(Article.class);//mock article
+		ArticleOutput art0 = Mockito.mock(ArticleOutput.class);//mock article
 		NNTPArticle nart = Mockito.mock(NNTPArticle.class);
 		when(art0.buildNNTPMessage(StandardCharsets.UTF_8, 1)).thenReturn(nart);
 	//	when(nart.before_attach).thenReturn("");

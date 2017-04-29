@@ -28,7 +28,7 @@ import dibd.storage.Headers;
 import dibd.storage.StorageBackendException;
 import dibd.storage.StorageManager;
 import dibd.storage.GroupsProvider.Group;
-import dibd.storage.article.Article;
+import dibd.storage.article.ArticleOutput;
 import dibd.util.Log;
 
 /**
@@ -62,6 +62,9 @@ import dibd.util.Log;
       BODY
       220 changed 222
  * 
+ * Current article feature disabled
+ * 
+ * @user
  * @author Christian Lins
  * @author Dennis Schwerdel
  * @since n3tpd/0.1
@@ -95,15 +98,22 @@ public class ArticleCommand implements Command {
             throws IOException, StorageBackendException {
         final String[] command = line.split("\\p{Space}+");
 
-        Article article = null;
-        if (command.length == 1) {
+        
+        /*if (command.length == 1) {
             article = conn.getCurrentArticle();
             if (article == null) {
                 conn.println("420 no current article has been selected");
                 return;
             }
+        } else*/
+        if (command.length != 2){
+        	conn.println("501 invalid command usage");
+        	return;
+        }
+        
+        ArticleOutput article = null;
         // Message-ID
-        } else if (Headers.matchMsgId(command[1])) {
+        if (Headers.matchMsgId(command[1])) {
 			article = StorageManager.current().getArticle(command[1], null, 0);
             if (article == null) {
                 conn.println("430 no such article found");
@@ -145,7 +155,7 @@ public class ArticleCommand implements Command {
                 conn.println("423 no such article number in this group");
                 return;
             }
-            conn.setCurrentArticle(article);
+            //conn.setCurrentArticle(article);
         }
         
         
@@ -178,6 +188,7 @@ public class ArticleCommand implements Command {
         		}
         	//2)check if message is ours
         	}else{
+        		//TODO:check status instead.
         		if (article.getMsgID_host()
         				.equals(Config.inst().get(Config.HOSTNAME, null))){
         			conn.println(ok);

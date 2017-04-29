@@ -162,7 +162,9 @@ public class PullAtStart extends Thread {
     				}
     				try {
     					//TODO:make configurable
-    					Thread.sleep(1000*60*60*Config.inst().get(Config.PULLINTERVAL, 5));//xover every 5 hours. nntpchan do not relay at push so 1 will be better.
+    					int pint = Config.inst().get(Config.PULLINTERVAL, 5)*60; //in minutes
+    					int rand = (int) (pint*Math.random() - pint/2); //(rand= -(pint/2) <-> (pint/2) 
+    					Thread.sleep(1000*60*pint+rand);//xover every ? hours. nntpchan do not relay at push so 1 will be better.
     				} catch (InterruptedException e) {
     					Log.get().log(Level.FINEST, "PullAtStart "+sub.getHost()+" interrupted: {0}", e.getLocalizedMessage());
     				}

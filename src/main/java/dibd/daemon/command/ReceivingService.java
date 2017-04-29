@@ -36,7 +36,11 @@ import dibd.storage.Headers;
 import dibd.storage.StorageBackendException;
 import dibd.storage.StorageManager;
 import dibd.storage.GroupsProvider.Group;
-import dibd.storage.article.Article;
+import dibd.storage.article.ArticleFactory;
+import dibd.storage.article.ArticleForPush;
+import dibd.storage.article.ArticleInput;
+import dibd.storage.article.ArticleOutput;
+import dibd.storage.article.ArticleWebInput;
 import dibd.storage.web.ShortRefParser;
 import dibd.util.Log;
 
@@ -59,7 +63,7 @@ class ReceivingService{
 	//private final ByteArrayOutputStream bufBody = new ByteArrayOutputStream(); //raw bytes UTF-8 by default
 	private File cacheFile = null;
 	FileOutputStream cacheOs = null;
-	
+
 	//constructor
 	private final String command;
 	private final NNTPInterface conn;
@@ -77,7 +81,7 @@ class ReceivingService{
 		host = conn.getHost();
 	}
 
-	
+
 	/**
 	 * Decode word-encoded string if it is required
 	 * 
@@ -514,7 +518,7 @@ class ReceivingService{
 		//if ref equal mId we assume it is thread
 		if ( ! command.equals("POST")){
 			if (ref != null && !ref[0].isEmpty() && ! ref[0].equals(messageId)){
-				Article art = StorageManager.current().getArticle(ref[0], null, 99); //any thread
+				ArticleOutput art = StorageManager.current().getArticle(ref[0], null, 99); //any thread
 				
 				if (art != null){
 					if (art.getStatus() == 3) //hidden like spam
@@ -536,7 +540,7 @@ class ReceivingService{
 			
 		}else{//POST
 			if (ref != null && !ref[0].isEmpty()){
-				Article art = StorageManager.current().getArticle(ref[0], null, 1); //get thread
+				ArticleOutput art = StorageManager.current().getArticle(ref[0], null, 1); //get thread
 				if (art != null){
 					if (art.getId().intValue() == art.getThread_id().intValue()){ //check that ref is a thread
 						this.thread_id = art.getThread_id(); //return true
@@ -756,8 +760,8 @@ class ReceivingService{
 		//from = from_raw[0].replaceAll("<.*>", "");
 
 		// Create Replay or Thread
-		Article art; //to save
-		Article article; //to transfer
+		
+		
 		
 		String[] mId = null; //message-id two parts 0-id 1-sender
 
@@ -796,18 +800,24 @@ class ReceivingService{
 		//3. attachment save to database if fail roll back
 		//4. save thumbnail - Not critical.
 		//5. article to database
+		
+		ArticleForPush article; //to transfer
+		
 		try{
 			if (command.equals("POST")){
 				assert(status == 0);
+				ArticleWebInput art; //to save for POST
 				if(thread_id != null){ //replay
-					art = new Article(thread_id, from, subject, message, group);
-					article = StorageManager.current().createReplay(art, this.attachFile, gfileCT, file_name);
+					art = ArticleFactory.crAWebInput(thread_id, from, subject, message, group, file_name, gfileCT);
+					//ArticleInput ai = ;
+					article = StorageManager.current().createReplay((ArticleInput) art, this.attachFile);
 				}else{ //thread
-					art = new Article(null, from, subject, message, group);
-					article = StorageManager.current().createThread(art, this.attachFile, gfileCT, file_name);
+					art = ArticleFactory.crAWebInput(null, from, subject, message, group, file_name, gfileCT);
+					article = StorageManager.current().createThread((ArticleInput) art, this.attachFile);
 				}
 				FeedManager.queueForPush(article); //send to peers
 			}else{
+				ArticleInput art; //to save
 
 				////   IHAVE, TAKETHIS    //////
 				//status  1 - file was not readed.  0 - normal
@@ -815,13 +825,13 @@ class ReceivingService{
 				if(thread_id != null){ //replay
 					//nntpchan links converter
 					message = ShortRefParser.nntpchanLinks(message, group);
-					art = new Article(thread_id, messageId, mId[1], from, subject, message,
-							date, path.trim(), group.getName(), group.getInternalID(), status);
+					art = ArticleFactory.crAInput(thread_id, messageId, mId[1], from, subject, message,
+							date, path.trim(), group.getName(), group.getInternalID(), status, file_name, gfileCT);
 
 					if(status == 0){
 						File fl = StorageManager.nntpcache.saveFile(group.getName(), messageId, this.cacheFile);
 						try{
-							article = StorageManager.current().createReplay(art, this.attachFile, gfileCT, file_name);
+							article = StorageManager.current().createReplay(art, this.attachFile);
 						}catch(StorageBackendException e){ //rollback cache
 							StorageManager.nntpcache.delFile(fl);
 							throw e;
@@ -829,26 +839,26 @@ class ReceivingService{
 
 					}else{ //if (status == 1)//no need cache if status =1
 						assert(this.attachFile == null); // that is how we understand that statys = 1
-						article = StorageManager.current().createReplay(art, this.attachFile, gfileCT, file_name);
+						article = StorageManager.current().createReplay(art, this.attachFile);
 					}
 
 				}else{ //thread
 					//nntpchan links converter
 					message = ShortRefParser.nntpchanLinks(message, group);
-					art = new Article(null, messageId, mId[1], from, subject, message,
-							date, path.trim(), group.getName(), group.getInternalID(), status);
+					art = ArticleFactory.crAInput(null, messageId, mId[1], from, subject, message,
+							date, path.trim(), group.getName(), group.getInternalID(), status, file_name, gfileCT);
 
 					if(status == 0){
 						File fl = StorageManager.nntpcache.saveFile(group.getName(), messageId, this.cacheFile);
 						try{
-							article = StorageManager.current().createThread(art, this.attachFile, gfileCT, file_name);
+							article = StorageManager.current().createThread(art, this.attachFile);
 						}catch(StorageBackendException e){ //rollback cache
 							StorageManager.nntpcache.delFile(fl);
 							throw e;
 						}
 					}else{ //if (status == 1)//no need cache if status =1
 						assert(this.attachFile == null); // that is how we understand that statys = 1
-						article = StorageManager.current().createThread(art, this.attachFile, gfileCT, file_name);
+						article = StorageManager.current().createThread(art, this.attachFile);
 					}
 
 				}

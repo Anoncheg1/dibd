@@ -38,7 +38,7 @@ import dibd.storage.GroupsProvider.Group;
 import dibd.storage.StorageManager;
 import dibd.storage.SubscriptionsProvider.FeedType;
 import dibd.storage.SubscriptionsProvider.Subscription;
-import dibd.storage.article.Article;
+import dibd.storage.article.ArticleForPush;
 import dibd.util.Log;
 
 public class FeedManager{
@@ -120,7 +120,7 @@ public class FeedManager{
 						}
 				if(subGood){
 					//shared LinkedBlockingQueue between one subscription
-					LinkedBlockingQueue<Article> articleQueue = new LinkedBlockingQueue<>(PUSH_QUEUE_SIZE);
+					LinkedBlockingQueue<ArticleForPush> articleQueue = new LinkedBlockingQueue<>(PUSH_QUEUE_SIZE);
 					//PushDaemon did not use storage, that is why we can easily create many.
 					//1 articles per 1 min or we will halt if sub unreachable.
 					int pushThreads = 10; //10 threads per sub (every thread retry for 10 minutes if server is unreachable.)
@@ -147,7 +147,7 @@ public class FeedManager{
 	 * 
 	 * @param article
 	 */
-	public static void queueForPush(Article article) {
+	public static void queueForPush(ArticleForPush article) {
 		if (Config.inst().get(Config.PEERING, false)){
 			String newsgroup = article.getGroupName();
 			assert(newsgroup != null);

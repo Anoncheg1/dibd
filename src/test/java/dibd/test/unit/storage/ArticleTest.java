@@ -3,12 +3,8 @@ package dibd.test.unit.storage;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -22,8 +18,9 @@ import dibd.storage.AttachmentProvider;
 import dibd.storage.StorageBackendException;
 import dibd.storage.StorageManager;
 import dibd.storage.StorageNNTP;
-import dibd.storage.article.Article;
-import dibd.storage.article.Article.NNTPArticle;
+import dibd.storage.article.ArticleFactory;
+import dibd.storage.article.ArticleOutput;
+import dibd.storage.article.NNTPArticle;
 
 public class ArticleTest {
 	
@@ -56,10 +53,10 @@ public class ArticleTest {
 		//when(this.aprov.readFile(group, fileName)).thenReturn(fileName.getBytes());//file contains fileName
 
 		int thread_id = 777;
-		Article resa1 = new Article(null, thread_id, "<message-id@host.com>", "host.com", null, "сабджект", "фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы", 
-				1466589502, "host!host2", group, null, null, 0); //without image
+		ArticleOutput resa1 = ArticleFactory.crAOutput(3234, thread_id, "<message-id@host.com>", "host.com", null, "сабджект", "фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы", 
+				1466589502l, "host!host2", group, null, null, 0); //without image
 		
-		Article resa2 = new Article(null, thread_id, "<message-id@host.com>", "host.com", "петрик <собака@бфка>", "сабджект", "message", 
+		ArticleOutput resa2 = ArticleFactory.crAOutput(23, thread_id, "<message-id@host.com>", "host.com", "петрик <собака@бфка>", "сабджект", "message", 
 				1466589502, "host!host2", group, fileName, "img/png", 0);//with image
 		
 		//Article retA= new Article(thread_id, thread_id, "<ref-message-id@foo.bar>", "foo.bar", null, "subject", "message", 

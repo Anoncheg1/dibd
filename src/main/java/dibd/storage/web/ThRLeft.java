@@ -1,6 +1,6 @@
 package dibd.storage.web;
 
-import dibd.storage.article.Article;
+import dibd.storage.article.ArticleOutput;
 
 //for StoregeWeb.getThreads()
 /**
@@ -12,7 +12,7 @@ import dibd.storage.article.Article;
  *
  * @param <T> Article and ArticleWeb
  */
-public class ThRLeft<T extends Article> {
+public class ThRLeft<T extends ArticleOutput> {
 
 	T thread;
 	Integer rLeft; //may be null. hidden replays

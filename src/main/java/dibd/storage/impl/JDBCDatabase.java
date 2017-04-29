@@ -22,7 +22,12 @@ import dibd.storage.ScrapLine;
 import dibd.storage.StorageBackendException;
 import dibd.storage.StorageManager;
 import dibd.storage.StorageNNTP;
-import dibd.storage.article.Article;
+import dibd.storage.article.ArticleFactory;
+import dibd.storage.article.ArticleForOverview;
+import dibd.storage.article.ArticleForPush;
+import dibd.storage.article.ArticleInput;
+import dibd.storage.article.ArticleOutput;
+import dibd.storage.article.ArticleWebInput;
 import dibd.storage.web.ObservableDatabase;
 import dibd.storage.web.StorageWeb;
 import dibd.storage.web.ThRLeft;
@@ -193,8 +198,8 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 								+"WHERE article.thread_id IN ( Select thread_id from thread " 
 								+"WHERE thread.group_id = ? AND article.status = 0 ORDER BY thread.last_post_time, article.post_time ASC LIMIT ?);");
 			// Prepare simple statements for method indexLastArts			
-						this.pstmtIndexLastArts = conn.prepareStatement("SELECT article.id, article.thread_id, article.message_id, article.subject, article.message, "
-								+"article.post_time, thread.group_id, attachment.file_path, article.status "
+						this.pstmtIndexLastArts = conn.prepareStatement("SELECT thread.group_id, article.id, article.thread_id, article.subject, article.message, "
+								+"attachment.file_path, attachment.media_type, article.status "
 								+"FROM article "
 								+"LEFT JOIN attachment ON article.id = attachment.article_id "
 								+"LEFT JOIN thread ON article.thread_id = thread.thread_id "
@@ -438,21 +443,22 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 	}
 	
 	//bfile or media_type may be null
-	public Article createThreadWeb(final Article article,
-			final File file, final String file_ct, final String file_name)
+	public ArticleForPush createThreadWeb(final ArticleWebInput article,
+			final File file)
 					throws StorageBackendException {
-		assert((file == null && file_ct == null) ||
-				(file != null && file_ct != null));
+		String file_ct = article.getFileCT();
+		if((file != null && file_ct == null) ||
+				(file == null && file_ct != null))
+			throw new StorageBackendException("createReplayWeb file and file_ct not synchronized, bad arguments");
 		if (repeatCheck(article.getHash(), article.getPost_time()))
 			return null;
 		else 
-			return createThread(article, file, file_ct, file_name);
+			return createThread((ArticleInput) article, file);
 	}
 	
 	
 	
-	public Article createThread(final Article article, final File file,
-			final String file_ct, String file_name)
+	public ArticleForPush createThread(final ArticleInput article, final File file)
 					throws StorageBackendException {
 		ResultSet rs = null;
 		int id = 0;
@@ -484,6 +490,10 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 		}finally{
 			closeResultSet(rs);	
 		}
+		
+		
+		String file_ct = article.getFileCT();
+		String file_name = article.getFileName();
 		
 		try {
 			this.conn.setAutoCommit(false); // start transaction
@@ -557,33 +567,36 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			}
 
 			restartConnection(ex);
-			return createThread(article, file, file_ct, file_name);
+			return createThread(article, file);
 		}
 		//create thumbbnail (not critical). and out of transaction
 		if (file_ct != null)
 			StorageManager.attachments.createThumbnail(groupName, file_name, file_ct);// not important
 		ObservableDatabase.inst().signal();
-		return new Article(article, id, messageId, file_name, file_ct);
+		return ArticleFactory.crAForPush(article, id, messageId, file_name, file_ct);
 	}
 	
-	public Article createReplayWeb(final Article article,
-			final File file, final String file_ct, final String file_name)
+	public ArticleForPush createReplayWeb(final ArticleWebInput article,
+			final File file)
 					throws StorageBackendException {
-		assert((file == null && file_ct == null) ||
-				(file != null && file_ct != null));
+		String file_ct = article.getFileCT();
+		if((file != null && file_ct == null) ||
+				(file == null && file_ct != null))
+			throw new StorageBackendException("createReplayWeb file and file_ct not synchronized, bad arguments");
 		if (repeatCheck(article.getHash(), article.getPost_time()))
 			return null;
 		else
-			return createReplay(article, file, file_ct, file_name);
+			return createReplay((ArticleInput) article, file);
 	}
 	
-	public Article createReplay(final Article article, final File file,
-			final String file_ct, String file_name)
+	public ArticleForPush createReplay(final ArticleInput article, final File file)
 					throws StorageBackendException {
 		//TODO: Get replays count  in thread and throw Exception if count > replays max  
 		int id = 0;
 		String messageId;
 		String groupName = article.getGroupName();
+		String file_ct = article.getFileCT();
+		String file_name = article.getFileName();
 		
 		try {
 			this.conn.setAutoCommit(false); // start transaction
@@ -642,24 +655,24 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			}
 
 			restartConnection(ex);
-			return createReplay(article, file, file_ct, file_name);
+			return createReplay(article, file);
 		}
 		
 		//create thumbbnail (not critical). and out of transaction
 		if (file_ct != null)
 			StorageManager.attachments.createThumbnail(groupName, file_name, file_ct);// not important
 		ObservableDatabase.inst().signal();
-		return new Article(article, id, messageId, file_name, file_ct);
+		return ArticleFactory.crAForPush(article, id, messageId, file_name, file_ct);
 		
 	}
 
 	
 	
 	//Phantom Reads
-	public Map<ThRLeft<Article>, List<Article>> getThreads(int boardId, int boardPage, String boardName) throws StorageBackendException {
+	public Map<ThRLeft<ArticleOutput>, List<ArticleOutput>> getThreads(int boardId, int boardPage, String boardName) throws StorageBackendException {
 		ResultSet rs = null;
 		ResultSet rs2 = null;
-		Map<ThRLeft<Article>, List<Article>> map;
+		Map<ThRLeft<ArticleOutput>, List<ArticleOutput>> map;
 		
 		try {
 			this.conn.setAutoCommit(false); // start transaction
@@ -678,10 +691,10 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			if(!rs.next())
 				throw new StorageBackendException("getThreads():getThreads");
 			else{
-				map = new LinkedHashMap<ThRLeft<Article>,List<Article>>(); //ordered
+				map = new LinkedHashMap<ThRLeft<ArticleOutput>,List<ArticleOutput>>(); //ordered
 				do {
 					int thread_id =rs.getInt(1);
-					Article thread = new Article(thread_id, thread_id, rs.getString(2), rs.getString(3), rs.getString(4),
+					ArticleOutput thread = ArticleFactory.crAOutput(thread_id, thread_id, rs.getString(2), rs.getString(3), rs.getString(4),
 							rs.getString(5), rs.getString(6), rs.getLong(7), null, boardName, rs.getString(8), null, rs.getInt(9)); //thread
 
 		  			int replays = Config.inst().get(Config.REPLAYSONBOARD, 3);
@@ -689,11 +702,11 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 					this.pstmtGetThreads2.setInt(1, rs.getInt(1));//thread_id
 					this.pstmtGetThreads2.setInt(2, replays);//limit
 					rs2 = this.pstmtGetThreads2.executeQuery();
-					Deque<Article> rd = new ArrayDeque<Article>(); //reversed order
+					Deque<ArticleOutput> rd = new ArrayDeque<ArticleOutput>(); //reversed order
 					while (rs2.next()) {
 						if(rs2.getInt(1) == rs.getInt(1))
 							continue;//skip thread, we need rLeft
-						rd.push(new Article(rs2.getInt(1), thread_id, rs2.getString(2), rs2.getString(3), rs2.getString(4),
+						rd.push(ArticleFactory.crAOutput(rs2.getInt(1), thread_id, rs2.getString(2), rs2.getString(3), rs2.getString(4),
 								rs2.getString(5), rs2.getString(6), rs2.getLong(7), null, boardName, rs2.getString(8), null, rs.getInt(9))); //replay
 					}
 					
@@ -702,7 +715,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 					Integer left = count - Config.inst().get(Config.REPLAYSONBOARD, 3);
 					if (left.intValue() <= 0)
 						left = null;
-					map.put(new ThRLeft<>(thread, left), new ArrayList<Article>(rd)); //normal order
+					map.put(new ThRLeft<>(thread, left), new ArrayList<>(rd)); //normal order
 					closeResultSet(rs2);
 				} while (rs.next());
 			}
@@ -727,6 +740,10 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 		
 	}
 	
+	public List<ArticleOutput> getOneThreadWeb(int threadId, String boardName) throws StorageBackendException {
+		return getOneThread(threadId, boardName, 1); //get 1 and 0 status
+		
+	}
 	
 	/**
 	 * Get one thread.
@@ -737,9 +754,9 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 	 * @return
 	 * @throws StorageBackendException when restart fail or no such thread
 	 */
-	public List<Article> getOneThread(int threadId, String boardName, int status) throws StorageBackendException {
+	public List<ArticleOutput> getOneThread(int threadId, String boardName, int status) throws StorageBackendException {
 		ResultSet rs = null;
-		List<Article> thread;
+		List<ArticleOutput> thread;
 		try {
 			this.pstmtGetOneThread.setInt(1, threadId);
 			this.pstmtGetOneThread.setInt(2, status); //status <= ?
@@ -753,9 +770,9 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			if(!rs.next())
 					throw new StorageBackendException("no such thread");
 			else{
-				thread = new ArrayList<Article>();
+				thread = new ArrayList<ArticleOutput>();
 				do {
-					thread.add(new Article(rs.getInt(1), threadId, rs.getString(2), rs.getString(3), rs.getString(4),
+					thread.add(ArticleFactory.crAOutput(rs.getInt(1), threadId, rs.getString(2), rs.getString(3), rs.getString(4),
 							rs.getString(5), rs.getString(6), rs.getLong(7), null, boardName, rs.getString(8), null, rs.getInt(9)));
 				} while (rs.next());
 			}
@@ -913,15 +930,15 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 	}
 	
 	@Override
-	public Article getArticleWeb(String messageId, Integer id) throws StorageBackendException{
+	public ArticleOutput getArticleWeb(String messageId, Integer id) throws StorageBackendException{
 		return getArticle(messageId, id, 1);
 	};
 	
 	@Override
-	public Article getArticle(String messageId, Integer id, int status) throws StorageBackendException {
+	public ArticleOutput getArticle(String messageId, Integer id, int status) throws StorageBackendException {
 		assert(messageId != null || id != null);
 		ResultSet rs = null;
-		Article art = null;
+		ArticleOutput art = null;
 		try {
 			pstmtGetArticle.setString(1, messageId); //I don't knew how to setNull String
 			
@@ -941,7 +958,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 					System.out.println("#"+rs.getString(3)+"#");
 					media_type = media_type.trim();
 				}*/
-				art = new Article(rs.getInt(1), rs.getInt(2), rs.getString(3), rs.getString(4), 
+				art = ArticleFactory.crAOutput(rs.getInt(1), rs.getInt(2), rs.getString(3), rs.getString(4), 
 						rs.getString(5), rs.getString(6), rs.getString(7), rs.getLong(8), 
 						rs.getString(9), StorageManager.groups.getName(rs.getInt(10)), rs.getString(11), rs.getString(12), rs.getInt(13));
 			}
@@ -980,21 +997,22 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 		}
 	}
 	
-	public List<Article> indexLastArts(int status, int limit) throws StorageBackendException{
+	public List<ArticleForOverview> indexLastArts(int status, int limit) throws StorageBackendException{
 		ResultSet rs = null;
-		List<Article> arts = new ArrayList<>();   //reversed order
+		List<ArticleForOverview> arts = new ArrayList<>();   //reversed order
 		try {
 			//article.thread_id, article.id, article.message_id, article.post_time
 			pstmtIndexLastArts.setInt(1, status);
 			pstmtIndexLastArts.setInt(2, limit);//limit threads
 			rs = pstmtIndexLastArts.executeQuery(); //reversed order
 			
-			//1article.id, 2article.thread_id, 3article.message_id, 4article.subject, 5article.message,
-			//6article.post_time, 7thread.group_id, 8attachment.file_path, 9article.status
+			//1 thread.group_id, 2 article.id, 3 article.thread_id, 4 article.subject, 5 article.message, "
+			//6 attachment.file_path, 7 attachment.media_type, 8 article.status
 			while (rs.next()){
-				String gname = StorageManager.groups.getName(rs.getInt(7));
+				String gname = StorageManager.groups.getName(rs.getInt(1));
 				if (gname != null)
-					arts.add(new Article(rs.getInt(1), rs.getInt(2), rs.getString(3), null, null, rs.getString(4), rs.getString(5), rs.getLong(6), null, gname, rs.getString(8), null, rs.getInt(9))); //now in normal order
+					arts.add(ArticleFactory.crAForOverview(gname, rs.getInt(2), rs.getInt(3), rs.getString(4), rs.getString(5), 
+							rs.getString(6), rs.getString(7), rs.getInt(8))); //now in normal order
 			}
 			
 			this.restarts = 0; // Reset error count

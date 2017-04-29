@@ -36,8 +36,7 @@ import dibd.daemon.LineEncoder;
 import dibd.daemon.NNTPConnection;
 import dibd.daemon.NNTPConnection.BiConsumerMy;
 import dibd.storage.StorageManager;
-import dibd.storage.article.Article;
-import dibd.storage.article.Article.NNTPArticle;
+import dibd.storage.article.ArticleForPush;
 
 /**
  * Posts an Article to a NNTP server using the IHAVE command with 1 sec waiting between header and body.
@@ -199,7 +198,7 @@ public class ArticlePusher {
 	 * @throws IOException
 	 * @return false already have true success
 	 */
-	public boolean writeArticle(Article art) throws IOException{
+	public boolean writeArticle(ArticleForPush art) throws IOException{
 		if (! prepareIHAVE(art.getMessageId()))
 			return false;
 		
@@ -208,7 +207,7 @@ public class ArticlePusher {
 		FileInputStream fis = StorageManager.nntpcache.getFileStream(art);
 		try{
 			if(fis == null){//local
-				NNTPArticle nart = art.buildNNTPMessage(this.charset, 0);
+				dibd.storage.article.NNTPArticle nart = art.buildNNTPMessage(this.charset, 0);
 				
 				if (nart.attachment != null){ //multipart
 					lineEncoder.encode(CharBuffer.wrap(nart.before_attach));

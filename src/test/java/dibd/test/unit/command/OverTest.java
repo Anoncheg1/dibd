@@ -13,31 +13,19 @@ import java.nio.charset.Charset;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-
-import javax.mail.internet.MimeUtility;
 
 import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
-import org.mockito.verification.VerificationMode;
-
 import dibd.daemon.NNTPInterface;
-import dibd.daemon.command.IhaveCommand;
 import dibd.daemon.command.OverCommand;
-import dibd.storage.GroupsProvider;
 import dibd.storage.ScrapLine;
 import dibd.storage.StorageManager;
 import dibd.storage.StorageNNTP;
 import dibd.storage.GroupsProvider.Group;
-import dibd.storage.article.Article;
 import dibd.test.unit.storage.TestingStorageProvider;
 import dibd.storage.StorageBackendException;
 

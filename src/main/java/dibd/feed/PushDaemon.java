@@ -27,7 +27,7 @@ import java.util.logging.Level;
 import dibd.config.Config;
 import dibd.daemon.DaemonThread;
 import dibd.storage.SubscriptionsProvider.Subscription;
-import dibd.storage.article.Article;
+import dibd.storage.article.ArticleForPush;
 import dibd.util.Log;
 
 /**
@@ -46,7 +46,7 @@ import dibd.util.Log;
 public class PushDaemon extends DaemonThread {
 	
 	//shared between PushDaemon of the same subscription 
-	private final LinkedBlockingQueue<Article> articleQueue;
+	private final LinkedBlockingQueue<ArticleForPush> articleQueue;
 	
 	private Subscription sub;
 	
@@ -56,7 +56,7 @@ public class PushDaemon extends DaemonThread {
 	 * @param sub
 	 * @param articleQueue shared per sub
 	 */
-	PushDaemon(Subscription sub, LinkedBlockingQueue<Article> articleQueue){
+	PushDaemon(Subscription sub, LinkedBlockingQueue<ArticleForPush> articleQueue){
 		this.sub = sub;
 		this.articleQueue = articleQueue;
 	}
@@ -66,7 +66,7 @@ public class PushDaemon extends DaemonThread {
 	 * 
 	 * @param article
 	 */
-	void queueForPush(Article article) {
+	void queueForPush(ArticleForPush article) {
 		try {
 			// If queue is full, this call blocks until the queue has free space;
 			// This is probably a bottleneck for article posting
@@ -82,7 +82,7 @@ public class PushDaemon extends DaemonThread {
 		while (isRunning()) {
 			int retries = 8;
 			
-			Article article;
+			ArticleForPush article;
 			try {
 				article = articleQueue.take();
 			} catch (InterruptedException ex) {

@@ -34,7 +34,10 @@ import dibd.storage.StorageNNTP;
 import dibd.storage.SubscriptionsProvider;
 import dibd.storage.GroupsProvider.Group;
 import dibd.storage.Headers;
-import dibd.storage.article.Article;
+import dibd.storage.article.ArticleFactory;
+import dibd.storage.article.ArticleForPush;
+import dibd.storage.article.ArticleInput;
+import dibd.storage.article.ArticleOutput;
 import dibd.test.unit.storage.TestingStorageProvider;
 //import dibd.test.unit.storage.TestingStorageProvider;
 import dibd.util.Log;
@@ -63,9 +66,9 @@ public class IHAVEandTAKETHISTest {
 		when(conn.getTLS()).thenReturn(tls);
 		when(tls.getPeerNames()).thenReturn(new String[]{"host"});
 		
-		Article art = Mockito.mock(Article.class);
-		when(storage.createThread((Article)Mockito.any(), (File)Mockito.any(), (String)Mockito.any(), (String)Mockito.any())).thenReturn(art);
-		when(storage.createReplay((Article)Mockito.any(), (File)Mockito.any(), (String)Mockito.any(), (String)Mockito.any())).thenReturn(art);
+		ArticleForPush art = Mockito.mock(ArticleForPush.class);
+		when(storage.createThread((ArticleInput)Mockito.any(), (File)Mockito.any())).thenReturn(art);
+		when(storage.createReplay((ArticleInput)Mockito.any(), (File)Mockito.any())).thenReturn(art);
 		
 		cache = Mockito.mock(NNTPCacheProvider.class);
 		StorageManager.enableNNTPCacheProvider(cache);
@@ -110,7 +113,7 @@ public class IHAVEandTAKETHISTest {
 	@Test
 	public void IhaveReplayTest() throws StorageBackendException, IOException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, ParseException{
 		Config.inst().set(Config.HOSTNAME, "not-in-path.com"); //added to path
-		Article art0 = Mockito.mock(Article.class);//empty
+		ArticleOutput art0 = Mockito.mock(ArticleOutput.class);//empty
 		when(storage.getArticle("<refmessageid@foo.bar>", null, 1)).thenReturn(art0);
 		when(art0.getId()).thenReturn( 105 );
 		when(art0.getThread_id()).thenReturn( 105 );
@@ -148,9 +151,9 @@ public class IHAVEandTAKETHISTest {
 
 		//Article art = new Article(thread_id, mId[0], mId[1], from, subjectT, message,
 		//date[0], path[0], groupHeader[0], group.getInternalID());
-		Article art = new Article(105, "<23456@host.com>", "host.com", "петрик <foo@bar.ano>", "ыффывфыв фыв фыв фыв фыв фыв фыв фыв фыв фыв фыв фы", "message",
-				Headers.ParseRawDate("Thu, 02 May 2013 12:16:44 +0000"), "hschan.ano!dontcare", "local.test", 23, 0);
-		verify(this.storage, atLeastOnce()).createReplay(art, null, null, null); //ReceivingService here
+		ArticleInput art = ArticleFactory.crAInput(105, "<23456@host.com>", "host.com", "петрик <foo@bar.ano>", "ыффывфыв фыв фыв фыв фыв фыв фыв фыв фыв фыв фыв фы", "message",
+				Headers.ParseRawDate("Thu, 02 May 2013 12:16:44 +0000"), "hschan.ano!dontcare", "local.test", 23, 0, null, null);
+		verify(this.storage, atLeastOnce()).createReplay(art, null); //ReceivingService here
 		verify(conn, atLeastOnce()).println(startsWith("235")); //article is accepted		
 
 	}
@@ -206,11 +209,11 @@ public class IHAVEandTAKETHISTest {
 		
 		//Article art = new Article(thread_id, mId[0], mId[1], from, subjectT, message,
 		//date[0], path[0], groupHeader[0], group.getInternalID());
-		Article art = new Article(null, "<23456@host.com>", "host.com", null, "subj", "message",
-				Headers.ParseRawDate("Thu, 02 May 2013 12:16:44 +0000"), "hschan.ano", "local.test", 23, 0);
+		ArticleInput art = ArticleFactory.crAInput(null, "<23456@host.com>", "host.com", null, "subj", "message",
+				Headers.ParseRawDate("Thu, 02 May 2013 12:16:44 +0000"), "hschan.ano", "local.test", 23, 0, "Blank.gif", "image/gif");
 		//InputStream is = new ByteArrayInputStream(Base64.getDecoder().decode("R0lGODlhAQABAIAAAP///wAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw=="));
 		verify(this.storage, atLeastOnce()).createThread(
-				Mockito.eq(art), Mockito.any(), Mockito.eq("image/gif"), Mockito.eq("Blank.gif")); //ReceivingService here
+				Mockito.eq(art), Mockito.any()); //ReceivingService here
 		verify(conn, atLeastOnce()).println(startsWith("235")); //article is accepted
 	}
 	
@@ -663,10 +666,10 @@ public class IHAVEandTAKETHISTest {
 		
 		//Article art = new Article(thread_id, mId[0], mId[1], from, subjectT, message,
 		//date[0], path[0], groupHeader[0], group.getInternalID());
-		Article art = new Article(null, "<23456@host.com>", "host.com", "user <user@localhost>", "ads", "asasd\nasd\nasd",
-				Headers.ParseRawDate("Tue, 06 Dec 2016 03:59:13 +0000"), "hschan.ano", "local.test", 23, 0);
+		ArticleInput art = ArticleFactory.crAInput(null, "<23456@host.com>", "host.com", "user <user@localhost>", "ads", "asasd\nasd\nasd",
+				Headers.ParseRawDate("Tue, 06 Dec 2016 03:59:13 +0000"), "hschan.ano", "local.test", 23, 0, "705730.png", "image/png");
 		verify(this.storage, atLeastOnce()).createThread(
-				Mockito.eq(art), Mockito.any(), Mockito.eq("image/png"), Mockito.eq("705730.png")); //ReceivingService here
+				Mockito.eq(art), Mockito.any()); //ReceivingService here
 		verify(conn, atLeastOnce()).println(startsWith("235")); //article is accepted
 	}
 	
@@ -678,7 +681,7 @@ public class IHAVEandTAKETHISTest {
         when(cache.createTMPfile(Mockito.anyString())).thenReturn(t);
 		
 		Config.inst().set(Config.HOSTNAME, "not-in-path.com"); //added to path
-		Article art0 = Mockito.mock(Article.class);//empty
+		ArticleOutput art0 = Mockito.mock(ArticleOutput.class);//empty
 		//when(storage.getArticle("<23456@host.com>", null)).thenReturn(art0);//ref
 		when(storage.getArticle("<refmessageid@foo.bar>", null, 1)).thenReturn(art0);//ref
 		when(art0.getId()).thenReturn( 105 );
@@ -716,9 +719,9 @@ public class IHAVEandTAKETHISTest {
 
 		//Article art = new Article(thread_id, mId[0], mId[1], from, subjectT, message,
 		//date[0], path[0], groupHeader[0], group.getInternalID());
-		Article art = new Article(105, "<23456@host.com>", "host.com", "петрик <foo@bar.ano>", "ыффывфыв фыв фыв фыв фыв фыв фыв фыв фыв фыв фыв фы ыффывфыв фыв фыв фыв фыв фыв фыв фыв фыв фыв фыв фы", "message",
-				Headers.ParseRawDate("Thu, 02 May 2013 12:16:44 +0000"), "hschan.ano!dontcare", "local.test", 23, 0);
-		verify(this.storage, atLeastOnce()).createReplay(art, null, null, null); //ReceivingService here
+		ArticleInput art = ArticleFactory.crAInput(105, "<23456@host.com>", "host.com", "петрик <foo@bar.ano>", "ыффывфыв фыв фыв фыв фыв фыв фыв фыв фыв фыв фыв фы ыффывфыв фыв фыв фыв фыв фыв фыв фыв фыв фыв фыв фы", "message",
+				Headers.ParseRawDate("Thu, 02 May 2013 12:16:44 +0000"), "hschan.ano!dontcare", "local.test", 23, 0, null, null);
+		verify(this.storage, atLeastOnce()).createReplay(art, null); //ReceivingService here
 		verify(conn, atLeastOnce()).println(startsWith("239")); //article is accepted		
 
 	}
@@ -785,12 +788,12 @@ public class IHAVEandTAKETHISTest {
 		
 		//Article art = new Article(thread_id, mId[0], mId[1], from, subjectT, message,
 		//date[0], path[0], groupHeader[0], group.getInternalID());
-		Article art = new Article(null, "<f282b1489970884@chan>", "host.com", "Anonymous <poster@chan>", "None", "should look like this",
-				Headers.ParseRawDate("Mon, 20 Mar 2017 00:48:04 +0000"), "chan", "overchan.random", 23, 0);
+		ArticleInput art = ArticleFactory.crAInput(null, "<f282b1489970884@chan>", "host.com", "Anonymous <poster@chan>", "None", "should look like this",
+				Headers.ParseRawDate("Mon, 20 Mar 2017 00:48:04 +0000"), "chan", "overchan.random", 23, 0, "asd.png", "image/gif");
 		
 		//InputStream is = new ByteArrayInputStream(Base64.getDecoder().decode("R0lGODlhAQABAIAAAP///wAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw=="));
 		verify(this.storage, atLeastOnce()).createThread(
-				art, Mockito.any(),"image/gif", "asd.png"); //ReceivingService here
+				art, Mockito.any()); //ReceivingService here
 		verify(conn, atLeastOnce()).println(startsWith("235")); //article is accepted
 	}
 	
@@ -851,11 +854,11 @@ public class IHAVEandTAKETHISTest {
 		
 		//Article art = new Article(thread_id, mId[0], mId[1], from, subjectT, message,
 		//date[0], path[0], groupHeader[0], group.getInternalID());
-		Article art = new Article(null, "<23456@host.com>", "host.com", null, "subj", "message",
-				Headers.ParseRawDate("Thu, 02 May 2013 12:16:44 +0000"), "hschan.ano", "local.test", 23, 0);
+		ArticleInput art = ArticleFactory.crAInput(null, "<23456@host.com>", "host.com", null, "subj", "message",
+				Headers.ParseRawDate("Thu, 02 May 2013 12:16:44 +0000"), "hschan.ano", "local.test", 23, 0, "Blank.gif", "image/gif");
 		//InputStream is = new ByteArrayInputStream(Base64.getDecoder().decode("R0lGODlhAQABAIAAAP///wAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw=="));
 		verify(this.storage, atLeastOnce()).createThread(
-				Mockito.eq(art), Mockito.any(), Mockito.eq("image/gif"), Mockito.eq("Blank.gif")); //ReceivingService here
+				Mockito.eq(art), Mockito.any()); //ReceivingService here
 		verify(conn, atLeastOnce()).println(startsWith("235")); //article is accepted
 	}
 	

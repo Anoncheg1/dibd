@@ -42,9 +42,8 @@ import java.util.logging.Level;
 
 import dibd.daemon.command.Command;
 import dibd.storage.StorageBackendException;
+import dibd.storage.article.NNTPArticle;
 import dibd.storage.GroupsProvider.Group;
-import dibd.storage.article.Article;
-import dibd.storage.article.Article.NNTPArticle;
 import dibd.util.Log;
 
 /**
@@ -67,7 +66,7 @@ public class NNTPConnection implements NNTPInterface{
     private Charset charset = StandardCharsets.UTF_8;
     private Command command = null;
     
-    private Article currentArticle = null;
+    //private Article currentArticle = null;
     private Group currentGroup = null;
     private volatile long lastActivity = System.currentTimeMillis();
     private final ChannelLineBuffers lineBuffers = new ChannelLineBuffers();
@@ -200,9 +199,9 @@ public class NNTPConnection implements NNTPInterface{
         return this.channel;
     }
 
-    public Article getCurrentArticle() {
+    /*public Article getCurrentArticle() {
         return this.currentArticle;
-    }
+    }*/
 
     public Charset getCurrentCharset() {
         return this.charset;
@@ -212,9 +211,9 @@ public class NNTPConnection implements NNTPInterface{
         return this.currentGroup;
     }
 
-    public void setCurrentArticle(final Article article) {
+    /*public void setCurrentArticle(final Article article) {
         this.currentArticle = article;
-    }
+    }*/
 
     public void setCurrentGroup(final Group group) {
         this.currentGroup = group;
@@ -226,6 +225,7 @@ public class NNTPConnection implements NNTPInterface{
 
     
     static private String nntpchankeepalive = "CHECK <keepalive@dummy.tld>"; //nntpchan shit
+    static private String nntpchankeepalive2 = "500 <keepalive@dummy.tld> ok"; //nntpchan shit
     
     /**
      * Due to the readLockGate there is no need to synchronize this method.
@@ -257,7 +257,7 @@ public class NNTPConnection implements NNTPInterface{
         	if(line.equals(nntpchankeepalive)){ //nntpchan required
         		try {
         			lastActivity = System.currentTimeMillis();
-        			this.println("500 keep alive ok.");
+        			this.println(nntpchankeepalive2);
         		} catch (IOException e) {
         			Log.get().log(Level.WARNING, e.getLocalizedMessage(), e);
         		}
@@ -405,7 +405,7 @@ public class NNTPConnection implements NNTPInterface{
     		//input
 			isb = new BufferedInputStream(i, 1024*512); //encoded to decoded
 			//output buffer without file
-			buf = new PipedInputStream(1024*8); //8k but 800b is enough
+			buf = new PipedInputStream(1024); //800b is enough
 			pos = new PipedOutputStream(buf);  
 			bos = Base64.getEncoder().wrap(pos);
 			
@@ -414,15 +414,20 @@ public class NNTPConnection implements NNTPInterface{
 			
 			int read = 0;
 			while ((read = isb.read(src)) != -1) {
-				byte[] rd = new byte[read]; //tmp buf
-				System.arraycopy(src, 0, rd, 0, read);
-				bos.write(rd);
+				bos.write(src, 0, read);
 				if ((read = buf.read(pinp)) != -1){
-					rd = new byte[read]; //tmp buf
+					byte[] rd = new byte[read]; //tmp buf
 					System.arraycopy(pinp, 0, rd, 0, read); 
 					//we dont knew which encoding is rd, we create string and pass to encoder to UTF-8
 					cStrMid.accept(new String(rd), mId); //write
 				}	
+			}
+			
+			bos.close();
+			if (buf.available() > 0 && (read = buf.read(pinp)) != -1){
+				byte[] rd = new byte[read]; //tmp buf
+				System.arraycopy(pinp, 0, rd, 0, read);
+				cStrMid.accept(new String(rd), mId); //write
 			}
 			
     	}finally{

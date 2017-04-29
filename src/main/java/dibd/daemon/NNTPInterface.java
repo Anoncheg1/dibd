@@ -6,8 +6,7 @@ import java.nio.channels.ClosedChannelException;
 import java.nio.charset.Charset;
 
 import dibd.storage.GroupsProvider.Group;
-import dibd.storage.article.Article;
-import dibd.storage.article.Article.NNTPArticle;
+import dibd.storage.article.NNTPArticle;
 
 
 /**
@@ -49,14 +48,14 @@ public interface NNTPInterface{
 	 */
 	Charset getCurrentCharset();
 
-	Article getCurrentArticle();
+	//Article getCurrentArticle();
 
 	/**
 	 * @return may be null
 	 */
 	Group getCurrentGroup();
 
-	void setCurrentArticle(Article article);
+	//void setCurrentArticle(Article article);
 
 	void setCurrentGroup(Group group);
 	

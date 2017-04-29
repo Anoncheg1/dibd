@@ -22,7 +22,10 @@ import java.util.List;
 import java.util.Map;
 
 import dibd.storage.GroupsProvider.Group;
-import dibd.storage.article.Article;
+import dibd.storage.article.ArticleForOverview;
+import dibd.storage.article.ArticleForPush;
+import dibd.storage.article.ArticleInput;
+import dibd.storage.article.ArticleOutput;
 
 /**
  * A generic storage backend interface.
@@ -43,7 +46,7 @@ public interface StorageNNTP {
      * @return Article or null
      * @throws StorageBackendException
      */
-    Article getArticle(String message_id, Integer id, int status) throws StorageBackendException;
+    ArticleOutput getArticle(String message_id, Integer id, int status) throws StorageBackendException;
     
     /**
      * Simple id to message_id
@@ -77,14 +80,12 @@ public interface StorageNNTP {
 	 * Without repeat check.
 	 * 
 	 * @param article
-	 * @param bfile if bfile == null we assume that file was too large 
-	 * and we save it partially with status = 1. file_ct and file_name should not be null then. 
-	 * @param file_ct   - content-type
-	 * @param file_name
+	 * @param bfile if bfile == null and a.file_ct != null we assume that file was too large 
+	 * and we save it partially with status = 1. 
 	 * @throws StorageBackendException
 	 * @return article never null
 	 */	
-	Article createReplay(Article article, File file, String file_ct, String file_name)
+    ArticleForPush createReplay(ArticleInput article, File file)
 			throws StorageBackendException;
 	
 	/**
@@ -95,13 +96,12 @@ public interface StorageNNTP {
 	 * 
 	 * @param groupName
 	 * @param article
-	 * @param bfile if bfile == null we assume that file was too large 
-	 * and we save it partially with status = 1. file_ct and file_name should not be null then.
-	 * @param file_name
+	 * @param bfile if bfile == null and a.file_ct != null we assume that file was too large 
+	 * and we save it partially with status = 1.
 	 * @throws StorageBackendException
 	 * @return article never null
 	 */
-	Article createThread(Article article, File file, String file_ct, String file_name)
+	ArticleForPush createThread(ArticleInput article, File file)
 			throws StorageBackendException;
 	
 	/**
@@ -142,7 +142,7 @@ public interface StorageNNTP {
 	 * @return
 	 * @throws StorageBackendException if no such thread
 	 */
-	List<Article> getOneThread(int threadId, String boardName, int status) throws StorageBackendException;
+	List<ArticleOutput> getOneThread(int threadId, String boardName, int status) throws StorageBackendException;
 	
 	
 	/**
@@ -170,6 +170,6 @@ public interface StorageNNTP {
 	 * @return
 	 * @throws StorageBackendException
 	 */
-	List<Article> indexLastArts(int status, int limit) throws StorageBackendException;
+	List<ArticleForOverview> indexLastArts(int status, int limit) throws StorageBackendException;
 	
 }

@@ -8,7 +8,9 @@ import java.util.List;
 import java.util.Map;
 
 import dibd.storage.StorageBackendException;
-import dibd.storage.article.Article;
+import dibd.storage.article.ArticleForPush;
+import dibd.storage.article.ArticleOutput;
+import dibd.storage.article.ArticleWebInput;
 
 /**
  * A back-end interface designed for use in web front-end
@@ -28,7 +30,7 @@ public interface StorageWeb {
 	 * @return Article or null
 	 * @throws StorageBackendException
 	 */
-	Article getArticleWeb(String message_id, Integer id) throws StorageBackendException;
+	ArticleOutput getArticleWeb(String message_id, Integer id) throws StorageBackendException;
 	
 	/**
 	 * Get threads count(*) for groupId. Navigation bar. BoardService.
@@ -48,14 +50,11 @@ public interface StorageWeb {
 	 * and time for last 180 sec.
 	 * 
 	 * @param article
-	 * @param bfile if null file_ct should also be null
-	 * @param file_ct   -content-type
-	 * @param file_name
-	 * @throws internal Id
+	 * @param file if null file_ct should also be null
 	 * @throws StorageBackendException
-	 * @return null if exist or article with id.
+	 * @return null if exist
 	 */	
-	Article createReplayWeb(Article article, File file, String file_ct, String file_name)
+	ArticleForPush createReplayWeb(ArticleWebInput article, File file)
 			throws StorageBackendException;
 	
 	/**
@@ -63,16 +62,12 @@ public interface StorageWeb {
 	 * Return null if thread already exist with that hash
 	 * and time for last 180 sec.
 	 * 
-	 * @param groupName
 	 * @param article
-	 * @param bfile if null file_ct should also be null
-	 * @param file_ct   -content-type
-	 * @param file_name
-	 * @throws internal Id
+	 * @param file if null file_ct should also be null
 	 * @throws StorageBackendException
-	 * @return null if exist or article with id.
+	 * @return null if exist
 	 */
-	Article createThreadWeb(Article article, File file, String file_ct, String file_name)
+	ArticleForPush createThreadWeb(ArticleWebInput article, File file)
 			throws StorageBackendException;
 	
 	/**
@@ -86,7 +81,7 @@ public interface StorageWeb {
 	 * @return thread,rLeft
 	 * @throws StorageBackendException
 	 */
-	Map<ThRLeft<Article>, List<Article>> getThreads(int boardId, int boardPage, String boardName) throws StorageBackendException;
+	Map<ThRLeft<ArticleOutput>, List<ArticleOutput>> getThreads(int boardId, int boardPage, String boardName) throws StorageBackendException;
 	
 	/**
 	 * Get one thread. ThreadService.
@@ -96,11 +91,10 @@ public interface StorageWeb {
 	 * 
 	 * @param threadId
 	 * @param boardName for article attachment string
-	 * @param status
 	 * @return
 	 * @throws StorageBackendException if no such thread
 	 */
-	List<Article> getOneThread(int threadId, String boardName, int status) throws StorageBackendException;
+	List<ArticleOutput> getOneThreadWeb(int threadId, String boardName) throws StorageBackendException;
 	
 	/**
 	 * Get amount of rLeft for thread.

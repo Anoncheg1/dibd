@@ -1,45 +1,19 @@
-/*
- *   SONEWS News Server
- *   see AUTHORS for the list of contributors
- *
- *   a program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
- *   (at your option) any later version.
- *
- *   a program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with a program.  If not, see <http://www.gnu.org/licenses/>.
- */
 package dibd.storage.article;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.text.ParseException;
-import java.time.Instant;
 import java.util.Base64;
 import java.util.Objects;
 import java.util.Random;
-import java.util.logging.Level;
-
 import javax.mail.internet.MimeUtility;
 
 import dibd.config.Config;
 import dibd.daemon.NNTPConnection;
 import dibd.storage.AttachmentProvider;
-import dibd.storage.GroupsProvider.Group;
 import dibd.storage.Headers;
 import dibd.storage.StorageBackendException;
 import dibd.storage.StorageManager;
-import dibd.util.Log;
 
 /**
  * Represents a newsgroup article.
@@ -49,11 +23,13 @@ import dibd.util.Log;
  * 	protected 	Y 		Y 			Y 			N
  * 
  * We need Class and Subclass for Art.
+ * Article class should not be used in dibd. 
+ * Article class public only for ArticleWeb in web-frontend.
  * 
- * @author Vitalij Chepelev
- * @since ibsonews/0.1
+ * @author user
+ * @since dibd/0.1
  */
-public class Article { //extends ArticleHead
+public class Article implements ArticleWebInput, ArticleForPush, ArticleInput, ArticleOutput, ArticleForOverview{ //extends ArticleHead
 
 	 // visible to subclasses and self only
 	protected static class Art{	 //utf-16
@@ -94,7 +70,7 @@ public class Article { //extends ArticleHead
 	 * @param status 10
 	 * @throws ParseException 
 	 */
-	public Article(Integer thread_id, String messageId, String msgID_host, String a_name, String subject, String message, long date, String path_header, String groupName, int groupId, int status) throws ParseException{
+	/*public Article(Integer thread_id, String messageId, String msgID_host, String a_name, String subject, String message, long date, String path_header, String groupName, int groupId, int status) throws ParseException{
 		super();
 		
 		a = new Art();
@@ -110,9 +86,9 @@ public class Article { //extends ArticleHead
 		a.groupName = groupName;
 		a.groupId = groupId;
 		a.status = status; //null nothing, 1 - file too large
-		
+
 		generateHash();
-	}
+	}*/
 
 	/**
 	 * Creates a new Article object OUTPUT. groupId no need, hash no need.
@@ -132,7 +108,7 @@ public class Article { //extends ArticleHead
 	 * @param fileFormat 12
 	 * @throws ParseException 
 	 */
-	public Article(Integer id, Integer thread_id, String messageId, String msgID_host, String a_name, String subject, String message, long post_time, String path_header, String groupName, String fileName, String fileFormat, int status){
+/*	public Article(Integer id, Integer thread_id, String messageId, String msgID_host, String a_name, String subject, String message, long post_time, String path_header, String groupName, String fileName, String fileFormat, int status){
 		super();
 		
 		a = new Art();
@@ -149,7 +125,7 @@ public class Article { //extends ArticleHead
 		a.groupName = groupName;
 		a.fileFormat = fileFormat;
 		a.status = status;
-	}
+	}*/
 
 
 	/**
@@ -161,13 +137,13 @@ public class Article { //extends ArticleHead
 	 * @param messageId
 	 * @param mediaType can be null
 	 */
-	public Article(Article article, Integer id, String messageId, String filename, String contentType) {
+	/*public Article(ArticleInput article, Integer id, String messageId, String filename, String contentType) {
 		super();
 		
 		a = article.a;
 		assert (messageId != null);	//IMPORTANT
 		assert (id != null);			//IMPORTANT
-		
+
 			//a.msgID_random = Integer.toHexString(id) + a.post_time;
 			a.messageId = messageId; 
 			a.id = id;
@@ -176,7 +152,7 @@ public class Article { //extends ArticleHead
 			a.fileName = filename;
 			a.fileFormat = contentType;
 		}
-	}
+	}*/
 	
 	/**
 	 * For subclasses.
@@ -184,11 +160,22 @@ public class Article { //extends ArticleHead
 	 * 
 	 * @param article
 	 */
-	protected Article(Article article) {
+	protected Article(ArticleOutput article) {
 		super();
 		
-		a = article.a;
+		a = ((Article) article).a;
 		assert (a.id != null); //just for case
+	}
+	
+	
+	/**
+	 * For Factory 
+	 * 
+	 * @param art
+	 */
+	protected Article(Art a2) {
+		super();
+		a = a2;
 	}
 	
 	/**
@@ -202,7 +189,7 @@ public class Article { //extends ArticleHead
 	 * @param groupName
 	 * @param short_ref_messageId
 	 */
-	public Article(Integer thread_id, String a_name, String subject, String message, Group group){//, Map <String, String> short_ref_messageId) {
+	/*public Article(Integer thread_id, String a_name, String subject, String message, Group group){//, Map <String, String> short_ref_messageId) {
 		super();
 		
 		a = new Art();
@@ -227,10 +214,6 @@ public class Article { //extends ArticleHead
 				message = null;
 			else
 				message = message.replaceAll("\\s+$", ""); //we are more accurate with message. UTF-8 0 byte may appear..
-		/*else
-			for(Entry<String, String> ref : short_ref_messageId.entrySet())
-				message.replace(ref.getKey(), ref.getValue());*/
-			
 		
 		a.thread_id = thread_id;
 		a.message = message;
@@ -240,52 +223,16 @@ public class Article { //extends ArticleHead
 		a.post_time = nowEpoch.getEpochSecond();	
 		generateHash();
 		a.msgID_host = Config.inst().get(Config.HOSTNAME, null);
-	}
+	}*/
 	
-	private String escapeString(String str) {
+/*	private String escapeString(String str) {
         String nstr = str.replace("\r", "");
         nstr = nstr.replace('\n', ' ');
         nstr = nstr.replace('\t', ' ');
         return nstr.trim();
-    }
+    }*/
 
-	/**
-	 * Generates 4bytes MD5 hash for check of repeat.
-	 * used: groupId, subject, message(length < 10)
-	 * 
-	 */
-	private void generateHash(){
-		//String randomString;
-		MessageDigest md5;
-		try {
-			md5 = MessageDigest.getInstance("MD5");
-			md5.reset();
-			assert(a.groupId != 0);
-			byte [] g = new byte[] {
-					(byte)(a.groupId >>> 24),
-					(byte)(a.groupId >>> 16),
-					(byte)(a.groupId >>> 8),
-					(byte)a.groupId};
-			md5.update(g);
-			if ( a.subject != null)
-				md5.update(a.subject.getBytes(Charset.availableCharsets().get("UTF-16")));
-			if ( a.message != null)
-			md5.update((a.message.length() > 10 ? a.message.substring(0, 10) : a.message )
-					.getBytes(Charset.availableCharsets().get("UTF-16")));
-			byte[] result = md5.digest();
-			a.hash=0;
-			for (int i = 0; i < result.length/8; i++) { //MD5 16byte*8=128bits  16/4=4bytes - int
-				//hexString.append(Integer.toHexString(0xFF & result[i]));
-				a.hash += (0xFF & result[i]) << i*8;
-			}
-			//randomString = hexString.toString();
-		} catch (NoSuchAlgorithmException ex) {
-			Log.get().log(Level.SEVERE, ex.getLocalizedMessage(), ex);
-			//randomString = UUID.randomUUID().toString();
-		}
-		//String msgID = "<" + randomString + post_time*128 + "@"
-		//        + msgID_origin + ">";
-	}
+
 		
 
 	public Integer getId() {
@@ -350,6 +297,10 @@ public class Article { //extends ArticleHead
 		return a.groupId;
 	}
 
+	public String getFileCT() {
+		return a.fileFormat;
+	}
+	
 	public String getFileName() {
 		return a.fileName;
 	}
@@ -370,36 +321,6 @@ public class Article { //extends ArticleHead
 	
 	public Integer getStatus() {
 		return a.status;
-	}
-	
-	
-	
-	
-	public static class NNTPArticle {
-		/**
-		 * if not multipart may contain full article 
-		 * if command HEAD only head
-		 */
-		final public String before_attach;
-		/**
-		 * if multipart it must be file.
-		 */
-		final public File attachment;
-		/**
-		 * may be null
-		 */
-		final public String after_attach;
-		
-		/**
-		 * @param before_attach
-		 * @param attachment
-		 * @param after_attach
-		 */
-		public NNTPArticle(String before_attach, File attachment, String after_attach) {
-			this.before_attach = before_attach;
-			this.attachment = attachment;
-			this.after_attach = after_attach;
-		}
 	}
 	
 	

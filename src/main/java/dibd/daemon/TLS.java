@@ -521,7 +521,7 @@ public class TLS{
 			   knowledge obtained from the client, such as the current newsgroup and
 			   article number, that was not obtained from the TLS negotiation
 			   itself.*/	
-			conn.setCurrentArticle(null);
+			//conn.setCurrentArticle(null);
 			conn.setCurrentGroup(null);
 			conn.updateLastActivity();
 			

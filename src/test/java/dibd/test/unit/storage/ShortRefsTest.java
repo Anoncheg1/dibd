@@ -6,23 +6,18 @@ package dibd.test.unit.storage;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.when;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import dibd.daemon.NNTPInterface;
 import dibd.storage.StorageBackendException;
 import dibd.storage.StorageManager;
 import dibd.storage.StorageNNTP;
 import dibd.storage.GroupsProvider.Group;
-import dibd.storage.article.Article;
+import dibd.storage.article.ArticleFactory;
+import dibd.storage.article.ArticleOutput;
 import dibd.storage.web.ShortRefParser;
 import dibd.storage.web.StorageWeb;
 import dibd.storage.web.WebRef;
@@ -49,7 +44,7 @@ public class ShortRefsTest {
 	@Test
     public void getGlobalRefsTest() throws StorageBackendException{
 		
-		Article art = new Article(17, 16, "<aaa@hos.com>", "host.com", null, "сабджект", "фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы", 
+		ArticleOutput art = ArticleFactory.crAOutput(17, 16, "<aaa@hos.com>", "host.com", null, "сабджект", "фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы", 
 				1466589502, "host!host2", "group", null, null, 1); //without image
 		Mockito.when(db.getArticleWeb("<aaa@hos.com>", null)).thenReturn(art);
 		
@@ -64,7 +59,7 @@ public class ShortRefsTest {
 	@Test
     public void getShortRefsTest() throws StorageBackendException{
 		
-		Article art = new Article(16*16*16, 2, "<aaa@hos.com>", "host.com", null, "сабджект", "фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы", 
+		ArticleOutput art = ArticleFactory.crAOutput(16*16*16, 2, "<aaa@hos.com>", "host.com", null, "сабджект", "фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы\nфывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы фывфывфы", 
 				1466589502, "host!host2", "group", null, null, 1); //without image
 		Mockito.when(db.getArticleWeb(null, 16*16*16)).thenReturn(art);
 		

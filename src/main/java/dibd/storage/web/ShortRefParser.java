@@ -20,7 +20,7 @@ import dibd.daemon.NNTPConnection;
 import dibd.storage.GroupsProvider.Group;
 import dibd.storage.StorageBackendException;
 import dibd.storage.StorageManager;
-import dibd.storage.article.Article;
+import dibd.storage.article.ArticleOutput;
 import dibd.util.Log;
 
 /**
@@ -55,7 +55,7 @@ public class ShortRefParser {
 				if (! done.contains(mg2)){
 					int id = Integer.parseInt(matcher.group(2),16);
 
-					Article art = db.getArticleWeb(null, id);
+					ArticleOutput art = db.getArticleWeb(null, id);
 
 					if (art != null)
 						message = message.replace(matcher.group(1), art.getMessageId()); //replace all
@@ -91,7 +91,7 @@ public class ShortRefParser {
 			while (matcher.find()) {
 				
 				String mIdmatch = matcher.group();
-				Article art;
+				ArticleOutput art;
 				try {
 					art = db.getArticleWeb(mIdmatch, null);  //diff
 				} catch (StorageBackendException e) {

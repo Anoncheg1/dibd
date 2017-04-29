@@ -27,7 +27,6 @@ import dibd.storage.StorageManager;
 import dibd.storage.StorageNNTP;
 import dibd.storage.SubscriptionsProvider;
 import dibd.storage.GroupsProvider.Group;
-import dibd.storage.article.Article;
 
 /**
  * RecievingService class test too.

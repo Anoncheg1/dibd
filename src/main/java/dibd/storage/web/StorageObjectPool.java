@@ -12,7 +12,9 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import dibd.storage.StorageBackendException;
-import dibd.storage.article.Article;
+import dibd.storage.article.ArticleForPush;
+import dibd.storage.article.ArticleOutput;
+import dibd.storage.article.ArticleWebInput;
 import dibd.storage.impl.JDBCDatabase;
 
 /**
@@ -49,13 +51,13 @@ public class StorageObjectPool implements StorageWeb {
 	}
 
 	@Override
-	public Article getArticleWeb(String message_id, Integer id) throws StorageBackendException {
+	public ArticleOutput getArticleWeb(String message_id, Integer id) throws StorageBackendException {
 		StorageWeb db = null;
 		Lock l = locks[0];
 		l.lock();
 		try{
 			db = fixedStoragePool.remove();
-			Article ret = db.getArticleWeb(message_id, id);
+			ArticleOutput ret = db.getArticleWeb(message_id, id);
 			return ret;
 		}finally{
 			if( db != null)
@@ -81,14 +83,14 @@ public class StorageObjectPool implements StorageWeb {
 	}
 
 	@Override
-	public Article createReplayWeb(Article article, File file, String file_ct, String file_name)
+	public ArticleForPush createReplayWeb(ArticleWebInput article, File file)
 			throws StorageBackendException {
 		StorageWeb db = null;
 		Lock l = locks[2];
 		l.lock();
 		try{
 			db = fixedStoragePool.remove();
-			Article ret = db.createReplayWeb(article, file, file_ct, file_name);
+			ArticleForPush ret = db.createReplayWeb(article, file);
 			return ret;
 		}finally{
 			if( db != null)
@@ -98,14 +100,14 @@ public class StorageObjectPool implements StorageWeb {
 	}
 
 	@Override
-	public Article createThreadWeb(Article article, File file, String file_ct, String file_name)
+	public ArticleForPush createThreadWeb(ArticleWebInput article, File file)
 			throws StorageBackendException {
 		StorageWeb db = null;
 		Lock l = locks[3];
 		l.lock();
 		try{
 			db = fixedStoragePool.remove();
-			Article ret = db.createThreadWeb(article, file, file_ct, file_name);
+			ArticleForPush ret = db.createThreadWeb(article, file);
 			return ret;
 		}finally{
 			if( db != null)
@@ -115,14 +117,14 @@ public class StorageObjectPool implements StorageWeb {
 	}
 
 	@Override
-	public Map<ThRLeft<Article>, List<Article>> getThreads(int boardId, int boardPage, String boardName)
+	public Map<ThRLeft<ArticleOutput>, List<ArticleOutput>> getThreads(int boardId, int boardPage, String boardName)
 			throws StorageBackendException {
 		StorageWeb db = null;
 		Lock l = locks[4];
 		l.lock();
 		try{
 			db = fixedStoragePool.remove();
-			Map<ThRLeft<Article>, List<Article>> ret = db.getThreads(boardId, boardPage, boardName);
+			Map<ThRLeft<ArticleOutput>, List<ArticleOutput>> ret = db.getThreads(boardId, boardPage, boardName);
 			return ret;
 		}finally{
 			if( db != null)
@@ -132,13 +134,13 @@ public class StorageObjectPool implements StorageWeb {
 	}
 
 	@Override
-	public List<Article> getOneThread(int threadId, String boardName, int status) throws StorageBackendException {
+	public List<ArticleOutput> getOneThreadWeb(int threadId, String boardName) throws StorageBackendException {
 		StorageWeb db = null;
 		Lock l = locks[5];
 		l.lock();
 		try{
 			db = fixedStoragePool.remove();
-			List<Article> ret = db.getOneThread(threadId, boardName, status);
+			List<ArticleOutput> ret = db.getOneThreadWeb(threadId, boardName);
 			return ret;
 		}finally{
 			if( db != null)
