@@ -1,5 +1,11 @@
 package dibd.storage.article;
 
+/**
+ * Creates a new Article object NNTP IHAVE, TAKETHIS input.
+ * 
+ * @author user
+ *
+ */
 public interface ArticleInput{
 	
 	public int getGroupId();

@@ -238,8 +238,9 @@ public class ArticleFactory {
 		return new Article(a);
 	}
 	
-	//JDBC indexLastArts
 	/**
+	 * JDBC indexLastArts
+	 * 
 	 * @param groupName 1
 	 * @param id 2
 	 * @param thread_id 3

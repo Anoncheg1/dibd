@@ -57,7 +57,7 @@ public class NNTPConnection implements NNTPInterface{
 
     public static final String NEWLINE = "\r\n"; // RFC defines this as newline
     //public static final String MESSAGE_ID_PATTERN = "<[^(>|@)]+@[^(>|@)]+>";//"<[^>]+>";
-    public static final String MESSAGE_ID_PATTERN = "<[\\w.$)]+@[\\w.-]+>";
+    public static final String MESSAGE_ID_PATTERN = "<[\\w\\.$]+@[\\w.-]+>";
     private static final Timer cancelTimer = new Timer(true); // Thread-safe?
                                                               // True for run as
                                                               // daemon

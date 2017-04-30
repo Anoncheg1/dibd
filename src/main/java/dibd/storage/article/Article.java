@@ -53,107 +53,6 @@ public class Article implements ArticleWebInput, ArticleForPush, ArticleInput, A
 
 	protected Art a; // visible to subclasses and self only
 	
-	
-	
-	/**
-	 * Creates a new Article object NNTP IHAVE, TAKETHIS input.
-	 * Group id is required!
-	 * @param thread_id 1
-	 * @param messageId 2
-	 * @param msgID_host 3
-	 * @param a_name 4
-	 * @param subject 5
-	 * @param message 6
-	 * @param date_raw 7
-	 * @param path_header 8
-	 * @param groupName 9
-	 * @param status 10
-	 * @throws ParseException 
-	 */
-	/*public Article(Integer thread_id, String messageId, String msgID_host, String a_name, String subject, String message, long date, String path_header, String groupName, int groupId, int status) throws ParseException{
-		super();
-		
-		a = new Art();
-		a.thread_id = thread_id;
-		//a.msgID_random = msgID_random;
-		a.messageId = messageId;
-		a.msgID_host = msgID_host;
-		a.a_name = a_name;
-		a.subject = subject;
-		a.message = message;
-		a.post_time = date;
-		a.path_header = path_header;
-		a.groupName = groupName;
-		a.groupId = groupId;
-		a.status = status; //null nothing, 1 - file too large
-
-		generateHash();
-	}*/
-
-	/**
-	 * Creates a new Article object OUTPUT. groupId no need, hash no need.
-	 * Only this constructor may be used with buildNNTPMessage and JDBCDatabase.createThread,replay output.
-	 * Output
-	 * @param id 1
-	 * @param thread_id 2
-	 * @param messageId 3
-	 * @param msgID_host 4
-	 * @param a_name 5
-	 * @param subject 6
-	 * @param message 7
-	 * @param post_time 8
-	 * @param path_header 9
-	 * @param groupName 10
-	 * @param fileName 11
-	 * @param fileFormat 12
-	 * @throws ParseException 
-	 */
-/*	public Article(Integer id, Integer thread_id, String messageId, String msgID_host, String a_name, String subject, String message, long post_time, String path_header, String groupName, String fileName, String fileFormat, int status){
-		super();
-		
-		a = new Art();
-		a.id = id;
-		a.thread_id = thread_id;
-		a.messageId = messageId;
-		a.msgID_host = msgID_host;
-		a.a_name = a_name;
-		a.subject = subject;
-		a.message = message;
-		a.post_time = post_time;
-		a.path_header = path_header;
-		a.fileName = fileName;
-		a.groupName = groupName;
-		a.fileFormat = fileFormat;
-		a.status = status;
-	}*/
-
-
-	/**
-	 * For feeding after storage. Namely in JDBCDatabase implementation.
-	 * Used when return after thread or replay stored.
-	 *  
-	 * @param article
-	 * @param id 
-	 * @param messageId
-	 * @param mediaType can be null
-	 */
-	/*public Article(ArticleInput article, Integer id, String messageId, String filename, String contentType) {
-		super();
-		
-		a = article.a;
-		assert (messageId != null);	//IMPORTANT
-		assert (id != null);			//IMPORTANT
-
-			//a.msgID_random = Integer.toHexString(id) + a.post_time;
-			a.messageId = messageId; 
-			a.id = id;
-		
-		if (contentType != null){
-			a.fileName = filename;
-			a.fileFormat = contentType;
-		}
-	}*/
-	
 	/**
 	 * For subclasses.
 	 * When call super in web-frontend after get threads and one thread. 
@@ -167,7 +66,6 @@ public class Article implements ArticleWebInput, ArticleForPush, ArticleInput, A
 		assert (a.id != null); //just for case
 	}
 	
-	
 	/**
 	 * For Factory 
 	 * 
@@ -177,71 +75,11 @@ public class Article implements ArticleWebInput, ArticleForPush, ArticleInput, A
 		super();
 		a = a2;
 	}
-	
-	/**
-	 * Creates a new Article object. www input, NNTP POST.
-	 * No message_id
-	 * @param thread_id - null if thread
-	 * @param a_name	may be null
-	 * @param subject	may be null
-	 * @param message	may be null
-	 * @param groupId
-	 * @param groupName
-	 * @param short_ref_messageId
-	 */
-	/*public Article(Integer thread_id, String a_name, String subject, String message, Group group){//, Map <String, String> short_ref_messageId) {
-		super();
-		
-		a = new Art();
-
-		//TODO:assert
-		assert(group != null);
-		
-		if (a_name != null)
-			if (a_name.isEmpty())
-				a_name = null;
-			else
-				a.a_name = escapeString(a_name);
-		
-		if (subject != null)
-			if (subject.isEmpty())
-				subject = null;
-			else
-				a.subject = escapeString(subject);
-		
-		if (message != null)
-			if (message.isEmpty())
-				message = null;
-			else
-				message = message.replaceAll("\\s+$", ""); //we are more accurate with message. UTF-8 0 byte may appear..
-		
-		a.thread_id = thread_id;
-		a.message = message;
-		a.groupId = group.getInternalID(); //for input
-		a.groupName = group.getName();
-		Instant nowEpoch = Instant.now();        
-		a.post_time = nowEpoch.getEpochSecond();	
-		generateHash();
-		a.msgID_host = Config.inst().get(Config.HOSTNAME, null);
-	}*/
-	
-/*	private String escapeString(String str) {
-        String nstr = str.replace("\r", "");
-        nstr = nstr.replace('\n', ' ');
-        nstr = nstr.replace('\t', ' ');
-        return nstr.trim();
-    }*/
-
-
-		
+			
 
 	public Integer getId() {
 		return a.id;
 	}
-
-	/*public String getMsgID_random() {
-		return a.msgID_random;
-	}*/
 
 	public String getMsgID_host() {
 		return a.msgID_host;
@@ -293,7 +131,6 @@ public class Article implements ArticleWebInput, ArticleForPush, ArticleInput, A
 
 	public int getGroupId() {
 		assert (a.groupId != 0);
-		//Log.get().log(Level.SEVERE, "Article.getGroupId():groupdId is 0.", new Throwable(""));
 		return a.groupId;
 	}
 
@@ -352,7 +189,6 @@ public class Article implements ArticleWebInput, ArticleForPush, ArticleInput, A
 	 */
 	public NNTPArticle buildNNTPMessage(Charset charset, int what) throws IOException {
 		assert (Config.inst().get(Config.HOSTNAME, null) != null);
-		//TODO: www input must not allow getSource()
 		
 		//subject folding max 78 word-encoded
 		//Content-Transfer-Encoding: 8bit for cyrilic
@@ -466,9 +302,6 @@ public class Article implements ArticleWebInput, ArticleForPush, ArticleInput, A
 		
 
 		
-		
-		
-		
 		//body preperation 
 		//if we have attachment or too long line we create messsageB64  
 		if (a.fileName != null || maxLength > lengthLimit){ //thunderbird like (about 990-995 for ASCII), (about 490-500 for UTF-8)
@@ -514,14 +347,6 @@ public class Article implements ArticleWebInput, ArticleForPush, ArticleInput, A
 			//empty line
 			buf2.append(nl);
 
-			//base64 encoded attachment
-			//TODO:decrease memory usage!!!
-			//TODO:decrease memory usage!!!
-			//TODO:decrease memory usage!!!
-			//TODO:decrease memory usage!!!
-			//TODO:decrease memory usage!!!
-			//byte[] f = StorageManager.attachments.readFile(a.groupName, a.fileName);
-			//byte[] eFile = Base64.getMimeEncoder(maxLine, nl.getBytes()).encode(f);
 			buf3 = new StringBuilder();
 			//buf3.append(new String(eFile)).append(nl);
 			buf3.append(nl);
@@ -541,9 +366,6 @@ public class Article implements ArticleWebInput, ArticleForPush, ArticleInput, A
 
 	}
 	
-	/*public byte[] getSource(Charset charset) throws IOException {
-		return getSource(charset, 0); //full
-	}*/
 	
 	//for testing
 	@Override
@@ -572,11 +394,4 @@ public class Article implements ArticleWebInput, ArticleForPush, ArticleInput, A
 		}
 	}
 	
-	/*public void setRaw(byte[] rawArticle) {
-		this.rawArticle = rawArticle;
-	}
-	
-	public byte[] getRaw() {
-		return this.rawArticle;
-	}*/
 }
