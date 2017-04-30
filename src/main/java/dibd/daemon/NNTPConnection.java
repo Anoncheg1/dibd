@@ -225,7 +225,7 @@ public class NNTPConnection implements NNTPInterface{
 
     
     static private String nntpchankeepalive = "CHECK <keepalive@dummy.tld>"; //nntpchan shit
-    static private String nntpchankeepalive2 = "500 <keepalive@dummy.tld> ok"; //nntpchan shit
+//    static private String nntpchankeepalive2 = "500 <keepalive@dummy.tld> ok"; //nntpchan shit. he don't want it.
     
     /**
      * Due to the readLockGate there is no need to synchronize this method.
@@ -249,17 +249,15 @@ public class NNTPConnection implements NNTPInterface{
 
         String line = new String(raw, this.charset);
 
-        // No trailing \r anymore
-
         if (command == null) { //waiting for command
         	if(line.charAt(0) == '5' || ! ascii.canEncode(line)) //mistaking 5xx responses, not ascii
         		return;
         	if(line.equals(nntpchankeepalive)){ //nntpchan required
-        		try {
+        		/*try {
         			this.println(nntpchankeepalive2);
         		} catch (IOException e) {
         			Log.get().log(Level.WARNING, e.getLocalizedMessage(), e);
-        		}
+        		}*/
         		return;
         	}
         	
