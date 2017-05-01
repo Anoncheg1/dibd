@@ -121,7 +121,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 
 			// Prepare statements for method deleteOneOldestThread()
 			//get all articles
-			//use status instead of message_id_host
+			//TODO:use status instead of message_id_host
 			this.pstmtDeleteOneOldestThread1 = conn
 					.prepareStatement("SELECT thread.thread_id, message_id, status, message_id_host FROM thread, article "
 							+ "WHERE article.thread_id = thread.thread_id AND last_post_time IN "
@@ -363,7 +363,8 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 				do {
 					//TODO:use status
 					//depricated
-					if (article.getInt(3) == 0){ //we delete only full articles
+					int status = article.getInt(3);
+					if (status == 0 || status == 3){ //we delete only full articles or hidden
 						String host = article.getString(4).trim();
 						if (! host.equals(Config.inst().get(Config.HOSTNAME, null))){
 							//groupName, message_id=thread.getString(2)

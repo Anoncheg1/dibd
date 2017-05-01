@@ -284,6 +284,8 @@ public class ArticlePuller {
 						reseived ++;
 					else if (re == 1 && errors++ >= 3)
 						throw new IOException("3 errors");//error
+					else if(re == 4) //skip thread
+						break;
 					//re == 3 do nothing
 				}
 
@@ -313,7 +315,7 @@ public class ArticlePuller {
 	 * 
 	 * @param ihavec
 	 * @param messageId
-	 * @return 0 if accepted 1 if error 2 if already have 3 do not repeat 
+	 * @return 0 if accepted 1 if error 2 if already have 3 do not repeat 4 skip thread
 	 * @throws IOException for any inappropriate input from remote host
 	 * @throws StorageBackendException
 	 */
@@ -405,9 +407,9 @@ public class ArticlePuller {
 			if(line.startsWith("235")) {
 				Log.get().log(Level.INFO, "{0} successfully received", messageId);
 				return 0;
-			} else if (line.equals(IhaveCommand.noRef)){//may happen if thread is refering to
+			} else if (line.equals(IhaveCommand.noRef)){
 				Log.get().log(Level.INFO, "PULL from {0} {1} no thread for replay, hidden maybe", new Object[]{this.host, messageId} );
-				return 3;
+				return 4;
 			}else
 				Log.get().log(Level.WARNING, "Pulling {0} from {1} self IHAVE: {2}", new Object[]{messageId, this.host, line});
 
