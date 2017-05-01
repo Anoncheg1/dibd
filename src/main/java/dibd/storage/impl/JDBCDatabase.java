@@ -120,9 +120,11 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 					.prepareStatement("SELECT article.id FROM article WHERE hash = ? AND post_time BETWEEN ? AND ?;");
 
 			// Prepare statements for method deleteOneOldestThread()
+			//get all articles
+			//use status instead of message_id_host
 			this.pstmtDeleteOneOldestThread1 = conn
-					.prepareStatement("SELECT thread.thread_id, message_id, message_id_host FROM thread, article "
-							+ "WHERE article.thread_id = thread.thread_id AND article.status = 0 AND last_post_time IN "
+					.prepareStatement("SELECT thread.thread_id, message_id, status, message_id_host FROM thread, article "
+							+ "WHERE article.thread_id = thread.thread_id AND last_post_time IN "
 							+ "(SELECT min(last_post_time) FROM thread WHERE group_id = ?);");
 			this.pstmtDeleteOneOldestThread2 = conn
 					.prepareStatement("SELECT file_path FROM attachment WHERE article_id IN "
@@ -344,7 +346,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			pstmtDeleteOneOldestThread1.setInt(1, groupId);
 			article = pstmtDeleteOneOldestThread1.executeQuery();
 			
-			if (article.next()){ //thread.thread_id(const), message_id, message_id_host
+			if (article.next()){ //thread.thread_id(const), message_id, status, message_id_host
 				int thread_id = article.getInt(1); 
 				//2) get file path for images in thread (status = 0)
 				pstmtDeleteOneOldestThread2.setInt(1, thread_id);
@@ -359,13 +361,19 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 				this.conn.setAutoCommit(true);
 				//4) delete nntp cache for every article of pstmtDeleteOneOldestThread1 request
 				do {
-					String host = article.getString(3).trim();
-					if (! host.equals(Config.inst().get(Config.HOSTNAME, null))){
-						//groupName, message_id=thread.getString(2)
-						StorageManager.nntpcache.delArticle(groupName, article.getString(2).trim());
+					//TODO:use status
+					//depricated
+					if (article.getInt(3) == 0){ //we delete only full articles
+						String host = article.getString(4).trim();
+						if (! host.equals(Config.inst().get(Config.HOSTNAME, null))){
+							//groupName, message_id=thread.getString(2)
+							StorageManager.nntpcache.delArticle(groupName, article.getString(2).trim());
+						}
 					}
 				}while(article.next());
 			}
+			
+			this.conn.setAutoCommit(true);//to be sure.
 			
 		} catch (SQLException ex) {
 			try {

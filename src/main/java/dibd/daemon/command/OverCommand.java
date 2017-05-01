@@ -141,7 +141,7 @@ public class OverCommand implements Command {
     	Group group = conn.getCurrentGroup();
         if (group == null) {
             conn.println("412 no newsgroup selected");
-        } else if ((Config.inst().get(Config.ALLOW_UNAUT_SCRAP, true) && Math.random()>0.4) || conn.isTLSenabled()){ //slow down xover for nntpchan 
+        } else if ((Config.inst().get(Config.ALLOW_UNAUT_SCRAP, true) && Math.random() > 0.3) || conn.isTLSenabled()){ //slow down xover for nntpchan 
         	conn.println("224 Overview information follows (multi-line)");
         	//int allThreads = Config.inst().get(Config.THREADS_PER_PAGE, 5) * Config.inst().get(Config.PAGE_COUNT, 6);
         	List<ScrapLine> slist = StorageManager.current().scrapGroup(group, Integer.MAX_VALUE);//no limit
