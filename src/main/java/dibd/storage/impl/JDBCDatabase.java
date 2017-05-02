@@ -110,7 +110,8 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 
 			//		     ************ WEB **********
 			// Prepare simple statements for method getThreadCountGroup and others
-			this.pstmtGetThreadCountGroup = conn.prepareStatement("SELECT count(*) FROM thread WHERE group_id = ?;");
+			this.pstmtGetThreadCountGroup = conn.prepareStatement("SELECT count(*) FROM thread, article WHERE thread.group_id = ?"
+					+ "AND thread.thread_id = article.id AND article.status <= 1;");
 			
 			// Prepare simple statements for method createThread() and createReplay()
 			this.pstmtGetId = conn.prepareStatement("SELECT id FROM article WHERE id = ?;");
@@ -214,6 +215,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 	
 	/**
 	 * Restart the JDBC connection to the Database server.
+	 * Never catch StorageBackendException of restartConnection.
 	 * 
 	 * @param cause
 	 * @throws StorageBackendException
@@ -229,6 +231,7 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 
 			// Throw the exception upwards
 			System.out.println("Database connection restart:"+restarts);
+			this.restarts = 0;
 			throw new StorageBackendException(cause);
 		}
 
@@ -283,7 +286,6 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			return repeatCheck(hash, post_time);
 		} finally {
 			closeResultSet(rs);
-			//this.restarts = 0; // we don not reset for private method
 		}
 	}
 
@@ -356,10 +358,9 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 				//3) delete full thread
 				pstmtDeleteOneOldestThread3.setInt(1, thread_id);
 				pstmtDeleteOneOldestThread3.executeUpdate();
-				// transaction end
-				this.conn.commit(); //I hope this will not close resultSet
-				this.conn.setAutoCommit(true);
+				
 				//4) delete nntp cache for every article of pstmtDeleteOneOldestThread1 request
+				//should not throw exception
 				do {
 					//TODO:use status
 					//depricated
@@ -373,8 +374,9 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 					}
 				}while(article.next());
 			}
-			
-			this.conn.setAutoCommit(true);//to be sure.
+			// transaction end
+			this.conn.commit();
+			this.conn.setAutoCommit(true);
 			
 		} catch (SQLException ex) {
 			try {
@@ -395,21 +397,18 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			closeResultSet(article);
 			//no oldest thread maybe at start
 			closeResultSet(file);
-			//this.restarts = 0; // we do not reset for private methods
 		}
 	}
 	
 	public int getThreadsCountGroup(int groupId) throws StorageBackendException {
 		ResultSet rs = null;
-		int ret = 0;
+		
 		try {
 			pstmtGetThreadCountGroup.setInt(1, groupId);
 			rs = pstmtGetThreadCountGroup.executeQuery();
-			if (rs.next())
-				ret = rs.getInt(1);
+			rs.next(); //always true
 			
-			this.restarts = 0; // Reset error count
-			return ret;
+			return rs.getInt(1);
 		} catch (SQLException ex) {
 			restartConnection(ex);
 			return getThreadsCountGroup(groupId);
@@ -550,7 +549,6 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			
 			this.conn.commit();
 			this.conn.setAutoCommit(true);
-			this.restarts = 0; // Reset error count
 			
 		} catch (IOException e) {
 			
@@ -645,7 +643,6 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 
 			this.conn.commit();
 			this.conn.setAutoCommit(true);
-			this.restarts = 0;
 			//return new Article(article, id, messageId, file_name, file_ct);
 		} catch (IOException e) {
 			Log.get().log(Level.SEVERE, "Can't save attachment: {0}", e);
@@ -672,7 +669,6 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			StorageManager.attachments.createThumbnail(groupName, file_name, file_ct);// not important
 		ObservableDatabase.inst().signal();
 		return ArticleFactory.crAForPush(article, id, messageId, file_name, file_ct);
-		
 	}
 
 	
@@ -730,7 +726,6 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			}
 			this.conn.commit();
 			this.conn.setAutoCommit(true);
-			this.restarts = 0; // Reset error count
 			return map;
 		} catch (SQLException ex) {
 			try {
@@ -744,7 +739,6 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 		} finally {
 			closeResultSet(rs);
 			closeResultSet(rs2);
-			
 		}
 		
 	}
@@ -786,7 +780,6 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 				} while (rs.next());
 			}
 			
-			this.restarts = 0; // Reset error count
 			return thread;
 		} catch (SQLException ex) {
 			restartConnection(ex);
@@ -811,7 +804,6 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 				count = -1;
 			else count -= 1; //minus thread
 			
-			//this.restarts = 0; // Reset error count //used inside
 			return count;
 		} catch (SQLException ex) {
 			restartConnection(ex);
@@ -831,7 +823,6 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			if(rs.next())
 				mId = rs.getString(1);
 			
-			//this.restarts = 0; // Reset error count/ used inside
 			return mId; //never null
 		} catch (SQLException ex) {
 			restartConnection(ex);
@@ -867,7 +858,6 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 					ret.put(mId, mId_above); //replay (mId_above never null)
 			}
 			
-			this.restarts = 0; // Reset error count
 			return ret; //may be empty
 		} catch (SQLException ex) {
 			restartConnection(ex);
@@ -906,7 +896,6 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			while (rs.next())
 				ret.add(rs.getInt(1));
 			
-			this.restarts = 0; // Reset error count
 			return ret;
 		} catch (SQLException ex) {
 			restartConnection(ex);
@@ -927,7 +916,6 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			if (rs.next())
 				ret = rs.getInt(1);
 			
-			this.restarts = 0; // Reset error count
 			return ret;
 		} catch (SQLException ex) {
 			restartConnection(ex);
@@ -972,7 +960,6 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 						rs.getString(9), StorageManager.groups.getName(rs.getInt(10)), rs.getString(11), rs.getString(12), rs.getInt(13));
 			}
 			
-			this.restarts = 0; // Reset error count
 			return art;
 		} catch (SQLException ex) {
 			restartConnection(ex);
@@ -996,7 +983,6 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 			while (rs.next())
 				sl.add(new ScrapLine(rs.getInt(1), rs.getString(3), rs.getLong(4))); //now in normal order
 			
-			this.restarts = 0; // Reset error count
 			return sl;
 		} catch (SQLException ex) {
 			restartConnection(ex);
@@ -1024,7 +1010,6 @@ public class JDBCDatabase implements StorageWeb, StorageNNTP {// implements Stor
 							rs.getString(6), rs.getString(7), rs.getInt(8))); //now in normal order
 			}
 			
-			this.restarts = 0; // Reset error count
 			return arts;
 		} catch (SQLException ex) {
 			restartConnection(ex);

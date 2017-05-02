@@ -66,9 +66,13 @@ public class NNTPCacheProvider {
 	 * @param messageId
 	 */
 	public void delArticle(String groupName, String messageId) {
+		try{
 		File fl = buildPath(groupName, messageId);
 		if(!fl.delete())
-			Log.get().log(Level.WARNING, "Fail to delete article: {0}", messageId);
+			Log.get().log(Level.WARNING, "Fail to delete cache article: {0}", messageId);
+		}catch(Exception e){
+			Log.get().log(Level.WARNING, "Delete cache article"+messageId+": {0}", e);
+		}
 	}
 	
 	
