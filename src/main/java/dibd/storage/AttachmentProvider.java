@@ -86,7 +86,7 @@ public class AttachmentProvider {
 	}
 	
 	public volatile String[] res = null; //used only in createThumbnail. must be locked with
-	public volatile String form = null; //used only in createThumbnail. must be locked with
+	public volatile String format = null; //used only in createThumbnail. must be locked with
 	public volatile boolean multi = false; //for gif if true multiframe 
 	
 	public void createThumbnail(String groupName, String fileName, String media_type){
@@ -113,7 +113,7 @@ public class AttachmentProvider {
 							String theString = scanner.hasNext() ? scanner.next() : "";
 							String[] ident = theString.split(" ");
 							res = ident[2].split("x");
-							form = ident[3];
+							format = ident[3];
 							if (ident[0].contains("["))
 								multi = true;
 								
@@ -131,14 +131,16 @@ public class AttachmentProvider {
 				boolean gif = media_type.toLowerCase().contains("gif");
 				
 				String forml;
-				boolean multi; 
+				boolean multi;
+				int width = 0;
+				int height = 0;
 				synchronized(this){ //rez lock
 					icmd.run(op);
 					
 					//check resolution is normal
 					if (res != null){
-						int width = Integer.parseInt(res[0]);
-						int height = Integer.parseInt(res[1]);
+						width = Integer.parseInt(res[0]);
+						height = Integer.parseInt(res[1]);
 						
 						if (width > 11000 || height > 11000) //TODO:make configurable
 							return; //ABORT
@@ -148,10 +150,11 @@ public class AttachmentProvider {
 								Files.copy(sourceFile.toPath(), thumbNailFile.toPath());
 								return;
 							}
-					}
+					}else
+						return;
 					res = null;
-					forml = this.form;
-					this.form = null;
+					forml = this.format;
+					this.format = null;
 					multi = this.multi;
 					this.multi = false;
 				}
@@ -164,10 +167,17 @@ public class AttachmentProvider {
 						op = new IMOperation();
 						op.addImage(sourceFile.getCanonicalPath());
 
-						if (gif && multi)
-							op.thumbnail(null,50);//horizontal and vertical density
-						else
-							op.thumbnail(null,200);//horizontal and vertical density
+						if (gif && multi){ //animated gif
+								if(width > height*2) //wide
+									op.thumbnail(50, null);//horizontal and vertical density
+								else if (height > 50) //normal
+									op.thumbnail(null, 50);//horizontal and vertical density
+						}else //any except animated gif
+							if(width > height*2) //wide
+								op.thumbnail(300, null);//horizontal and vertical density
+							else if (height > 200) //normal
+								op.thumbnail(null, 200);//horizontal and vertical density
+							
 						op.addImage(thumbNailFile.getCanonicalPath());
 						//System.out.println(op.getCmdArgs());
 						cmd.run(op);
