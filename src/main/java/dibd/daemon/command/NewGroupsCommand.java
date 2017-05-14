@@ -85,8 +85,11 @@ public class NewGroupsCommand implements Command {
         						+ g.getFirstArticleNumber() + writeable);
         			}
         		}
+        		else
+        			conn.println("231 list of new newsgroups follows");
             // Currently we do not store a group's creation date;
             // so we return an empty list which is a valid response
+        	
             conn.println(".");
         } else {
             conn.println("500 invalid command usage");
